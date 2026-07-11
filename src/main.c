@@ -6,6 +6,7 @@
 #include <raymath.h>
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -17,14 +18,17 @@
 
 #define GRAVITY 9.81
 #define PIXELS_PER_METER 50.0f
-#define SIZE_AMPLIFIER 6.0f
+#define SIZE_AMPLIFIER 3.0f
 #define SMOOTHING_RADIUS 65.0f
 
 #define TARGET_DENSITY 0.00112
 // TODO: Expirement with this
 #define VISCOSITY_COEFF 5000.0f
 
-#define FIXED_DT (1.0f / 60.0f) 
+#define FIXED_DT (1.0f / 60.0f)
+
+#define MAX_NEIGHBORS 256
+
 
 //
 // NOTE: Math
@@ -90,6 +94,32 @@ static inline float v2dot(struct v2 a, struct v2 b)
 {
 	return a.x * b.x + a.y * b.y;
 }
+
+struct v2u
+{
+	unsigned int x;
+	unsigned int y;
+};
+
+static inline struct v2u v2umake(unsigned int x, unsigned int y)
+{
+	return (struct v2u){x, y};
+}
+
+struct entry
+{
+	unsigned int particle_index;
+	unsigned int cell_key;	
+};
+
+static inline struct entry entrymake(unsigned int particle_index, unsigned int cell_key)
+{
+	return (struct entry){particle_index, cell_key};
+}
+
+// TODO: Make a simulation struct
+static struct entry *spatial_lookup;
+static unsigned int *start_indices;
 
 struct particle
 {
@@ -186,7 +216,7 @@ static struct v2 W_spiky_2d_gradient(struct v2 p_i, struct v2 p_j, float r)
 {
 	float d = v2dist(p_i, p_j);
 
-	if (d <= 0.0001f || d > r)
+	if (d <= SMOOTHING_RADIUS * 0.01f || d > r)
 	{
 		return v2make(0, 0);
 	}
@@ -230,9 +260,71 @@ static struct v2 W_viscosity_2d_gradient(struct v2 p_i, struct v2 p_j, float r)
 static float W_viscosity_laplacian(struct v2 p_i, struct v2 p_j, float r)
 {
     float d = v2dist(p_i, p_j);
-    if (d <= 0.0001f || d >= r) return 0.0f;
+    if (d <= SMOOTHING_RADIUS * 0.01f || d >= r) return 0.0f;
     
     return (45.0f / (PI * r * r * r * r * r * r)) * (r - d);
+}
+
+static inline struct v2u position_to_cell(struct v2 pos, float radius)
+{
+	unsigned int cell_x = (unsigned int)(pos.x / radius);
+	unsigned int cell_y = (unsigned int)(pos.y / radius);
+	return v2umake(cell_x, cell_y);	
+}
+
+static inline unsigned int cell_hash(struct v2u cell)
+{
+	unsigned int a = cell.x * 15823;
+	unsigned int b = cell.y * 9737333;
+	return (a + b) % MAX_PARTICLES;
+}
+
+static int neighbors_get(struct entry *spatial_lookup, unsigned int *start_indices, struct v2 pos, float radius, int *out_neighbors)
+{
+	assert(spatial_lookup);
+	assert(start_indices);
+	assert(out_neighbors);
+
+	int count = 0;
+	struct v2u center_cell = position_to_cell(pos, radius);
+
+	for (int dy = -1; dy <= 1; dy++)
+	{
+		for (int dx = -1; dx <= 1; dx++)
+		{
+			int cx = (int)center_cell.x + dx;
+			int cy = (int)center_cell.y + dy;
+
+			if (cx < 0 || cy < 0)
+			{
+				continue;
+			}
+
+			struct v2u cell = v2umake((unsigned int)cx, (unsigned int)cy);
+			unsigned int key = cell_hash(cell);
+
+			unsigned int start = start_indices[key];
+			if (start == UINT32_MAX)
+			{
+				continue;
+			}
+
+			for (int i = start; i < MAX_PARTICLES; i++)
+			{
+				if (spatial_lookup[i].cell_key != key)
+				{
+					break;	
+				}
+
+				if (count < MAX_NEIGHBORS)
+				{
+					out_neighbors[count++] = spatial_lookup[i].particle_index;
+				}
+			}
+		}
+	}
+
+	return count;
 }
 
 static float particle_calc_density(struct particle *particles, int particle_index)
@@ -250,9 +342,12 @@ static float particle_calc_density(struct particle *particles, int particle_inde
 	
 	float density = 0.0f;
 
-	for (int i = 0; i < MAX_PARTICLES; i++)
+	int neighbors[MAX_NEIGHBORS];
+	int count = neighbors_get(spatial_lookup, start_indices, p_i->pos, SMOOTHING_RADIUS, neighbors);
+
+	for (int n = 0; n < count; n++)
 	{
-		struct particle *p_j = &particles[i];
+		struct particle *p_j = &particles[neighbors[n]];
 		assert(p_j);
 
 		if (!p_j->valid)
@@ -294,23 +389,8 @@ static inline float particle_calc_pressure(struct particle *p)
 	float term1 = p->density / TARGET_DENSITY;
 	term1 = term1 * term1 * term1 * term1 * term1 * term1 * term1;
 
-	float result = k * (term1 - 1);
-
-	return result < 0.0f ? 0.0f : result;
+	return k * (term1 - 1);
 }
-
-/*
-// NOTE: normalized linear Equation of State (EOS)
-static inline float particle_calc_pressure(struct particle *p)
-{
-	assert(p);
-
-	const float k = 500.0f;
-	float result = k * ((p->density / TARGET_DENSITY) - 1.0f);
-
-	return result < 0.0f ? 0.0f : result;
-}
-*/
 
 static struct v2 particle_calc_pressure_gradient(struct particle *particles, int particle_index)
 {
@@ -326,15 +406,18 @@ static struct v2 particle_calc_pressure_gradient(struct particle *particles, int
 	}
 
 	struct v2 gradient = v2make(0, 0);
+	
+	int neighbors[MAX_NEIGHBORS];
+	int count = neighbors_get(spatial_lookup, start_indices, p_i->pos, SMOOTHING_RADIUS, neighbors);
 
-	for (int i = 0; i < MAX_PARTICLES; i++)
+	for (int n = 0; n < count; n++)
 	{
-		if (particle_index == i)
+		if (particle_index == neighbors[n])
 		{
 			continue;
 		}
 
-		struct particle *p_j = &particles[i];
+		struct particle *p_j = &particles[neighbors[n]];
 		assert(p_j);
 
 		if (!p_j->valid)
@@ -368,15 +451,18 @@ static struct v2 particle_calc_velocity_laplacian(struct particle *particles, in
 	}
 
 	struct v2 force = v2make(0, 0);
+	
+	int neighbors[MAX_NEIGHBORS];
+	int count = neighbors_get(spatial_lookup, start_indices, p_i->pos, SMOOTHING_RADIUS, neighbors);
 
-	for (int i = 0; i < MAX_PARTICLES; i++)
+	for (int n = 0; n < count; n++)
 	{
-		if (particle_index == i)
+		if (particle_index == neighbors[n])
 		{
 			continue;
 		}
 
-		struct particle *p_j = &particles[i];
+		struct particle *p_j = &particles[neighbors[n]];
 		assert(p_j);
 
 		if (!p_j->valid)
@@ -411,10 +497,54 @@ static struct v2 particle_calc_velocity_laplacian(struct particle *particles, in
 	return force;
 }
 
+static int entry_compare(const void *a, const void *b)
+{
+	struct entry e0 = *(struct entry *)a;
+	struct entry e1 = *(struct entry *)b;
+
+	return (int)e0.cell_key - (int)e1.cell_key;
+}
+
+static void spatial_lookup_update(struct entry *spatial_lookup, unsigned int *start_indices, struct particle *particles)
+{
+	assert(spatial_lookup);
+	assert(start_indices);
+	assert(particles);
+
+	for (int i = 0; i < MAX_PARTICLES; i++)
+	{
+		struct particle *p = &particles[i];
+		assert(p);
+
+		if (!p->valid)
+		{
+			continue;
+		}
+
+		struct v2u cell = position_to_cell(p->pos, SMOOTHING_RADIUS);
+		unsigned int cell_key = cell_hash(cell);
+		spatial_lookup[i] = entrymake(i, cell_key);
+		start_indices[i] = UINT32_MAX;
+	}
+
+	qsort(spatial_lookup, MAX_PARTICLES, sizeof(struct entry), entry_compare);
+
+	for (int i = 0; i < MAX_PARTICLES; i++)
+	{
+		unsigned int key = spatial_lookup[i].cell_key;
+		unsigned int key_prev = (i == 0) ? UINT32_MAX : spatial_lookup[i - 1].cell_key;
+		if (key != key_prev)
+		{
+			start_indices[key] = i;
+		}
+	}
+}
+
 static void particles_update(struct particle *particles, float dt)
 {
 	assert(particles);
 
+	spatial_lookup_update(spatial_lookup, start_indices, particles);
 	particles_update_densities(particles);
 
 	for (int i = 0; i < MAX_PARTICLES; i++)
@@ -435,6 +565,7 @@ static void particles_update(struct particle *particles, float dt)
 		p->pos = v2add(p->pos, v2scale(p->vel, dt));
 	}
 
+	spatial_lookup_update(spatial_lookup, start_indices, particles);
 	particles_update_densities(particles);
 
 	for (int i = 0; i < MAX_PARTICLES; i++)
@@ -527,6 +658,10 @@ int main(void)
 	struct particle *particles = calloc(MAX_PARTICLES, sizeof(struct particle));
 	particles_init(particles);
 
+	spatial_lookup = calloc(MAX_PARTICLES, sizeof(struct entry));
+	start_indices = calloc(MAX_PARTICLES, sizeof(unsigned int));
+
+	spatial_lookup_update(spatial_lookup, start_indices, particles);
 	float density = particle_calc_density(particles, MAX_PARTICLES / 2);
 	printf("Target Density: %.5f\n", density);
 
@@ -559,6 +694,10 @@ int main(void)
 		
 		EndDrawing();
 	}
+
+	free(start_indices);
+	free(spatial_lookup);
+	free(particles);
 
 	CloseWindow();
 	return 0;
