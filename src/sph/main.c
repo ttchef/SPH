@@ -1,16 +1,19 @@
 
 
+#include <SDL3/SDL_init.h>
 #include <types.h>
+#include <sph/time.h>
+#include <vk/context.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-
 typedef struct AppState
 {
+    Time time;
     SDL_Window *window;
-    SDL_Renderer *renderer;
+    VulkanContext vulkan;
 } AppState;
 
 SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
@@ -20,6 +23,8 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         
     AppState *state = SDL_calloc(1, sizeof(AppState));
     assert(state);
+
+    *appstate = state;
     
     SDL_SetAppMetadata("SPH Simulation", "1.0", NULL);
 
@@ -28,13 +33,14 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    if (!SDL_CreateWindowAndRenderer("Sph", 640, 480, SDL_WINDOW_RESIZABLE, &state->window, &state->renderer)) {
-        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
+    state->window = SDL_CreateWindow("SPH", 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    assert(state->window);
+
+    if (!vulkan_init(&state->vulkan))
+    {
+        SDL_Log("[ENGINE] Failed to init vulkan.");
         return SDL_APP_FAILURE;
     }
-    SDL_SetRenderLogicalPresentation(state->renderer, 640, 480, SDL_LOGICAL_PRESENTATION_LETTERBOX);
-
-    *appstate = state;
 
     return SDL_APP_CONTINUE; 
 }
@@ -54,23 +60,20 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 {
     AppState *state = (AppState *)appstate;
     assert(state);
-    
-    const f64 now = ((f64)SDL_GetTicks()) / 1000.0;
-    const f32 red = (f32) (0.5 + 0.5 * SDL_sin(now));
-    const f32 green = (f32) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 2 / 3));
-    const f32 blue = (f32) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
-    SDL_SetRenderDrawColorFloat(state->renderer, red, green, blue, SDL_ALPHA_OPAQUE_FLOAT);
 
-    SDL_RenderClear(state->renderer);
+    time_update(&state->time);    
 
-    SDL_RenderPresent(state->renderer);
 
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
-    UNUSED(appstate);
     UNUSED(result);
+    
+    AppState *state = (AppState *)appstate;
+    assert(state);
+
+    vulkan_deinit(&state->vulkan);
 }
 
