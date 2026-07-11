@@ -1,8 +1,10 @@
 
+#include "types.h"
 #include <vk/context.h>
 
 #include <SDL3/SDL_vulkan.h>
 #include <SDL3/SDL_log.h>
+#include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
 
 #define MAX_EXTENSIONS 16
@@ -30,7 +32,7 @@ static bool instance_init(VulkanContext *ctx)
 	
 	VkApplicationInfo app_info = {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		// .apiVersion = VK_API_VERSION_1_3, // NOTE: required?
+		.apiVersion = VK_API_VERSION_1_3, // NOTE: required?
 		.engineVersion = VK_MAKE_VERSION(1, 0, 0),
 		.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 		.pEngineName = "SPH",
@@ -77,7 +79,97 @@ static bool instance_init(VulkanContext *ctx)
 	return true;
 }
 
-bool vulkan_init(VulkanContext *ctx)
+static bool surface_init(SDL_Window *window, VulkanContext *ctx)
+{
+	if (!SDL_Vulkan_CreateSurface(window, ctx->instance, NULL, &ctx->surface))
+	{
+		SDL_Log("[VULKAN] Failed to create surface.");
+		return false;
+	}
+	return true;
+}
+
+static bool physical_device_init(VulkanContext *ctx)
+{
+	assert(ctx);
+
+	u32 physcial_device_count;
+	vkEnumeratePhysicalDevices(ctx->instance, &physcial_device_count, NULL);
+
+	if (physcial_device_count == 0)
+	{
+		SDL_Log("[VULKAN] Didnt find any fitting GPU which supports vulkan.");
+		return false;
+	}
+
+	// NOTE: Who has more than 12 GPUs?
+	VkPhysicalDevice devs[12];
+	vkEnumeratePhysicalDevices(ctx->instance, &physcial_device_count, devs);
+
+	if (physcial_device_count > ARRAY_COUNT(devs))
+	{
+		SDL_Log("[VULKAN] Warning: You have (%u/%lu) GPUs only the first %lu will be examed.", physcial_device_count, ARRAY_COUNT(devs), ARRAY_COUNT(devs));
+		physcial_device_count = ARRAY_COUNT(devs);
+	}
+
+	for (u32 i = 0; i < physcial_device_count; i++)
+	{
+		VkPhysicalDevice dev = devs[i];
+
+		u32 queue_count;
+		vkGetPhysicalDeviceQueueFamilyProperties(dev, &queue_count, NULL);
+
+		VkQueueFamilyProperties props[8];
+		vkGetPhysicalDeviceQueueFamilyProperties(dev, &queue_count, props);
+		queue_count = MIN(queue_count, ARRAY_COUNT(props));
+
+		i32 graphics_index = -1;
+		i32 present_index = -1;
+
+		for (u32 j = 0; j < queue_count; j++)
+		{
+			if (props[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			{
+				graphics_index = j;
+			}
+
+			VkBool32 supported = VK_FALSE;
+			vkGetPhysicalDeviceSurfaceSupportKHR(dev, j, ctx->surface, &supported);
+
+			if (supported)
+			{
+				present_index = j;
+				if (graphics_index != -1)
+				{
+					break;
+				}
+			}
+		}
+
+		if (graphics_index != -1 && present_index != -1)
+		{
+			ctx->physical_device = dev;
+			ctx->graphics_queue.index = graphics_index;
+			ctx->present_queue.index = present_index;
+
+			break;
+		}
+		else if (i == physcial_device_count - 1)
+		{
+			SDL_Log("[VULKAN] Failed to find sutable GPU.");
+			return false;
+		}
+	}
+
+	VkPhysicalDeviceProperties props;
+	vkGetPhysicalDeviceProperties(ctx->physical_device, &props);
+
+	SDL_Log("[VULKAN] Picked GPU: %s", props.deviceName);
+
+	return true;
+}
+
+bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
 {
 	assert(ctx);
 
@@ -88,6 +180,8 @@ bool vulkan_init(VulkanContext *ctx)
 	}
 
 	CHECK(instance_init(ctx));
+	CHECK(surface_init(window, ctx));
+	CHECK(physical_device_init(ctx));
 
 #undef CHECK
 

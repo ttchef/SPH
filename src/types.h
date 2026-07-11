@@ -22,4 +22,6 @@ static_assert(sizeof(f32) == 4, "a f32 is not 4 bytes");
 static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 
 #define UNUSED(x) (void)(x);
-#define ARRAY_COUNT(x) (sizeof((x)[0]) / sizeof((x)))
+#define ARRAY_COUNT(x) (sizeof((x)) / sizeof((x)[0]))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))

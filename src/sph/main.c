@@ -1,7 +1,5 @@
 
 
-#include <SDL3/SDL_init.h>
-#include <types.h>
 #include <sph/time.h>
 #include <vk/context.h>
 
@@ -36,7 +34,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     state->window = SDL_CreateWindow("SPH", 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     assert(state->window);
 
-    if (!vulkan_init(&state->vulkan))
+    if (!vulkan_init(state->window, &state->vulkan))
     {
         SDL_Log("[ENGINE] Failed to init vulkan.");
         return SDL_APP_FAILURE;
