@@ -53,7 +53,11 @@ struct simulation
 {
 	struct entry *spatial_lookup;
 	unsigned int *start_indices;
-	struct particle *particles;	
+	struct particle *particles;
+
+	// NOTE: interactions settings
+	float radius;
+	float strength;
 };
 
 static inline void simulation_check(struct simulation *s)
@@ -160,6 +164,9 @@ static void simulation_init(struct simulation *s)
 	s->spatial_lookup = calloc(MAX_PARTICLES, sizeof(struct entry));
 	s->start_indices = calloc(MAX_PARTICLES, sizeof(unsigned int));
 
+	s->radius = SMOOTHING_RADIUS * 2;
+	s->strength = 2000.0f;
+
 	spatial_lookup_update(s);
 }
 
@@ -204,7 +211,7 @@ static struct v2 W_spiky_2d_gradient(struct v2 p_i, struct v2 p_j, float r)
 {
 	float d = v2dist(p_i, p_j);
 
-	if (d <= SMOOTHING_RADIUS * 0.01f || d > r)
+	if (d <= 0.0001f || d > r)
 	{
 		return v2make(0, 0);
 	}
@@ -212,45 +219,6 @@ static struct v2 W_spiky_2d_gradient(struct v2 p_i, struct v2 p_j, float r)
 	float scale = -3.0f / (PI * r * r * r * r) * (r - d) / d;
 
 	return v2scale(v2sub(p_i, p_j), scale);
-}
-
-static float W_viscosity_2d(struct v2 p_i, struct v2 p_j, float r)
-{
-	float d = v2dist(p_i, p_j);
-
-	if (d < 0 || d > r)
-	{
-		return 0.0f;
-	}
-
-	float normalization = (3 * PI * r * r) / 10;
-	float shape_func = -((d * d * d) / (2 * r * r * r)) + ((d * d) / (r * r)) + (r / (2 * d)) - 1;
-	shape_func = shape_func * shape_func;
-
-	return normalization * shape_func;
-}
-
-static struct v2 W_viscosity_2d_gradient(struct v2 p_i, struct v2 p_j, float r)
-{
-	const float step_size = 0.001f;
-
-	float dx = W_viscosity_2d(v2make(p_i.x + step_size, p_i.y), p_j, r) - W_viscosity_2d(p_i, p_j, r);	
-	float dy = W_viscosity_2d(v2make(p_i.x, p_i.y + step_size), p_j, r) - W_viscosity_2d(p_i, p_j, r);
-
-	struct v2 gradient = v2scale(v2make(dx, dy), 1 / step_size);
-
-	return gradient;
-}
-
-
-// NOTE: maybe not needed?
-//       special property no need to calculate from normal functions
-static float W_viscosity_laplacian(struct v2 p_i, struct v2 p_j, float r)
-{
-    float d = v2dist(p_i, p_j);
-    if (d <= SMOOTHING_RADIUS * 0.01f || d >= r) return 0.0f;
-    
-    return (45.0f / (PI * r * r * r * r * r * r)) * (r - d);
 }
 
 static int neighbors_get(struct simulation *s, struct v2 pos, float radius, int *out_neighbors)
@@ -362,7 +330,9 @@ static inline float particle_calc_pressure(struct particle *p)
 	float term1 = p->density / TARGET_DENSITY;
 	term1 = term1 * term1 * term1 * term1 * term1 * term1 * term1;
 
-	return k * (term1 - 1);
+	float pressure = k * (term1 - 1);
+
+	return pressure < 0.0f ? 0.0f : pressure;
 }
 
 static struct v2 particle_calc_pressure_gradient(struct simulation *s, int particle_index)
@@ -500,7 +470,7 @@ static void simulation_update(struct simulation *s, float dt)
 
 	bool lmb_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
 	bool rmb_down = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
-	float strength = lmb_down ? 2000.0f : -2000.0f;
+	float strength = lmb_down ? s->strength : -s->strength;
 	struct v2 mouse_pos = v2fromraylib(GetMousePosition());
 
 	for (int i = 0; i < MAX_PARTICLES; i++)
@@ -519,7 +489,7 @@ static void simulation_update(struct simulation *s, float dt)
 
 		if (lmb_down || rmb_down)
 		{
-			acc = v2add(acc, interaction_force(s, mouse_pos, SMOOTHING_RADIUS * 2, strength, i));
+			acc = v2add(acc, interaction_force(s, mouse_pos, s->radius, strength, i));
 		}
 
 		p->vel = v2add(p->vel, v2scale(acc, dt * 0.5f));
@@ -545,7 +515,7 @@ static void simulation_update(struct simulation *s, float dt)
 
 		if (lmb_down || rmb_down)
 		{
-			acc = v2add(acc, interaction_force(s, mouse_pos, SMOOTHING_RADIUS * 2, strength, i));
+			acc = v2add(acc, interaction_force(s, mouse_pos, s->radius, strength, i));
 		}
 		
 		p->vel = v2add(p->vel, v2scale(acc, dt * 0.5f));
@@ -631,7 +601,6 @@ int main(void)
 
 	struct simulation simulation = {0};
 	simulation_init(&simulation);
-
 	
 	float density = particle_calc_density(&simulation, MAX_PARTICLES / 2);
 	printf("Target Density: %.5f\n", density);
@@ -656,10 +625,47 @@ int main(void)
 			}
 		}
 
+		const float max_strength = 10000.0f;
+		if (IsKeyDown(KEY_LEFT_SHIFT))
+		{
+			float delta = GetMouseWheelMove();
+			simulation.radius += delta * 15.0f;
+		}
+		if (IsKeyDown(KEY_LEFT_CONTROL))
+		{
+			float delta = GetMouseWheelMove();
+			simulation.strength += delta * 100.0f;
+
+			if (simulation.strength < 0.0f)
+			{
+				simulation.strength = 0.0f;
+			}
+			else if (simulation.strength > max_strength)
+			{
+				simulation.strength = max_strength;
+			}
+		}
+
+		bool draw_radius = IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
+
 		BeginDrawing();
 		ClearBackground(BLACK);
 
 		particles_draw(simulation.particles);
+
+		if (draw_radius)
+		{
+			Vector2 mouse_pos = GetMousePosition();
+
+			float t = simulation.strength / max_strength;
+			Color c = (Color){
+				.a = 255,
+				.r = (unsigned char)(255.0f * t),
+				.g = (unsigned char)(255.0f * (1.0f - t)),
+				.b = 0,
+			};
+			DrawCircleLinesV(mouse_pos, simulation.radius, c);
+		}
 
 		DrawFPS(10, 10);
 		
