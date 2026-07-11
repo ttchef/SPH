@@ -1,9 +1,6 @@
 
+#include <float.h>
 #include <raylib.h>
-
-// NOTE: dont wanna use this cooked thingy
-// just so i can have a good conversion func (see v2fromraylib function)
-#include <raymath.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,7 +22,7 @@
 // TODO: Expirement with this
 #define VISCOSITY_COEFF 5000.0f
 
-#define FIXED_DT (1.0f / 60.0f)
+#define FIXED_DT (1.0f / 240.0f)
 
 #define MAX_NEIGHBORS 256
 
@@ -473,12 +470,38 @@ static struct v2 particle_calc_velocity_laplacian(struct simulation *s, int part
 	return force;
 }
 
+static struct v2 interaction_force(struct simulation *s, struct v2 input_pos, float radius, float stength, int particle_index)
+{
+	simulation_check(s);
+	
+	struct v2 force = v2make(0, 0);
+	struct v2 delta = v2sub(input_pos, s->particles[particle_index].pos);
+	
+	float dist_squared = v2dot(delta, delta);
+	if (dist_squared < radius * radius)
+	{
+		float dist = sqrtf(dist_squared);
+		struct v2 dir_to_input_point = (dist <= FLT_EPSILON) ? v2make(0, 0) : v2scale(delta, 1 / dist);
+
+		float center_t = 1 - (dist / radius);
+
+		force = v2sub(v2scale(dir_to_input_point, stength), v2scale(s->particles[particle_index].vel, center_t));
+	}
+
+	return force;
+}
+
 static void simulation_update(struct simulation *s, float dt)
 {
 	simulation_check(s);
 
 	spatial_lookup_update(s);
 	particles_update_densities(s);
+
+	bool lmb_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+	bool rmb_down = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
+	float strength = lmb_down ? 2000.0f : -2000.0f;
+	struct v2 mouse_pos = v2fromraylib(GetMousePosition());
 
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{
@@ -493,6 +516,11 @@ static void simulation_update(struct simulation *s, float dt)
 		struct v2 acc = v2make(0, GRAVITY * PIXELS_PER_METER);
 		acc = v2add(acc, particle_calc_pressure_gradient(s, i));
 		acc = v2add(acc, particle_calc_velocity_laplacian(s, i));
+
+		if (lmb_down || rmb_down)
+		{
+			acc = v2add(acc, interaction_force(s, mouse_pos, SMOOTHING_RADIUS * 2, strength, i));
+		}
 
 		p->vel = v2add(p->vel, v2scale(acc, dt * 0.5f));
 		p->pos = v2add(p->pos, v2scale(p->vel, dt));
@@ -514,6 +542,11 @@ static void simulation_update(struct simulation *s, float dt)
 		struct v2 acc = v2make(0, GRAVITY * PIXELS_PER_METER);
 		acc = v2add(acc, particle_calc_pressure_gradient(s, i));
 		acc = v2add(acc, particle_calc_velocity_laplacian(s, i));
+
+		if (lmb_down || rmb_down)
+		{
+			acc = v2add(acc, interaction_force(s, mouse_pos, SMOOTHING_RADIUS * 2, strength, i));
+		}
 		
 		p->vel = v2add(p->vel, v2scale(acc, dt * 0.5f));
 

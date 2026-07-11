@@ -2,6 +2,10 @@
 #pragma once
 
 #include <types.h>
+
+// NOTE: dont wanna use this cooked thingy
+// just so i can have a good conversion func (see v2fromraylib function)
+#include <raymath.h>
 #include <math.h>
 
 struct v2
