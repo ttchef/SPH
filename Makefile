@@ -4,7 +4,7 @@ SRC_DIR := src
 CC := clang
 
 DEBUG_FLAGS := 
-CFLAGS := -Wall -Wextra -pedantic -O2
+CFLAGS := -Wall -Wextra -pedantic -O2 -Isrc
 LDFLAGS := -lraylib -lm
 
 SRC_FILES := $(SRC_DIR)/main.c
