@@ -1,19 +1,8 @@
 
-SRC_DIR := src
 
-CC := clang
+INCLUDE_PATHS := -Isrc
+CFLAGS := -Wall -Wextra -pedantic -std=c11 $(INCLUDE_PATHS)
+LDFLAGS := -lSDL3
 
-DEBUG_FLAGS := 
-CFLAGS := -Wall -Wextra -pedantic -O2 -Isrc
-LDFLAGS := -lraylib -lm
-
-SRC_FILES := $(SRC_DIR)/main.c
-EXE := main
-
-all: debug
-
-debug:
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SRC_FILES) -o $(EXE) $(LDFLAGS)
-
-release:
-	$(CC) $(CFLAGS) $(SRC_FILES) -o $(EXE) $(LDFLAGS)
+all:
+	clang src/new_main.c $(CFLAGS) -o main $(LDFLAGS)

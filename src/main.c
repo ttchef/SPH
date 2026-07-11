@@ -658,12 +658,28 @@ int main(void)
 			Vector2 mouse_pos = GetMousePosition();
 
 			float t = simulation.strength / max_strength;
-			Color c = (Color){
-				.a = 255,
-				.r = (unsigned char)(255.0f * t),
-				.g = (unsigned char)(255.0f * (1.0f - t)),
-				.b = 0,
-			};
+
+			Color c = WHITE;
+
+			if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+			{
+				c = (Color){
+					.a = 255,
+					.r = (unsigned char)(255.0f * t),
+					.g = (unsigned char)(255.0f * (1.0f - t)),
+					.b = 0,
+				};			
+			}
+			else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+			{
+				c = (Color){
+					.a = 255,
+					.r = (unsigned char)(255.0f * t),
+					.g = 0,
+					.b = (unsigned char)(255.0f * (1.0f - t)),
+				};
+			}
+
 			DrawCircleLinesV(mouse_pos, simulation.radius, c);
 		}
 
