@@ -1,3 +1,5 @@
 main
 .ignore
 *.json
+*.spv
+src/shaders/spv/

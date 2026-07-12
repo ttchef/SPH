@@ -1,4 +1,5 @@
 
+#include "vk/pipeline.h"
 #include "vk/swapchain.h"
 #include <vk/context.h>
 
@@ -250,8 +251,14 @@ static bool logical_device_init(VulkanContext *ctx)
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,	
 	};
 
+	VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+		.dynamicRendering = VK_TRUE,	
+	};
+
 	VkDeviceCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		.pNext = &dynamic_rendering,
 		.queueCreateInfoCount = queue_count,
 		.pQueueCreateInfos = queue_infos,
 		.enabledExtensionCount = ARRAY_COUNT(device_extensions),
@@ -288,6 +295,7 @@ bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
 	CHECK(physical_device_init(ctx));
 	CHECK(logical_device_init(ctx));
 	CHECK(vulkan_swapchain_init(ctx, &ctx->swapchain, 600, 600));
+	CHECK(vulkan_pipeline_init(ctx, &ctx->triangle_pipeline));
 
 #undef CHECK
 
@@ -300,6 +308,7 @@ void vulkan_deinit(VulkanContext *ctx)
 
 	vkDeviceWaitIdle(ctx->device);
 
+	vulkan_pipeline_deinit(ctx, &ctx->triangle_pipeline);
 	vulkan_swapchain_deinit(ctx, &ctx->swapchain);
 
 	vkDestroySurfaceKHR(ctx->instance, ctx->surface, NULL);

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <assert.h>
 
 typedef int8_t i8;
@@ -17,6 +18,8 @@ typedef uint64_t u64;
 
 typedef float f32;
 typedef double f64;
+
+typedef size_t usize;
 
 static_assert(sizeof(f32) == 4, "a f32 is not 4 bytes");
 static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");

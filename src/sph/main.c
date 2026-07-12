@@ -27,7 +27,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     SDL_SetAppMetadata("SPH Simulation", "1.0", NULL);
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
+        SDL_Log("[ENGINE] Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
