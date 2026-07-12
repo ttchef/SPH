@@ -159,6 +159,8 @@ void vulkan_buffer_deinit(VulkanContext *ctx, VulkanBuffer *buffer)
 	assert(ctx);
 	assert(buffer);
 
-	vkFreeMemory(ctx->device, buffer->memory, NULL);
+	vkDeviceWaitIdle(ctx->device);
+
 	vkDestroyBuffer(ctx->device, buffer->handle, NULL);
+	vkFreeMemory(ctx->device, buffer->memory, NULL);
 }

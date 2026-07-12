@@ -6,6 +6,8 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
+#include <math/matrix.h>
+
 bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handler)
 {
 	assert(ctx);
@@ -68,7 +70,7 @@ bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handl
 }
 
 // TODO: not hardcode vertex buffer
-bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler, VulkanBuffer *vertex_buffer)
+bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler, VulkanBuffer *vertex_buffer, u32 width, u32 height)
 {
 	assert(ctx);
 	assert(handler);
@@ -153,7 +155,10 @@ bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *han
 	VkDeviceSize offsets = {0};
 	vkCmdBindVertexBuffers(frame_data->command_buffer, 0, 1, &vertex_buffer->handle, &offsets);
 
-    vkCmdDraw(frame_data->command_buffer, 3, 1, 0, 0);
+	M4 orthographic = m4orthographic(0, width, 0, height, -1.0f, 1.0f);
+	vkCmdPushConstants(frame_data->command_buffer, ctx->triangle_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(M4), &orthographic);
+
+    vkCmdDraw(frame_data->command_buffer, 306, 1, 0, 0);
 
     vkCmdEndRendering(frame_data->command_buffer);
 

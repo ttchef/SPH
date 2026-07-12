@@ -16,8 +16,8 @@ all: shaders debug
 
 shaders:
 	mkdir -p src/shaders/spv
-	glslc src/shaders/triangle.vert -fshader-stage=vert -o src/shaders/spv/triangle.vert.spv
-	glslc src/shaders/triangle.frag -fshader-stage=frag -o src/shaders/spv/triangle.frag.spv
+	glslc src/shaders/shader.vert -fshader-stage=vert -o src/shaders/spv/shader.vert.spv
+	glslc src/shaders/shader.frag -fshader-stage=frag -o src/shaders/spv/shader.frag.spv
 
 debug:
 	$(CC) $(SRC_FILES) $(CFLAGS) $(DEBUG_FLAGS) -o main $(LDFLAGS)

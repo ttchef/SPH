@@ -1,7 +1,7 @@
 
-#include "types.h"
 #include <vk/pipeline.h>
 #include <vk/context.h>
+#include <math/types.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
@@ -41,8 +41,8 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 	assert(ctx);
 	assert(pipeline);
 
-	VkShaderModule vertex_module = shader_module_init(ctx, "src/shaders/spv/triangle.vert.spv");
-	VkShaderModule fragment_module = shader_module_init(ctx, "src/shaders/spv/triangle.frag.spv");
+	VkShaderModule vertex_module = shader_module_init(ctx, "src/shaders/spv/shader.vert.spv");
+	VkShaderModule fragment_module = shader_module_init(ctx, "src/shaders/spv/shader.frag.spv");
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
 		{
@@ -67,16 +67,38 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 
 	VkVertexInputBindingDescription binding = {
 		.binding = 0,
-		.stride = sizeof(f32) * 2,
+		.stride = sizeof(f32) * 6,
 		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 	};
 
 	VkVertexInputAttributeDescription attributes[] = {
+		// NOTE: Position
 		{
 			.binding = 0,
 			.location = 0,
 			.format = VK_FORMAT_R32G32_SFLOAT,
 			.offset = 0,
+		},
+		// NOTE: Velocity
+		{
+			.binding = 0,
+			.location = 1,
+			.format = VK_FORMAT_R32G32_SFLOAT,
+			.offset = sizeof(f32) * 2,
+		},
+		// NOTE: Mass
+		{
+			.binding = 0,
+			.location = 2,
+			.format = VK_FORMAT_R32_SFLOAT,
+			.offset = sizeof(f32) * 4,
+		},
+		// NOTE: Density
+		{
+			.binding = 0,
+			.location = 3,
+			.format = VK_FORMAT_R32_SFLOAT,
+			.offset = sizeof(f32) * 5,
 		},	
 	};
 
@@ -152,15 +174,23 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 		.pDynamicStates = dynamic_states,	
 	};
 
+	VkPushConstantRange push_constant = {
+		.offset = 0,
+		.size = sizeof(M4),
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,	
+	};
+
 	VkPipelineLayoutCreateInfo layout_info = {
-		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,	
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pPushConstantRanges = &push_constant,
+		.pushConstantRangeCount = 1,
 	};
 
 	if (vkCreatePipelineLayout(ctx->device, &layout_info, NULL, &pipeline->layout) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
-	vkDestroyShaderModule(ctx->device, vertex_module, NULL);
-	vkDestroyShaderModule(ctx->device, fragment_module, NULL);
+		vkDestroyShaderModule(ctx->device, vertex_module, NULL);
+		vkDestroyShaderModule(ctx->device, fragment_module, NULL);
 		return false;
 	}
 
@@ -183,8 +213,8 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 	if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &info, NULL, &ctx->triangle_pipeline.handle) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create graphics pipeline.");
-	vkDestroyShaderModule(ctx->device, vertex_module, NULL);
-	vkDestroyShaderModule(ctx->device, fragment_module, NULL);
+		vkDestroyShaderModule(ctx->device, vertex_module, NULL);
+		vkDestroyShaderModule(ctx->device, fragment_module, NULL);
 		return false;
 	}
 

@@ -25,6 +25,6 @@ typedef struct VulkanCommandHandler
 
 bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handler);
 
-bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler, VulkanBuffer *vertex_buffer);
+bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler, VulkanBuffer *vertex_buffer, u32 width, u32 height);
 
 void vulkan_command_handler_deinit(VulkanContext *ctx, VulkanCommandHandler *handler);

@@ -41,6 +41,6 @@ bool vulkan_init(SDL_Window *window, VulkanContext *ctx);
 
 void vulkan_resize(VulkanContext *ctx, u32 w, u32 h);
 
-void vulkan_draw(SDL_Window *window, VulkanContext *ctx, VulkanBuffer *vertex_buffer);
+void vulkan_draw(VulkanContext *ctx, VulkanBuffer *vertex_buffer, u32 window_width, u32 window_height);
 
 void vulkan_deinit(VulkanContext *ctx);

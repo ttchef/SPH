@@ -9,11 +9,23 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#define START_WINDOW_WIDTH 1920
+#define START_WINDOW_HEIGHT 1080
+
+typedef struct Window
+{
+    SDL_Window *handle;
+
+    // NOTE: Automatically gets updated
+    u32 width;
+    u32 height;
+} Window;
+
 typedef struct AppState
 {
     Time time;
     Simulation simulation;
-    SDL_Window *window;
+    Window window;
     VulkanContext vulkan;
 } AppState;
 
@@ -34,16 +46,18 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    state->window = SDL_CreateWindow("SPH", 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
-    assert(state->window);
+    state->window.width = START_WINDOW_WIDTH;
+    state->window.height = START_WINDOW_HEIGHT;
+    state->window.handle = SDL_CreateWindow("SPH", START_WINDOW_WIDTH, START_WINDOW_HEIGHT, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    assert(state->window.handle);
 
-    if (!vulkan_init(state->window, &state->vulkan))
+    if (!vulkan_init(state->window.handle, &state->vulkan))
     {
         SDL_Log("[ENGINE] Failed to initialize vulkan.");
         return SDL_APP_FAILURE;
     }
 
-    if (!simulation_init(&state->vulkan, 800, 600, &state->simulation))
+    if (!simulation_init(&state->vulkan, START_WINDOW_WIDTH, START_WINDOW_HEIGHT, &state->simulation))
     {
         SDL_Log("[ENGINE] Failed to initialize simulation.");
         return SDL_APP_FAILURE;
@@ -66,7 +80,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     if (event->type == SDL_EVENT_WINDOW_RESIZED)
     {
 		i32 w, h;
-		SDL_GetWindowSize(state->window, &w, &h);
+		SDL_GetWindowSize(state->window.handle, &w, &h);
+        state->window.width = (u32)w;
+        state->window.height = (u32)h;
+		
         vulkan_resize(&state->vulkan, (u32)w, (u32)h);
     }
     return SDL_APP_CONTINUE;  
@@ -78,7 +95,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     assert(state);
 
     time_update(&state->time);    
-    vulkan_draw(state->window, &state->vulkan, &state->simulation.particles);
+    vulkan_draw(&state->vulkan, &state->simulation.particles, state->window.width, state->window.height);
 
     return SDL_APP_CONTINUE;
 }

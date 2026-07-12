@@ -1,12 +1,10 @@
 
-#include "vk/buffer.h"
-#include <SDL3/SDL_stdinc.h>
 #include <sph/simulation.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define PARTICLE_DISTANCE 30.0f
+#define PARTICLE_DISTANCE 40.0f
 
 bool simulation_init(VulkanContext *ctx, u32 window_width, u32 window_height, Simulation *simulation)
 {
@@ -25,7 +23,7 @@ bool simulation_init(VulkanContext *ctx, u32 window_width, u32 window_height, Si
 
 		*p = (Particle){
 			.mass = 1.0f,
-			.pos = v2((i % (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.x, (i / SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.y), 
+			.pos = v2((i % (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.x, ((u32)i / (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.y), 
 		};
 	}
 

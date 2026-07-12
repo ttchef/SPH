@@ -6,7 +6,7 @@
 
 #include <math/types.h>
 
-#define PARTICLE_COUNT 300
+#define PARTICLE_COUNT 306
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct Particle

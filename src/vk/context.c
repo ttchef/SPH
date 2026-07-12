@@ -313,9 +313,8 @@ void vulkan_resize(VulkanContext *ctx, u32 w, u32 h)
 	vulkan_swapchain_recreate(ctx, &ctx->swapchain, (u32)w, (u32)h, ctx->command_handler.accumulated_frame_index);
 }
 
-void vulkan_draw(SDL_Window *window, VulkanContext *ctx, VulkanBuffer *vertex_buffer)
+void vulkan_draw(VulkanContext *ctx, VulkanBuffer *vertex_buffer, u32 window_width, u32 window_height)
 {
-	assert(window);
 	assert(ctx);
 	assert(vertex_buffer);
 
@@ -331,9 +330,7 @@ void vulkan_draw(SDL_Window *window, VulkanContext *ctx, VulkanBuffer *vertex_bu
 	VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain.handle, UINT64_MAX, frame_data->image_available, VK_NULL_HANDLE, &ctx->swapchain.image_index);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		i32 w, h;
-		SDL_GetWindowSize(window, &w, &h);
-		vulkan_resize(ctx, (u32)w, (u32)h);
+		vulkan_resize(ctx, window_width, window_height);
 		return;
 	}
 	else if (result != VK_SUCCESS)
@@ -343,7 +340,7 @@ void vulkan_draw(SDL_Window *window, VulkanContext *ctx, VulkanBuffer *vertex_bu
 	}
 
 	vkResetCommandBuffer(frame_data->command_buffer, 0);
-	vulkan_command_handler_record(ctx, &ctx->command_handler, vertex_buffer);
+	vulkan_command_handler_record(ctx, &ctx->command_handler, vertex_buffer, window_width, window_height);
 
 	VkSemaphore wait_semaphores[] = {
 		frame_data->image_available,	

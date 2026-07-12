@@ -6,3 +6,4 @@
 // 
 
 #include <math/types.h>
+#include <math/matrix.h>
