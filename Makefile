@@ -9,7 +9,7 @@ RELEASE_FLAGS := -DNDEBUG -O2
 
 LDFLAGS := -lSDL3 -lvulkan
 
-SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c
+SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c
 
 all: shaders debug
 

@@ -1,0 +1,30 @@
+
+#pragma once
+
+#include <types.h>
+
+#include <vulkan/vulkan_core.h>
+
+typedef struct VulkanContext VulkanContext;
+
+typedef struct FrameData
+{
+	VkSemaphore image_available;
+	VkFence in_flight_fence;
+	VkCommandBuffer command_buffer;
+} FrameData;
+
+typedef struct VulkanCommandHandler
+{
+	VkCommandPool command_pool;
+	FrameData frame_data[FRAMES_IN_FLIGHT];
+
+	u32 frame_index;
+	u64 accumulated_frame_index;
+} VulkanCommandHandler;
+
+bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handler);
+
+bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler);
+
+void vulkan_command_handler_deinit(VulkanContext *ctx, VulkanCommandHandler *handler);

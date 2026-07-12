@@ -1,5 +1,6 @@
 
 
+#include "vk/swapchain.h"
 #include <sph/time.h>
 #include <vk/context.h>
 
@@ -50,8 +51,15 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
     UNUSED(state);
     
-    if (event->type == SDL_EVENT_QUIT) {
+    if (event->type == SDL_EVENT_QUIT)
+    {
         return SDL_APP_SUCCESS;
+    }
+    if (event->type == SDL_EVENT_WINDOW_RESIZED)
+    {
+		i32 w, h;
+		SDL_GetWindowSize(state->window, &w, &h);
+        vulkan_resize(&state->vulkan, (u32)w, (u32)h);
     }
     return SDL_APP_CONTINUE;  
 }
@@ -62,7 +70,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     assert(state);
 
     time_update(&state->time);    
-
+    vulkan_draw(state->window, &state->vulkan);
 
     return SDL_APP_CONTINUE;
 }

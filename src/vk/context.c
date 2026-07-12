@@ -1,4 +1,6 @@
 
+#include "types.h"
+#include "vk/command.h"
 #include "vk/pipeline.h"
 #include "vk/swapchain.h"
 #include <vk/context.h>
@@ -101,8 +103,7 @@ static bool debug_messenger_init(VulkanContext *ctx)
 	
     VkDebugUtilsMessengerCreateInfoEXT info = {
         .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
         .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
@@ -271,6 +272,9 @@ static bool logical_device_init(VulkanContext *ctx)
 		return false;
 	}
 
+	vkGetDeviceQueue(ctx->device, ctx->graphics_queue.index, 0, &ctx->graphics_queue.handle);
+	vkGetDeviceQueue(ctx->device, ctx->present_queue.index, 0, &ctx->present_queue.handle);
+
 	return true;
 }
 
@@ -296,10 +300,95 @@ bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
 	CHECK(logical_device_init(ctx));
 	CHECK(vulkan_swapchain_init(ctx, &ctx->swapchain, 600, 600));
 	CHECK(vulkan_pipeline_init(ctx, &ctx->triangle_pipeline));
+	CHECK(vulkan_command_handler_init(ctx, &ctx->command_handler));
 
 #undef CHECK
 
 	return true;
+}
+
+void vulkan_resize(VulkanContext *ctx, u32 w, u32 h)
+{
+	vulkan_swapchain_recreate(ctx, &ctx->swapchain, (u32)w, (u32)h, ctx->command_handler.accumulated_frame_index);
+}
+
+void vulkan_draw(SDL_Window *window, VulkanContext *ctx)
+{
+	assert(window);
+	assert(ctx);
+
+	u32 frame_index = ctx->command_handler.frame_index;
+	FrameData *frame_data = &ctx->command_handler.frame_data[frame_index];
+	assert(frame_data);
+
+	vkWaitForFences(ctx->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
+	vkResetFences(ctx->device, 1, &frame_data->in_flight_fence);
+
+	vulkan_swapchain_drain(ctx, &ctx->swapchain, ctx->command_handler.accumulated_frame_index);
+
+	VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain.handle, UINT64_MAX, frame_data->image_available, VK_NULL_HANDLE, &ctx->swapchain.image_index);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		i32 w, h;
+		SDL_GetWindowSize(window, &w, &h);
+		vulkan_resize(ctx, (u32)w, (u32)h);
+		return;
+	}
+	else if (result != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to acquire swapchain image.");
+		return;
+	}
+
+	vkResetCommandBuffer(frame_data->command_buffer, 0);
+	vulkan_command_handler_record(ctx, &ctx->command_handler);
+
+	VkSemaphore wait_semaphores[] = {
+		frame_data->image_available,	
+	};
+
+	VkSemaphore signal_semaphores[] = {
+		ctx->swapchain.finished[ctx->swapchain.image_index],	
+	};
+
+	VkPipelineStageFlags wait_stages[] = {
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,	
+	};
+
+	VkSubmitInfo submit_info = {
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &frame_data->command_buffer,
+		.waitSemaphoreCount = ARRAY_COUNT(wait_semaphores),
+		.pWaitSemaphores = wait_semaphores,
+		.pWaitDstStageMask = wait_stages,
+		.signalSemaphoreCount = ARRAY_COUNT(signal_semaphores),
+		.pSignalSemaphores = signal_semaphores,
+	};
+
+	if (vkQueueSubmit(ctx->graphics_queue.handle, 1, &submit_info, frame_data->in_flight_fence) != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to submit graphics queue.");
+		return;
+	}
+
+	VkPresentInfoKHR present_info = {
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.swapchainCount = 1,
+		.pSwapchains = &ctx->swapchain.handle,
+		.pImageIndices = &ctx->swapchain.image_index,
+		.waitSemaphoreCount = ARRAY_COUNT(signal_semaphores),
+		.pWaitSemaphores = signal_semaphores,
+	};
+
+	if (vkQueuePresentKHR(ctx->present_queue.handle, &present_info) != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to present.");
+		return;
+	}
+
+	ctx->command_handler.frame_index = (ctx->command_handler.frame_index + 1) % FRAMES_IN_FLIGHT;
+	++ctx->command_handler.accumulated_frame_index;
 }
 
 void vulkan_deinit(VulkanContext *ctx)
@@ -308,6 +397,7 @@ void vulkan_deinit(VulkanContext *ctx)
 
 	vkDeviceWaitIdle(ctx->device);
 
+	vulkan_command_handler_deinit(ctx, &ctx->command_handler);
 	vulkan_pipeline_deinit(ctx, &ctx->triangle_pipeline);
 	vulkan_swapchain_deinit(ctx, &ctx->swapchain);
 

@@ -260,12 +260,16 @@ bool vulkan_swapchain_recreate(VulkanContext *ctx, VulkanSwapchain *swapchain, u
 	zoombie->images = swapchain->images;
 	zoombie->finished = swapchain->finished;
 	zoombie->image_count = swapchain->image_count;
-	zoombie->frame_retired = accumulated_frame_index;	
+	zoombie->frame_retired = accumulated_frame_index;
+
+	zoombie->valid = true;	
 
 	swapchain->handle = VK_NULL_HANDLE;
 	swapchain->image_views = NULL;
 	swapchain->images = NULL;
 	swapchain->finished = NULL;
+
+	SDL_Log("[VULKAN] Swapchain recreated (%ux%u)", w, h);
 
 	return swapchain_build(ctx, swapchain, w, h, zoombie->handle);
 }

@@ -4,6 +4,7 @@
 #include <types.h>
 #include <vk/swapchain.h>
 #include <vk/pipeline.h>
+#include <vk/command.h>
 
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
@@ -33,8 +34,13 @@ struct VulkanContext
 
 	VulkanSwapchain swapchain;
 	VulkanPipeline triangle_pipeline;
+	VulkanCommandHandler command_handler;
 };
 
 bool vulkan_init(SDL_Window *window, VulkanContext *ctx);
+
+void vulkan_resize(VulkanContext *ctx, u32 w, u32 h);
+
+void vulkan_draw(SDL_Window *window, VulkanContext *ctx);
 
 void vulkan_deinit(VulkanContext *ctx);
