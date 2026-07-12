@@ -78,7 +78,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     assert(state);
 
     time_update(&state->time);    
-    vulkan_draw(state->window, &state->vulkan);
+    vulkan_draw(state->window, &state->vulkan, &state->simulation.particles);
 
     return SDL_APP_CONTINUE;
 }

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "vk/buffer.h"
 #include <types.h>
 #include <vk/types.h>
 #include <vk/swapchain.h>
@@ -40,6 +41,6 @@ bool vulkan_init(SDL_Window *window, VulkanContext *ctx);
 
 void vulkan_resize(VulkanContext *ctx, u32 w, u32 h);
 
-void vulkan_draw(SDL_Window *window, VulkanContext *ctx);
+void vulkan_draw(SDL_Window *window, VulkanContext *ctx, VulkanBuffer *vertex_buffer);
 
 void vulkan_deinit(VulkanContext *ctx);

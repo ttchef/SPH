@@ -1,5 +1,6 @@
 
 #include "types.h"
+#include "vk/buffer.h"
 #include "vk/command.h"
 #include "vk/pipeline.h"
 #include "vk/swapchain.h"
@@ -312,10 +313,11 @@ void vulkan_resize(VulkanContext *ctx, u32 w, u32 h)
 	vulkan_swapchain_recreate(ctx, &ctx->swapchain, (u32)w, (u32)h, ctx->command_handler.accumulated_frame_index);
 }
 
-void vulkan_draw(SDL_Window *window, VulkanContext *ctx)
+void vulkan_draw(SDL_Window *window, VulkanContext *ctx, VulkanBuffer *vertex_buffer)
 {
 	assert(window);
 	assert(ctx);
+	assert(vertex_buffer);
 
 	u32 frame_index = ctx->command_handler.frame_index;
 	FrameData *frame_data = &ctx->command_handler.frame_data[frame_index];
@@ -341,7 +343,7 @@ void vulkan_draw(SDL_Window *window, VulkanContext *ctx)
 	}
 
 	vkResetCommandBuffer(frame_data->command_buffer, 0);
-	vulkan_command_handler_record(ctx, &ctx->command_handler);
+	vulkan_command_handler_record(ctx, &ctx->command_handler, vertex_buffer);
 
 	VkSemaphore wait_semaphores[] = {
 		frame_data->image_available,	

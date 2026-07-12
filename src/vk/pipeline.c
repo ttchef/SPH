@@ -65,13 +65,32 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 		.pColorAttachmentFormats = &ctx->swapchain.fmt,
 	};
 
+	VkVertexInputBindingDescription binding = {
+		.binding = 0,
+		.stride = sizeof(f32) * 2,
+		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+	};
+
+	VkVertexInputAttributeDescription attributes[] = {
+		{
+			.binding = 0,
+			.location = 0,
+			.format = VK_FORMAT_R32G32_SFLOAT,
+			.offset = 0,
+		},	
+	};
+
 	VkPipelineVertexInputStateCreateInfo vertex_input = {
-		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,	
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		.vertexBindingDescriptionCount = 1,
+		.pVertexBindingDescriptions = &binding,
+		.vertexAttributeDescriptionCount = ARRAY_COUNT(attributes),
+		.pVertexAttributeDescriptions = attributes,
 	};
 
 	VkPipelineInputAssemblyStateCreateInfo assembly_input = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,	
+		.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
 	};
 
 	VkPipelineViewportStateCreateInfo viewport = {

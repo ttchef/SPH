@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <vk/types.h>
+#include <vk/buffer.h>
 
 #include <vulkan/vulkan_core.h>
 
@@ -24,6 +25,6 @@ typedef struct VulkanCommandHandler
 
 bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handler);
 
-bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler);
+bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler, VulkanBuffer *vertex_buffer);
 
 void vulkan_command_handler_deinit(VulkanContext *ctx, VulkanCommandHandler *handler);

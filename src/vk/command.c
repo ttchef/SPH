@@ -1,7 +1,7 @@
 
-#include "types.h"
 #include <vk/command.h>
 #include <vk/context.h>
+#include <vk/buffer.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
@@ -67,10 +67,12 @@ bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handl
 	return true;
 }
 
-bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler)
+// TODO: not hardcode vertex buffer
+bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler, VulkanBuffer *vertex_buffer)
 {
 	assert(ctx);
 	assert(handler);
+	assert(vertex_buffer);
 
 	FrameData *frame_data = &handler->frame_data[handler->frame_index];
 	assert(frame_data);
@@ -147,6 +149,10 @@ bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *han
     vkCmdBeginRendering(frame_data->command_buffer, &render_info);
 
 	vkCmdBindPipeline(frame_data->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->triangle_pipeline.handle);
+
+	VkDeviceSize offsets = {0};
+	vkCmdBindVertexBuffers(frame_data->command_buffer, 0, 1, &vertex_buffer->handle, &offsets);
+
     vkCmdDraw(frame_data->command_buffer, 3, 1, 0, 0);
 
     vkCmdEndRendering(frame_data->command_buffer);
