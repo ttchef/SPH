@@ -1,10 +1,9 @@
 
-#include "types.h"
+#include "vk/swapchain.h"
 #include <vk/context.h>
 
 #include <SDL3/SDL_vulkan.h>
 #include <SDL3/SDL_log.h>
-#include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
 
 #define MAX_EXTENSIONS 16
@@ -79,8 +78,60 @@ static bool instance_init(VulkanContext *ctx)
 	return true;
 }
 
+#if defined(DEBUG)
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+               VkDebugUtilsMessageTypeFlagsEXT message_type,
+               const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data)
+{
+    (void)message_severity;
+    (void)message_type;
+    (void)user_data;
+
+    SDL_Log("[VULKAN] Debug Messenger: %s", callback_data->pMessage);
+
+    return VK_FALSE;
+}
+
+static bool debug_messenger_init(VulkanContext *ctx)
+{
+	assert(ctx);
+	
+    VkDebugUtilsMessengerCreateInfoEXT info = {
+        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+        .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+        .pfnUserCallback = debug_callback,
+    };
+
+    PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT =(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkCreateDebugUtilsMessengerEXT");
+    if (!vkCreateDebugUtilsMessengerEXT)
+    {
+        SDL_Log("[VULKAN] Failed to load debug utils messenger function pointer.");
+        return false;
+    }
+
+    if (vkCreateDebugUtilsMessengerEXT(ctx->instance, &info, NULL, &ctx->debug_messenger) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create debug messenger.");
+        return false;
+    }
+
+    return true;
+}
+
+#endif // DEBUG
+
 static bool surface_init(SDL_Window *window, VulkanContext *ctx)
 {
+	assert(window);
+	assert(ctx);
+	
 	if (!SDL_Vulkan_CreateSurface(window, ctx->instance, NULL, &ctx->surface))
 	{
 		SDL_Log("[VULKAN] Failed to create surface.");
@@ -169,8 +220,56 @@ static bool physical_device_init(VulkanContext *ctx)
 	return true;
 }
 
+static bool logical_device_init(VulkanContext *ctx)
+{
+	assert(ctx);
+	
+	VkDeviceQueueCreateInfo queue_infos[2];
+
+	float priority = 1.0f;
+
+	u32 queue_count = 0;
+	queue_infos[queue_count++] = (VkDeviceQueueCreateInfo){
+		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		.queueFamilyIndex = ctx->graphics_queue.index,
+		.queueCount = 1,
+		.pQueuePriorities = &priority,
+	};
+
+	if (ctx->graphics_queue.index != ctx->present_queue.index)
+	{
+		queue_infos[queue_count++] = (VkDeviceQueueCreateInfo){
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.queueFamilyIndex = ctx->present_queue.index,
+			.queueCount = 1,
+			.pQueuePriorities = &priority,
+		};
+	}
+
+	const char *device_extensions[] = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,	
+	};
+
+	VkDeviceCreateInfo info = {
+		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		.queueCreateInfoCount = queue_count,
+		.pQueueCreateInfos = queue_infos,
+		.enabledExtensionCount = ARRAY_COUNT(device_extensions),
+		.ppEnabledExtensionNames = device_extensions,
+	};
+
+	if (vkCreateDevice(ctx->physical_device, &info, NULL, &ctx->device) != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to create logical device.");
+		return false;
+	}
+
+	return true;
+}
+
 bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
 {
+	assert(window);
 	assert(ctx);
 
 #define CHECK(x) \
@@ -180,8 +279,15 @@ bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
 	}
 
 	CHECK(instance_init(ctx));
+
+#if defined(DEBUG)
+	CHECK(debug_messenger_init(ctx));
+#endif
+	
 	CHECK(surface_init(window, ctx));
 	CHECK(physical_device_init(ctx));
+	CHECK(logical_device_init(ctx));
+	CHECK(vulkan_swapchain_init(ctx, &ctx->swapchain, 600, 600));
 
 #undef CHECK
 
@@ -190,5 +296,22 @@ bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
 
 void vulkan_deinit(VulkanContext *ctx)
 {
-	assert(ctx);	
+	assert(ctx);
+
+	vkDeviceWaitIdle(ctx->device);
+
+	vulkan_swapchain_deinit(ctx, &ctx->swapchain);
+
+	vkDestroySurfaceKHR(ctx->instance, ctx->surface, NULL);
+	vkDestroyDevice(ctx->device, NULL);
+
+#if defined(DEBUG)
+	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (vkDestroyDebugUtilsMessengerEXT)
+	{
+		vkDestroyDebugUtilsMessengerEXT(ctx->instance, ctx->debug_messenger, NULL);
+	}
+#endif
+	
+	vkDestroyInstance(ctx->instance, NULL);
 }

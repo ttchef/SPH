@@ -47,6 +47,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
     AppState *state = (AppState *)appstate;
     assert(state);
+
+    UNUSED(state);
     
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
