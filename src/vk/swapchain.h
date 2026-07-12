@@ -2,12 +2,11 @@
 #pragma once
 
 #include <types.h>
+#include <vk/types.h>
 
 #include <vulkan/vulkan_core.h>
 
 #define SWAPCHAIN_GRAVEYARD_SIZE 4
-
-typedef struct VulkanContext VulkanContext;
 
 typedef struct VulkanSwapchainZoombie
 {

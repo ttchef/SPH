@@ -2,14 +2,13 @@
 #pragma once
 
 #include <types.h>
+#include <vk/types.h>
 #include <vk/swapchain.h>
 #include <vk/pipeline.h>
 #include <vk/command.h>
 
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
-
-typedef struct VulkanContext VulkanContext;
 
 typedef struct VulkanQueue
 {

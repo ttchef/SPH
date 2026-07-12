@@ -2,10 +2,9 @@
 #pragma once
 
 #include <types.h>
+#include <vk/types.h>
 
 #include <vulkan/vulkan_core.h>
-
-typedef struct VulkanContext VulkanContext;
 
 typedef struct VulkanPipeline
 {

@@ -1,7 +1,8 @@
 
 
-#include "vk/swapchain.h"
+#include <SDL3/SDL_init.h>
 #include <sph/time.h>
+#include <sph/simulation.h>
 #include <vk/context.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -11,6 +12,7 @@
 typedef struct AppState
 {
     Time time;
+    Simulation simulation;
     SDL_Window *window;
     VulkanContext vulkan;
 } AppState;
@@ -37,7 +39,13 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
 
     if (!vulkan_init(state->window, &state->vulkan))
     {
-        SDL_Log("[ENGINE] Failed to init vulkan.");
+        SDL_Log("[ENGINE] Failed to initialize vulkan.");
+        return SDL_APP_FAILURE;
+    }
+
+    if (!simulation_init(&state->vulkan, 800, 600, &state->simulation))
+    {
+        SDL_Log("[ENGINE] Failed to initialize simulation.");
         return SDL_APP_FAILURE;
     }
 
@@ -82,6 +90,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     AppState *state = (AppState *)appstate;
     assert(state);
 
+    simulation_deinit(&state->vulkan, &state->simulation);
     vulkan_deinit(&state->vulkan);
 }
 
