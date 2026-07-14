@@ -6,12 +6,23 @@
 
 #include <vulkan/vulkan_core.h>
 
-typedef struct VulkanPipeline
+typedef enum vulkan_pipeline_type
+{
+	PIPELINE_TYPE_GRAPHICS,
+	PIPELINE_TYPE_COMPUTE,
+} VulkanPipelineType;
+
+typedef struct vulkan_pipeline_desc
+{
+	VulkanPipelineType type;	
+} vulkan_pipeline_desc;
+
+typedef struct vulkan_pipeline
 {
 	VkPipeline handle;
 	VkPipelineLayout layout;
-} VulkanPipeline;
+} vulkan_pipeline;
 
-bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline);
+bool vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline);
 
-void vulkan_pipeline_deinit(VulkanContext *ctx, VulkanPipeline *pipeline);
+void vulkan_pipeline_destroy(vulkan_context *ctx, vulkan_pipeline *pipeline);

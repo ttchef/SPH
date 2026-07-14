@@ -29,7 +29,7 @@ static bool extensions_add(const char **extensions, u32 *extension_count, const 
 	return true;
 }
 
-static bool instance_init(VulkanContext *ctx)
+static bool instance_init(vulkan_context *ctx)
 {
 	assert(ctx);
 	
@@ -98,7 +98,7 @@ debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     return VK_FALSE;
 }
 
-static bool debug_messenger_init(VulkanContext *ctx)
+static bool debug_messenger_init(vulkan_context *ctx)
 {
 	assert(ctx);
 	
@@ -130,7 +130,7 @@ static bool debug_messenger_init(VulkanContext *ctx)
 
 #endif // DEBUG
 
-static bool surface_init(SDL_Window *window, VulkanContext *ctx)
+static bool surface_init(SDL_Window *window, vulkan_context *ctx)
 {
 	assert(window);
 	assert(ctx);
@@ -143,7 +143,7 @@ static bool surface_init(SDL_Window *window, VulkanContext *ctx)
 	return true;
 }
 
-static bool physical_device_init(VulkanContext *ctx)
+static bool physical_device_init(vulkan_context *ctx)
 {
 	assert(ctx);
 
@@ -223,7 +223,7 @@ static bool physical_device_init(VulkanContext *ctx)
 	return true;
 }
 
-static bool logical_device_init(VulkanContext *ctx)
+static bool logical_device_init(vulkan_context *ctx)
 {
 	assert(ctx);
 	
@@ -279,7 +279,7 @@ static bool logical_device_init(VulkanContext *ctx)
 	return true;
 }
 
-bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
+bool vulkan_init(SDL_Window *window, vulkan_context *ctx)
 {
 	assert(window);
 	assert(ctx);
@@ -299,27 +299,27 @@ bool vulkan_init(SDL_Window *window, VulkanContext *ctx)
 	CHECK(surface_init(window, ctx));
 	CHECK(physical_device_init(ctx));
 	CHECK(logical_device_init(ctx));
-	CHECK(vulkan_swapchain_init(ctx, &ctx->swapchain, 600, 600));
-	CHECK(vulkan_pipeline_init(ctx, &ctx->triangle_pipeline));
-	CHECK(vulkan_command_handler_init(ctx, &ctx->command_handler));
+	CHECK(vulkan_swapchain_create(ctx, &ctx->swapchain, 600, 600));
+	CHECK(vulkan_pipeline_create(ctx, NULL, &ctx->triangle_pipeline));
+	CHECK(vulkan_command_handler_create(ctx, &ctx->command_handler));
 
 #undef CHECK
 
 	return true;
 }
 
-void vulkan_resize(VulkanContext *ctx, u32 w, u32 h)
+void vulkan_resize(vulkan_context *ctx, u32 w, u32 h)
 {
 	vulkan_swapchain_recreate(ctx, &ctx->swapchain, (u32)w, (u32)h, ctx->command_handler.accumulated_frame_index);
 }
 
-void vulkan_draw(VulkanContext *ctx, VulkanBuffer *vertex_buffer, u32 window_width, u32 window_height)
+void vulkan_draw(vulkan_context *ctx, vulkan_buffer *vertex_buffer, u32 window_width, u32 window_height)
 {
 	assert(ctx);
 	assert(vertex_buffer);
 
 	u32 frame_index = ctx->command_handler.frame_index;
-	FrameData *frame_data = &ctx->command_handler.frame_data[frame_index];
+	vulkan_frame_Data *frame_data = &ctx->command_handler.frame_data[frame_index];
 	assert(frame_data);
 
 	vkWaitForFences(ctx->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
@@ -390,15 +390,15 @@ void vulkan_draw(VulkanContext *ctx, VulkanBuffer *vertex_buffer, u32 window_wid
 	++ctx->command_handler.accumulated_frame_index;
 }
 
-void vulkan_deinit(VulkanContext *ctx)
+void vulkan_deinit(vulkan_context *ctx)
 {
 	assert(ctx);
 
 	vkDeviceWaitIdle(ctx->device);
 
-	vulkan_command_handler_deinit(ctx, &ctx->command_handler);
-	vulkan_pipeline_deinit(ctx, &ctx->triangle_pipeline);
-	vulkan_swapchain_deinit(ctx, &ctx->swapchain);
+	vulkan_command_handler_destroy(ctx, &ctx->command_handler);
+	vulkan_pipeline_destroy(ctx, &ctx->triangle_pipeline);
+	vulkan_swapchain_destroy(ctx, &ctx->swapchain);
 
 	vkDestroySurfaceKHR(ctx->instance, ctx->surface, NULL);
 	vkDestroyDevice(ctx->device, NULL);

@@ -6,14 +6,13 @@
 
 #include <vulkan/vulkan_core.h>
 
-
-typedef struct VulkanBuffer
+typedef struct vulkan_buffer
 {
 	VkBuffer handle;
 	VkDeviceMemory memory;
-} VulkanBuffer;
+} vulkan_buffer;
 
 // NOTE: automatically copies data into buffer
-bool vulkan_buffer_device_local_init(VulkanContext *ctx, VkBufferUsageFlags usage, usize size, const void *data, VulkanBuffer *out_buffer);
+bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, usize size, const void *data, vulkan_buffer *out_buffer);
 
-void vulkan_buffer_deinit(VulkanContext *ctx, VulkanBuffer *buffer);
+void vulkan_buffer_destroy(vulkan_context *ctx, vulkan_buffer *buffer);

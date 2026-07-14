@@ -8,7 +8,7 @@
 
 #define SWAPCHAIN_GRAVEYARD_SIZE 4
 
-typedef struct VulkanSwapchainZoombie
+typedef struct vulkan_swapchain_zoombie
 {
 	VkSwapchainKHR handle;
 	
@@ -20,9 +20,9 @@ typedef struct VulkanSwapchainZoombie
 	u64 frame_retired;
 
 	bool valid;
-} VulkanSwapchainZoombie;
+} vulkan_swapchain_zoombie;
 
-typedef struct VulkanSwapchain
+typedef struct vulkan_swapchain
 {
 	VkSwapchainKHR handle;
 	
@@ -36,13 +36,13 @@ typedef struct VulkanSwapchain
 	VkFormat fmt;
 	VkExtent2D extent;
 
-	VulkanSwapchainZoombie graveyard[SWAPCHAIN_GRAVEYARD_SIZE];
-} VulkanSwapchain;
+	vulkan_swapchain_zoombie graveyard[SWAPCHAIN_GRAVEYARD_SIZE];
+} vulkan_swapchain;
 
-bool vulkan_swapchain_init(VulkanContext *ctx, VulkanSwapchain *swapchain, u32 w, u32 h);
+bool vulkan_swapchain_create(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h);
 
-void vulkan_swapchain_drain(VulkanContext *ctx, VulkanSwapchain *swapchain, u64 accumulated_frame_index);
+void vulkan_swapchain_drain(vulkan_context *ctx, vulkan_swapchain *swapchain, u64 accumulated_frame_index);
 
-bool vulkan_swapchain_recreate(VulkanContext *ctx, VulkanSwapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index);
+bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index);
 
-void vulkan_swapchain_deinit(VulkanContext *ctx, VulkanSwapchain *swapchain);
+void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain);

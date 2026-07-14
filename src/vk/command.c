@@ -8,7 +8,7 @@
 
 #include <math/matrix.h>
 
-bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handler)
+bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *handler)
 {
 	assert(ctx);
 	assert(handler);
@@ -60,7 +60,6 @@ bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handl
 
 		if (vkCreateFence(ctx->device, &fence_info, NULL, &handler->frame_data[i].in_flight_fence) != VK_SUCCESS)
 		{
-			SDL_Log("[VULKAN] Failed to create in flight fence.");
 			return false;
 		}
 
@@ -70,13 +69,13 @@ bool vulkan_command_handler_init(VulkanContext *ctx, VulkanCommandHandler *handl
 }
 
 // TODO: not hardcode vertex buffer
-bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *handler, VulkanBuffer *vertex_buffer, u32 width, u32 height)
+bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *handler, vulkan_buffer *vertex_buffer, u32 width, u32 height)
 {
 	assert(ctx);
 	assert(handler);
 	assert(vertex_buffer);
 
-	FrameData *frame_data = &handler->frame_data[handler->frame_index];
+	vulkan_frame_Data *frame_data = &handler->frame_data[handler->frame_index];
 	assert(frame_data);
 
 	VkCommandBufferBeginInfo begin_info = {
@@ -155,8 +154,8 @@ bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *han
 	VkDeviceSize offsets = {0};
 	vkCmdBindVertexBuffers(frame_data->command_buffer, 0, 1, &vertex_buffer->handle, &offsets);
 
-	M4 orthographic = m4orthographic(0, width, 0, height, -1.0f, 1.0f);
-	vkCmdPushConstants(frame_data->command_buffer, ctx->triangle_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(M4), &orthographic);
+	m4 orthographic = m4orthographic(0, width, 0, height, -1.0f, 1.0f);
+	vkCmdPushConstants(frame_data->command_buffer, ctx->triangle_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m4), &orthographic);
 
     vkCmdDraw(frame_data->command_buffer, 306, 1, 0, 0);
 
@@ -180,8 +179,7 @@ bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *han
                          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0,
                          NULL, 1, &memory_barrier);
-
-	if (vkEndCommandBuffer(frame_data->command_buffer) != VK_SUCCESS)
+    if (vkEndCommandBuffer(frame_data->command_buffer) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to end recording into command buffer.");
 		return false;
@@ -190,7 +188,7 @@ bool vulkan_command_handler_record(VulkanContext *ctx, VulkanCommandHandler *han
 	return true;	
 }
 
-void vulkan_command_handler_deinit(VulkanContext *ctx, VulkanCommandHandler *handler)
+void vulkan_command_handler_destroy(vulkan_context *ctx, vulkan_command_handler *handler)
 {
 	assert(ctx);
 	assert(handler);

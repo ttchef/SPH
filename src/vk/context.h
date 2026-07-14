@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include "vk/buffer.h"
 #include <types.h>
 #include <vk/types.h>
 #include <vk/swapchain.h>
@@ -11,13 +10,13 @@
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
 
-typedef struct VulkanQueue
+typedef struct vulkan_queue
 {
 	VkQueue handle;
 	u32 index;
-} VulkanQueue;
+} vulkan_queue;
 
-struct VulkanContext
+struct vulkan_context
 {
 #if defined(DEBUG)
 	VkDebugUtilsMessengerEXT debug_messenger;
@@ -27,20 +26,20 @@ struct VulkanContext
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physical_device;
 
-	VulkanQueue graphics_queue;
-	VulkanQueue present_queue;
+	vulkan_queue graphics_queue;
+	vulkan_queue present_queue;
 
 	VkDevice device;
 
-	VulkanSwapchain swapchain;
-	VulkanPipeline triangle_pipeline;
-	VulkanCommandHandler command_handler;
+	vulkan_swapchain swapchain;
+	vulkan_pipeline triangle_pipeline;
+	vulkan_command_handler command_handler;
 };
 
-bool vulkan_init(SDL_Window *window, VulkanContext *ctx);
+bool vulkan_init(SDL_Window *window, vulkan_context *ctx);
 
-void vulkan_resize(VulkanContext *ctx, u32 w, u32 h);
+void vulkan_resize(vulkan_context *ctx, u32 w, u32 h);
 
-void vulkan_draw(VulkanContext *ctx, VulkanBuffer *vertex_buffer, u32 window_width, u32 window_height);
+void vulkan_draw(vulkan_context *ctx, vulkan_buffer *vertex_buffer, u32 window_width, u32 window_height);
 
-void vulkan_deinit(VulkanContext *ctx);
+void vulkan_deinit(vulkan_context *ctx);

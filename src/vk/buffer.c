@@ -1,16 +1,15 @@
 
-#include <stdint.h>
 #include <vk/buffer.h>
 #include <vk/context.h>
 #include <vk/utils.h>
 #include <vulkan/vulkan_core.h>
 
-static bool buffer_create(VulkanContext *ctx, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, usize size, VulkanBuffer *out_buffer)
+static bool buffer_create(vulkan_context *ctx, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, usize size, vulkan_buffer *out_buffer)
 {
 	assert(ctx);
 	assert(out_buffer);
 
-	VulkanBuffer result = {0};
+	vulkan_buffer result = {0};
 
 	VkBufferCreateInfo buffer_info = {
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -51,22 +50,22 @@ static bool buffer_create(VulkanContext *ctx, VkBufferUsageFlags usage, VkMemory
 		SDL_Log("[VULKAN] Failed to bind memory to buffer.");
 		return false;
 	}
-
+	
 	*out_buffer = result;
 	
 	return true;
 }
 
-bool vulkan_buffer_device_local_init(VulkanContext *ctx, VkBufferUsageFlags usage, usize size, const void *data, VulkanBuffer *out_buffer)
+bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, usize size, const void *data, vulkan_buffer *out_buffer)
 {
 	assert(ctx);
 	assert(data);
 	assert(out_buffer);
 
-	VulkanBuffer result = {0};
+	vulkan_buffer result = {0};
 	buffer_create(ctx, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, &result);
 
-	VulkanBuffer staging = {0};
+	vulkan_buffer staging = {0};
 	buffer_create(ctx, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &staging);
 
 	void *mapped;
@@ -86,7 +85,7 @@ bool vulkan_buffer_device_local_init(VulkanContext *ctx, VkBufferUsageFlags usag
 	if (vkCreateCommandPool(ctx->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create command pool.");
-		vulkan_buffer_deinit(ctx, &staging);
+		vulkan_buffer_destroy(ctx, &staging);
 		return false;
 	}
 
@@ -142,19 +141,17 @@ bool vulkan_buffer_device_local_init(VulkanContext *ctx, VkBufferUsageFlags usag
 	*out_buffer = result;
 
 	vkDestroyCommandPool(ctx->device, command_pool, NULL);
-	vulkan_buffer_deinit(ctx, &staging);
+	vulkan_buffer_destroy(ctx, &staging);
 
 	return true;
 
 error:
-	SDL_Log("[VULKAN] Failed to copy data into device local buffer.");
-	
 	vkDestroyCommandPool(ctx->device, command_pool, NULL);
-	vulkan_buffer_deinit(ctx, &staging);
+	vulkan_buffer_destroy(ctx, &staging);
 	return false;
 }
 
-void vulkan_buffer_deinit(VulkanContext *ctx, VulkanBuffer *buffer)
+void vulkan_buffer_destroy(vulkan_context *ctx, vulkan_buffer *buffer)
 {
 	assert(ctx);
 	assert(buffer);

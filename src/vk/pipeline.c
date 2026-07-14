@@ -7,7 +7,7 @@
 #include <vulkan/vulkan_core.h>
 
 // TODO: Replace with relative to executable path or embed shader
-static VkShaderModule shader_module_init(VulkanContext *ctx, const char *path)
+static VkShaderModule shader_module_init(vulkan_context *ctx, const char *path)
 {
 	assert(ctx);
 	assert(path);
@@ -36,10 +36,10 @@ static VkShaderModule shader_module_init(VulkanContext *ctx, const char *path)
 	return result;
 }
 
-bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
+bool vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
 	assert(ctx);
-	assert(pipeline);
+	assert(out_pipeline);
 
 	VkShaderModule vertex_module = shader_module_init(ctx, "src/shaders/spv/shader.vert.spv");
 	VkShaderModule fragment_module = shader_module_init(ctx, "src/shaders/spv/shader.frag.spv");
@@ -176,7 +176,7 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 
 	VkPushConstantRange push_constant = {
 		.offset = 0,
-		.size = sizeof(M4),
+		.size = sizeof(m4),
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,	
 	};
 
@@ -186,7 +186,7 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 		.pushConstantRangeCount = 1,
 	};
 
-	if (vkCreatePipelineLayout(ctx->device, &layout_info, NULL, &pipeline->layout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(ctx->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
 		vkDestroyShaderModule(ctx->device, vertex_module, NULL);
@@ -207,7 +207,7 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 		.pDepthStencilState = &depth_stencil,
 		.pColorBlendState = &color_blend,
 		.pDynamicState = &dynamic,
-		.layout = pipeline->layout,
+		.layout = out_pipeline->layout,
 	};
 
 	if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &info, NULL, &ctx->triangle_pipeline.handle) != VK_SUCCESS)
@@ -224,7 +224,7 @@ bool vulkan_pipeline_init(VulkanContext *ctx, VulkanPipeline *pipeline)
 	return true;
 }
 
-void vulkan_pipeline_deinit(VulkanContext *ctx, VulkanPipeline *pipeline)
+void vulkan_pipeline_destroy(vulkan_context *ctx, vulkan_pipeline *pipeline)
 {
 	assert(ctx);
 	assert(pipeline);

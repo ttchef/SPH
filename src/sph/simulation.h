@@ -11,17 +11,17 @@
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct Particle
 {
-	V2 pos;
-	V2 vel;
+	v2 pos;
+	v2 vel;
 	f32 mass;
 	f32 density;
 } Particle;
 
 typedef struct Simulation
 {
-	VulkanBuffer particles;
+	vulkan_buffer particles;
 } Simulation;
 
-bool simulation_init(VulkanContext *ctx, u32 window_width, u32 window_height, Simulation *simulation);
+bool simulation_init(vulkan_context *ctx, u32 window_width, u32 window_height, Simulation *simulation);
 
-void simulation_deinit(VulkanContext *ctx, Simulation *simulation);
+void simulation_deinit(vulkan_context *ctx, Simulation *simulation);

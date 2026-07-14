@@ -1,5 +1,6 @@
 
 
+#include "vk/types.h"
 #include <SDL3/SDL_init.h>
 #include <sph/time.h>
 #include <sph/simulation.h>
@@ -26,7 +27,7 @@ typedef struct AppState
     Time time;
     Simulation simulation;
     Window window;
-    VulkanContext vulkan;
+    vulkan_context vulkan;
 } AppState;
 
 SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])

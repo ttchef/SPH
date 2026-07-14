@@ -1,13 +1,11 @@
 
-#include "types.h"
-#include <assert.h>
 #include <vk/swapchain.h>
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h> 
 #include <vulkan/vulkan_core.h>
 
-static bool swapchain_build(VulkanContext *ctx, VulkanSwapchain *swapchain, u32 w, u32 h, VkSwapchainKHR old_handle)
+static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h, VkSwapchainKHR old_handle)
 {
 	assert(ctx);
 	assert(swapchain);
@@ -168,7 +166,7 @@ static bool swapchain_build(VulkanContext *ctx, VulkanSwapchain *swapchain, u32 
 	return true;
 }
 
-bool vulkan_swapchain_init(VulkanContext *ctx, VulkanSwapchain *swapchain, u32 w, u32 h)
+bool vulkan_swapchain_create(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h)
 {
 	assert(ctx);
 	assert(swapchain);
@@ -176,7 +174,7 @@ bool vulkan_swapchain_init(VulkanContext *ctx, VulkanSwapchain *swapchain, u32 w
 	return swapchain_build(ctx, swapchain, w, h, VK_NULL_HANDLE);	
 }
 
-static void zoombie_deinit(VulkanContext *ctx, VulkanSwapchainZoombie *zoombie)
+static void zoombie_deinit(vulkan_context *ctx, vulkan_swapchain_zoombie *zoombie)
 {
 	for (u32 j = 0; j < zoombie->image_count; j++)
 	{
@@ -201,14 +199,14 @@ static void zoombie_deinit(VulkanContext *ctx, VulkanSwapchainZoombie *zoombie)
 	zoombie->valid = false;
 }
 
-void vulkan_swapchain_drain(VulkanContext *ctx, VulkanSwapchain *swapchain, u64 accumulated_frame_index)
+void vulkan_swapchain_drain(vulkan_context *ctx, vulkan_swapchain *swapchain, u64 accumulated_frame_index)
 {
 	assert(ctx);
 	assert(swapchain);
 
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
 	{
-		VulkanSwapchainZoombie *zoombie = &swapchain->graveyard[i];
+		vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[i];
 		assert(zoombie);
 
 		if (!zoombie->valid)
@@ -225,7 +223,7 @@ void vulkan_swapchain_drain(VulkanContext *ctx, VulkanSwapchain *swapchain, u64 
 	}
 }
 
-bool vulkan_swapchain_recreate(VulkanContext *ctx, VulkanSwapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index)
+bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index)
 {
 	assert(ctx);
 	assert(swapchain);
@@ -233,7 +231,7 @@ bool vulkan_swapchain_recreate(VulkanContext *ctx, VulkanSwapchain *swapchain, u
 	i32 zoombie_index = -1;
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
 	{
-		VulkanSwapchainZoombie *zoombie = &swapchain->graveyard[i];
+		vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[i];
 		assert(zoombie);
 
 		if (!zoombie->valid)
@@ -247,12 +245,12 @@ bool vulkan_swapchain_recreate(VulkanContext *ctx, VulkanSwapchain *swapchain, u
 	{
 		SDL_Log("[VULKAN] Swapchain graveyard is full.");
 		
-		vulkan_swapchain_deinit(ctx, swapchain);
+		vulkan_swapchain_destroy(ctx, swapchain);
 
 		return swapchain_build(ctx, swapchain, w, h, VK_NULL_HANDLE);
 	}
 
-	VulkanSwapchainZoombie *zoombie = &swapchain->graveyard[zoombie_index];
+	vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[zoombie_index];
 	assert(zoombie);
 
 	zoombie->handle = swapchain->handle;
@@ -274,14 +272,14 @@ bool vulkan_swapchain_recreate(VulkanContext *ctx, VulkanSwapchain *swapchain, u
 	return swapchain_build(ctx, swapchain, w, h, zoombie->handle);
 }
 
-void vulkan_swapchain_deinit(VulkanContext *ctx, VulkanSwapchain *swapchain)
+void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain)
 {
 	assert(ctx);
 	assert(swapchain);
 
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
 	{
-		VulkanSwapchainZoombie *zoombie = &swapchain->graveyard[i];
+		vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[i];
 		assert(zoombie);
 
 		if (!zoombie->valid)
