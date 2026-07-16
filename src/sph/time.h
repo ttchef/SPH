@@ -5,15 +5,15 @@
 #include <SDL3/SDL_timer.h>
 
 // NOTE: All in ms
-typedef struct Time
+typedef struct time
 {
     f64 last;
     f64 delta;
     // NOTE: Never gets resetted
     f64 accumulated;
-} Time;
+} time;
 
-static inline void time_init(Time *time)
+static inline void time_init(time *time)
 {
 	assert(time);
 
@@ -21,7 +21,7 @@ static inline void time_init(Time *time)
 	time->accumulated = 0.0;
 }
 
-static inline void time_update(Time *time)
+static inline void time_update(time *time)
 {
     assert(time);
 

@@ -32,8 +32,8 @@ struct vulkan_context
 	VkDevice device;
 
 	vulkan_swapchain swapchain;
-	vulkan_pipeline triangle_pipeline;
 	vulkan_command_handler command_handler;
+	vulkan_pipeline_manager pipeline_manager;
 };
 
 bool vulkan_init(SDL_Window *window, vulkan_context *ctx);

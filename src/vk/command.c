@@ -1,4 +1,5 @@
 
+#include "vk/pipeline.h"
 #include <vk/command.h>
 #include <vk/context.h>
 #include <vk/buffer.h>
@@ -7,6 +8,107 @@
 #include <vulkan/vulkan_core.h>
 
 #include <math/matrix.h>
+
+static bool command_add(vulkan_context *ctx, void *data, u32 size)
+{
+	assert(ctx);
+	
+	vulkan_command_queue *queue = &ctx->command_handler.render_commands;
+
+	if (size > queue->available)
+	{
+		SDL_Log("[VULKAN] Not enough space for render command.");
+		return false;
+	}
+
+	SDL_memcpy(queue->at, data, size);
+	queue->at = (u8 *)queue->at + size;
+	queue->available -= size;
+
+	return true;
+}
+
+bool vulkan_command_bind_pipeline(vulkan_context *ctx, vulkan_pipeline_id id)
+{
+	assert(ctx);
+	assert(id != INVALID_PIPELINE);
+
+	vulkan_render_command_header header = {
+		.type = VULKAN_RENDER_COMMAND_BIND_PIPELINE,
+		.size = sizeof(vulkan_render_command_bind_pipeline),	
+	};
+
+	vulkan_render_command_bind_pipeline bind_pipeline = {
+		.header	= header,
+		.id = id,
+	};
+
+	command_add(ctx, &bind_pipeline, header.size);
+
+	return true;
+}
+
+bool vulkan_command_bind_vertex_buffer(vulkan_context *ctx, vulkan_buffer buffer, vulkan_pipeline_id pipeline)
+{
+	assert(ctx);
+
+	vulkan_render_command_header header = {
+		.type = VULKAN_RENDER_COMMAND_BIND_VERTEX_BUFFER,
+		.size = sizeof(vulkan_render_command_bind_vertex_buffer),	
+	};
+
+	vulkan_render_command_bind_vertex_buffer bind_vertex_buffer = {
+		.header	= header,
+		.buffer = buffer,
+		.pipeline = pipeline,
+	};
+
+	command_add(ctx, &bind_vertex_buffer, header.size);
+
+	return true;
+}
+
+bool vulkan_command_push_constants(vulkan_context *ctx, u32 size, void *data, VkShaderStageFlags stage, vulkan_pipeline_id pipeline)
+{
+	assert(ctx);
+	assert(data);
+
+	vulkan_render_command_header header = {
+		.type = VULKAN_RENDER_COMMAND_PUSH_CONSTANTS,
+		.size = sizeof(vulkan_render_command_push_constants),	
+	};
+
+	vulkan_render_command_push_constants push_constants = {
+		.header	= header,
+		.size = size,
+		.data = data,
+		.stage = stage,
+		.pipeline = pipeline,
+	};
+
+	command_add(ctx, &push_constants, header.size);
+
+	return true;
+}
+
+bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count)
+{
+	assert(ctx);
+
+	vulkan_render_command_header header = {
+		.type = VULKAN_RENDER_COMMAND_DRAW,
+		.size = sizeof(vulkan_render_command_draw),	
+	};
+
+	vulkan_render_command_draw draw = {
+		.header	= header,
+		.vertex_count = vertex_count,
+	};
+
+	command_add(ctx, &draw, header.size);
+
+	return true;
+}
 
 bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *handler)
 {
@@ -62,20 +164,91 @@ bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *
 		{
 			return false;
 		}
-
 	}
+
+	handler->render_commands.size = KILOBYTES(100);
+	handler->render_commands.available = handler->render_commands.size;
+	handler->render_commands.base = SDL_calloc(handler->render_commands.size, 1);
+	assert(handler->render_commands.base);
+	handler->render_commands.at = handler->render_commands.base;
 
 	return true;
 }
 
+static void render_queue(vulkan_context *ctx)
+{
+	assert(ctx);
+
+	vulkan_command_handler *handler = &ctx->command_handler;
+	vulkan_command_queue *queue = &handler->render_commands;
+
+	void *at = queue->base;
+
+	vulkan_frame_data *frame_data = &handler->frame_data[handler->frame_index];
+	assert(frame_data);
+
+	while (at < queue->at)
+	{
+		vulkan_render_command_header *header = (vulkan_render_command_header *)at;
+		assert(header);
+
+		switch (header->type)
+		{
+		case VULKAN_RENDER_COMMAND_BIND_PIPELINE:
+		{
+			vulkan_render_command_bind_pipeline *bind_pipeline = at;
+
+			vulkan_pipeline *pipeline = vulkan_pipeline_get(ctx, bind_pipeline->id);
+			assert(pipeline);
+
+			VkPipelineBindPoint bind_point = pipeline->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
+			vkCmdBindPipeline(frame_data->command_buffer, bind_point, pipeline->handle);
+		} break;
+		case VULKAN_RENDER_COMMAND_BIND_VERTEX_BUFFER:
+		{
+			vulkan_render_command_bind_vertex_buffer *bind_vertex_buffer = at;
+
+			vulkan_pipeline *pipeline = vulkan_pipeline_get(ctx, bind_vertex_buffer->pipeline);
+			assert(pipeline);
+
+			VkDeviceSize offset = {0};
+			vkCmdBindVertexBuffers(frame_data->command_buffer, 0, 1, &bind_vertex_buffer->buffer.handle, &offset);
+		} break;
+		case VULKAN_RENDER_COMMAND_PUSH_CONSTANTS:
+		{
+			vulkan_render_command_push_constants *push_constants = at;
+
+			vulkan_pipeline *pipeline = vulkan_pipeline_get(ctx, push_constants->pipeline);
+			assert(pipeline);
+
+			vkCmdPushConstants(frame_data->command_buffer, pipeline->layout, push_constants->stage, 0, push_constants->size, push_constants->data);
+		} break;
+		case VULKAN_RENDER_COMMAND_DRAW:
+		{
+			vulkan_render_command_draw *draw = at;
+
+			vkCmdDraw(frame_data->command_buffer, draw->vertex_count, 1, 0, 0);
+		} break;
+		default:
+		{
+			SDL_Log("[VULKAN] Unkown render command of type: %u", header->type);
+		}
+		}	
+
+		at = (u8 *)at + header->size;
+	}
+
+	queue->at = queue->base;
+	queue->available = queue->size;
+}
+
 // TODO: not hardcode vertex buffer
-bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *handler, vulkan_buffer *vertex_buffer, u32 width, u32 height)
+bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *handler)
 {
 	assert(ctx);
 	assert(handler);
-	assert(vertex_buffer);
 
-	vulkan_frame_Data *frame_data = &handler->frame_data[handler->frame_index];
+	vulkan_frame_data *frame_data = &handler->frame_data[handler->frame_index];
 	assert(frame_data);
 
 	VkCommandBufferBeginInfo begin_info = {
@@ -149,15 +322,7 @@ bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *
 
     vkCmdBeginRendering(frame_data->command_buffer, &render_info);
 
-	vkCmdBindPipeline(frame_data->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->triangle_pipeline.handle);
-
-	VkDeviceSize offsets = {0};
-	vkCmdBindVertexBuffers(frame_data->command_buffer, 0, 1, &vertex_buffer->handle, &offsets);
-
-	m4 orthographic = m4orthographic(0, width, 0, height, -1.0f, 1.0f);
-	vkCmdPushConstants(frame_data->command_buffer, ctx->triangle_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m4), &orthographic);
-
-    vkCmdDraw(frame_data->command_buffer, 306, 1, 0, 0);
+    render_queue(ctx);
 
     vkCmdEndRendering(frame_data->command_buffer);
 
@@ -192,6 +357,8 @@ void vulkan_command_handler_destroy(vulkan_context *ctx, vulkan_command_handler 
 {
 	assert(ctx);
 	assert(handler);
+
+	SDL_free(ctx->command_handler.render_commands.base);
 
 	vkDestroyCommandPool(ctx->device, handler->command_pool, NULL);
 

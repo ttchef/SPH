@@ -1,41 +1,94 @@
 
+#include "vk/command.h"
 #include <sph/simulation.h>
+#include <math/matrix.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
 #define PARTICLE_DISTANCE 40.0f
 
-bool simulation_init(vulkan_context *ctx, u32 window_width, u32 window_height, Simulation *simulation)
+bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(simulation);
 
-	Particle *particles = SDL_calloc(PARTICLE_COUNT, sizeof(Particle));
+	particle *particles = SDL_calloc(PARTICLE_COUNT, sizeof(particle));
 	assert(particles);
 
 	v2 start = v2make(window_width / 2.0f - PARTICLE_DISTANCE * SDL_sqrtf(PARTICLE_COUNT) * 0.5f, window_height / 2.0f - PARTICLE_DISTANCE * SDL_sqrtf(PARTICLE_COUNT) * 0.5f);
 
 	for (u32 i = 0; i < PARTICLE_COUNT; i++)
 	{
-		Particle *p = &particles[i];
+		particle *p = &particles[i];
 		assert(p);
 
-		*p = (Particle){
+		*p = (particle){
 			.mass = 1.0f,
 			.pos = v2make((i % (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.x, ((u32)i / (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.y), 
 		};
 	}
 
-	vulkan_buffer_device_local_create(ctx, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, PARTICLE_COUNT * sizeof(Particle), particles, &simulation->particles);
+	vulkan_buffer_device_local_create(vulkan, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, PARTICLE_COUNT * sizeof(particle), particles, &simulation->particles);
+
+	vulkan_pipeline_desc render_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
+
+	VkVertexInputAttributeDescription vertex_attributes[] = {
+		// NOTE: Position
+		{
+			.binding = 0,
+			.location = 0,
+			.format = VK_FORMAT_R32G32_SFLOAT,
+			.offset = 0,
+		},
+		// NOTE: Velocity
+		{
+			.binding = 0,
+			.location = 1,
+			.format = VK_FORMAT_R32G32_SFLOAT,
+			.offset = sizeof(f32) * 2,
+		},
+		// NOTE: Mass
+		{
+			.binding = 0,
+			.location = 2,
+			.format = VK_FORMAT_R32_SFLOAT,
+			.offset = sizeof(f32) * 4,
+		},
+		// NOTE: Density
+		{
+			.binding = 0,
+			.location = 3,
+			.format = VK_FORMAT_R32_SFLOAT,
+			.offset = sizeof(f32) * 5,
+		},
+	};
+
+	vulkan_pipeline_desc_set_vertex_input(&render_description, sizeof(particle), vertex_attributes, ARRAY_COUNT(vertex_attributes));
+
+	simulation->render_pipeline = vulkan_pipeline_create(vulkan, &render_description);
+	assert(simulation->render_pipeline != INVALID_PIPELINE);
 
 	return true;
 }
 
-void simulation_deinit(vulkan_context *ctx, Simulation *simulation)
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(simulation);
 
-	vulkan_buffer_destroy(ctx, &simulation->particles);
+	m4 orthographic = m4orthographic(0, window_width, 0, window_height, -1.0f, 1.0f);
+
+	vulkan_command_bind_pipeline(vulkan, simulation->render_pipeline);
+	vulkan_command_push_constants(vulkan, sizeof(orthographic), &orthographic, VK_SHADER_STAGE_VERTEX_BIT, simulation->render_pipeline);
+	vulkan_command_bind_vertex_buffer(vulkan, simulation->particles, simulation->render_pipeline);
+	vulkan_command_draw(vulkan, PARTICLE_COUNT);
+}
+
+void simulation_destroy(vulkan_context *vulkan, simulation *simulation)
+{
+	assert(vulkan);
+	assert(simulation);
+
+	vulkan_buffer_destroy(vulkan, &simulation->particles);
 }

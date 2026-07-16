@@ -6,23 +6,55 @@
 
 #include <vulkan/vulkan_core.h>
 
+#define VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES 8
+
+typedef u32 vulkan_pipeline_id;
+#define INVALID_PIPELINE 0 
+
 typedef enum vulkan_pipeline_type
 {
-	PIPELINE_TYPE_GRAPHICS,
-	PIPELINE_TYPE_COMPUTE,
-} VulkanPipelineType;
+	VULKAN_PIPELINE_TYPE_GRAPHICS,
+	VULKAN_PIPELINE_TYPE_COMPUTE,
+} vulkan_pipeline_type;
 
 typedef struct vulkan_pipeline_desc
 {
-	VulkanPipelineType type;	
+	vulkan_pipeline_type type;
+
+	VkVertexInputBindingDescription vertex_binding;
+	VkVertexInputAttributeDescription vertex_attributes[VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES];
+	u32 vertex_attribute_count;
 } vulkan_pipeline_desc;
 
 typedef struct vulkan_pipeline
 {
+	vulkan_pipeline_type type;
 	VkPipeline handle;
 	VkPipelineLayout layout;
 } vulkan_pipeline;
 
-bool vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline);
+typedef struct vulkan_pipeline_manager
+{
+	vulkan_pipeline pipelines[64];
+	u32 count;
+} vulkan_pipeline_manager;
 
-void vulkan_pipeline_destroy(vulkan_context *ctx, vulkan_pipeline *pipeline);
+//
+// NOTE: Pipeline builder
+//
+
+vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type);
+
+void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 vertex_stride, VkVertexInputAttributeDescription *attribues, u32 attribute_count);
+
+//
+// NOTE: Pipeline manger
+//       Is used to manage the pipelines so they dont need to be destroyed manually
+//
+
+bool vulkan_pipeline_manager_create(vulkan_pipeline_manager *manager);
+
+void vulkan_pipeline_manager_destroy(vulkan_context *ctx, vulkan_pipeline_manager *manager);
+vulkan_pipeline_id vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc);
+
+vulkan_pipeline *vulkan_pipeline_get(vulkan_context *ctx, vulkan_pipeline_id id);

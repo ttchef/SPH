@@ -1,14 +1,8 @@
 
-#include "types.h"
-#include "vk/buffer.h"
-#include "vk/command.h"
-#include "vk/pipeline.h"
-#include "vk/swapchain.h"
 #include <vk/context.h>
 
 #include <SDL3/SDL_vulkan.h>
 #include <SDL3/SDL_log.h>
-#include <vulkan/vulkan_core.h>
 
 #define MAX_EXTENSIONS 16
 
@@ -300,8 +294,8 @@ bool vulkan_init(SDL_Window *window, vulkan_context *ctx)
 	CHECK(physical_device_init(ctx));
 	CHECK(logical_device_init(ctx));
 	CHECK(vulkan_swapchain_create(ctx, &ctx->swapchain, 600, 600));
-	CHECK(vulkan_pipeline_create(ctx, NULL, &ctx->triangle_pipeline));
 	CHECK(vulkan_command_handler_create(ctx, &ctx->command_handler));
+	CHECK(vulkan_pipeline_manager_create(&ctx->pipeline_manager));
 
 #undef CHECK
 
@@ -319,7 +313,7 @@ void vulkan_draw(vulkan_context *ctx, vulkan_buffer *vertex_buffer, u32 window_w
 	assert(vertex_buffer);
 
 	u32 frame_index = ctx->command_handler.frame_index;
-	vulkan_frame_Data *frame_data = &ctx->command_handler.frame_data[frame_index];
+	vulkan_frame_data *frame_data = &ctx->command_handler.frame_data[frame_index];
 	assert(frame_data);
 
 	vkWaitForFences(ctx->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
@@ -340,7 +334,7 @@ void vulkan_draw(vulkan_context *ctx, vulkan_buffer *vertex_buffer, u32 window_w
 	}
 
 	vkResetCommandBuffer(frame_data->command_buffer, 0);
-	vulkan_command_handler_record(ctx, &ctx->command_handler, vertex_buffer, window_width, window_height);
+	vulkan_command_handler_record(ctx, &ctx->command_handler);
 
 	VkSemaphore wait_semaphores[] = {
 		frame_data->image_available,	
@@ -396,8 +390,8 @@ void vulkan_deinit(vulkan_context *ctx)
 
 	vkDeviceWaitIdle(ctx->device);
 
+	vulkan_pipeline_manager_destroy(ctx, &ctx->pipeline_manager);
 	vulkan_command_handler_destroy(ctx, &ctx->command_handler);
-	vulkan_pipeline_destroy(ctx, &ctx->triangle_pipeline);
 	vulkan_swapchain_destroy(ctx, &ctx->swapchain);
 
 	vkDestroySurfaceKHR(ctx->instance, ctx->surface, NULL);

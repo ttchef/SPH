@@ -1,10 +1,61 @@
 
+#include "types.h"
 #include <vk/pipeline.h>
 #include <vk/context.h>
 #include <math/types.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
+
+//
+// NOTE: Pipeline builder
+// 
+
+vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type)
+{
+	vulkan_pipeline_desc result = {0};
+
+	switch (type)
+	{
+	case VULKAN_PIPELINE_TYPE_GRAPHICS:
+	{
+		result.type = VULKAN_PIPELINE_TYPE_GRAPHICS;
+	} break;
+
+	case VULKAN_PIPELINE_TYPE_COMPUTE:
+	{
+		result.type = VULKAN_PIPELINE_TYPE_COMPUTE;
+	} break;
+
+	default:
+	{
+		SDL_Log("[VULKAN] Warning: Pipeline description of unkwon type: %d", type);
+	}
+	}
+
+	return result;
+}
+
+void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 vertex_stride, VkVertexInputAttributeDescription *attribues, u32 attribute_count)
+{
+	assert(desc);
+	assert(attribues);
+
+	assert(desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS);
+
+	VkVertexInputBindingDescription binding = {
+		.binding = 0,
+		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+		.stride = vertex_stride,	
+	};
+
+	desc->vertex_binding = binding;
+
+	assert(attribute_count <= VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES);
+
+	desc->vertex_attribute_count = attribute_count;
+	SDL_memcpy(desc->vertex_attributes, attribues, attribute_count * sizeof(VkVertexInputAttributeDescription));
+}
 
 // TODO: Replace with relative to executable path or embed shader
 static VkShaderModule shader_module_init(vulkan_context *ctx, const char *path)
@@ -36,7 +87,7 @@ static VkShaderModule shader_module_init(vulkan_context *ctx, const char *path)
 	return result;
 }
 
-bool vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
+static bool pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
 	assert(ctx);
 	assert(out_pipeline);
@@ -65,49 +116,12 @@ bool vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vul
 		.pColorAttachmentFormats = &ctx->swapchain.fmt,
 	};
 
-	VkVertexInputBindingDescription binding = {
-		.binding = 0,
-		.stride = sizeof(f32) * 6,
-		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-	};
-
-	VkVertexInputAttributeDescription attributes[] = {
-		// NOTE: Position
-		{
-			.binding = 0,
-			.location = 0,
-			.format = VK_FORMAT_R32G32_SFLOAT,
-			.offset = 0,
-		},
-		// NOTE: Velocity
-		{
-			.binding = 0,
-			.location = 1,
-			.format = VK_FORMAT_R32G32_SFLOAT,
-			.offset = sizeof(f32) * 2,
-		},
-		// NOTE: Mass
-		{
-			.binding = 0,
-			.location = 2,
-			.format = VK_FORMAT_R32_SFLOAT,
-			.offset = sizeof(f32) * 4,
-		},
-		// NOTE: Density
-		{
-			.binding = 0,
-			.location = 3,
-			.format = VK_FORMAT_R32_SFLOAT,
-			.offset = sizeof(f32) * 5,
-		},	
-	};
-
 	VkPipelineVertexInputStateCreateInfo vertex_input = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		.vertexBindingDescriptionCount = 1,
-		.pVertexBindingDescriptions = &binding,
-		.vertexAttributeDescriptionCount = ARRAY_COUNT(attributes),
-		.pVertexAttributeDescriptions = attributes,
+		.pVertexBindingDescriptions = &desc->vertex_binding,
+		.vertexAttributeDescriptionCount = desc->vertex_attribute_count,
+		.pVertexAttributeDescriptions = desc->vertex_attributes,
 	};
 
 	VkPipelineInputAssemblyStateCreateInfo assembly_input = {
@@ -210,7 +224,7 @@ bool vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vul
 		.layout = out_pipeline->layout,
 	};
 
-	if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &info, NULL, &ctx->triangle_pipeline.handle) != VK_SUCCESS)
+	if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &info, NULL, &out_pipeline->handle) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create graphics pipeline.");
 		vkDestroyShaderModule(ctx->device, vertex_module, NULL);
@@ -221,14 +235,72 @@ bool vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vul
 	vkDestroyShaderModule(ctx->device, vertex_module, NULL);
 	vkDestroyShaderModule(ctx->device, fragment_module, NULL);
 
+	out_pipeline->type = desc->type;
+
 	return true;
 }
 
-void vulkan_pipeline_destroy(vulkan_context *ctx, vulkan_pipeline *pipeline)
+static void pipeline_destroy(vulkan_context *ctx, vulkan_pipeline *pipeline)
 {
 	assert(ctx);
 	assert(pipeline);
 
 	vkDestroyPipelineLayout(ctx->device, pipeline->layout, NULL);
 	vkDestroyPipeline(ctx->device, pipeline->handle, NULL);
+}
+
+bool vulkan_pipeline_manager_create(vulkan_pipeline_manager *manager)
+{
+	assert(manager);
+
+	manager->count = 0;
+
+	return true;
+}
+
+void vulkan_pipeline_manager_destroy(vulkan_context *ctx, vulkan_pipeline_manager *manager)
+{
+	assert(ctx);
+	assert(manager);
+
+	for (u32 i = 0; i < manager->count; i++)
+	{
+		pipeline_destroy(ctx, &manager->pipelines[i]);
+	}
+}
+
+vulkan_pipeline_id vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc)
+{
+	assert(ctx);
+	assert(desc);
+
+	vulkan_pipeline_manager *manager = &ctx->pipeline_manager;
+
+	if (manager->count + 1 > ARRAY_COUNT(manager->pipelines))
+	{
+		SDL_Log("[VULKAN] Failed to create pipeline no space left (%u/%zu)", manager->count, ARRAY_COUNT(manager->pipelines));
+		return INVALID_PIPELINE;
+	}
+
+	if (!pipeline_create(ctx, desc, &manager->pipelines[manager->count]))
+	{
+		return INVALID_PIPELINE;
+	}
+
+	manager->count++;
+
+	return manager->count;
+}
+
+vulkan_pipeline *vulkan_pipeline_get(vulkan_context *ctx, vulkan_pipeline_id id)
+{
+	assert(ctx);
+	assert(id != INVALID_PIPELINE);
+
+	vulkan_pipeline_manager *manager = &ctx->pipeline_manager;
+	
+	vulkan_pipeline *result = &manager->pipelines[id - 1];
+	assert(result);
+
+	return result;
 }
