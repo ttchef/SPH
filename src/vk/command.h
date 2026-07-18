@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include "vk/pipeline.h"
 #include <types.h>
 #include <vk/types.h>
+#include <vk/pipeline.h>
 #include <vk/buffer.h>
 
 #include <math/types.h>
@@ -16,49 +16,6 @@ typedef struct vulkan_frame_data
 	VkFence in_flight_fence;
 	VkCommandBuffer command_buffer;
 } vulkan_frame_data;
-
-typedef enum vulkan_render_command_type
-{
-	VULKAN_RENDER_COMMAND_BIND_PIPELINE,
-	VULKAN_RENDER_COMMAND_BIND_VERTEX_BUFFER,
-	VULKAN_RENDER_COMMAND_PUSH_CONSTANTS,
-	// NOTE: vkCmdDraw, uses currently bound pipeline 
-	VULKAN_RENDER_COMMAND_DRAW, 
-} vulkan_render_command_type;
-
-typedef struct vulkan_render_command_header
-{
-	u32 type;
-	u32 size;
-} vulkan_render_command_header;
-
-typedef struct vulkan_render_command_bind_pipeline
-{
-	vulkan_render_command_header header;
-	vulkan_pipeline_id id;
-} vulkan_render_command_bind_pipeline;
-
-typedef struct vulkan_render_command_bind_vertex_buffer
-{
-	vulkan_render_command_header header;
-	vulkan_buffer buffer;
-	vulkan_pipeline_id pipeline;
-} vulkan_render_command_bind_vertex_buffer;
-
-typedef struct vulkan_render_command_push_constants
-{
-	vulkan_render_command_header header;
-	u32 size;
-	void *data;
-	VkShaderStageFlags stage;
-	vulkan_pipeline_id pipeline;
-} vulkan_render_command_push_constants;
-
-typedef struct vulkan_render_command_draw
-{
-	vulkan_render_command_header header;
-	u32 vertex_count;
-} vulkan_render_command_draw;
 
 typedef struct vulkan_command_queue
 {
@@ -84,6 +41,10 @@ typedef struct vulkan_command_handler
 // NOTE: Render commands
 // 
 
+bool vulkan_command_begin_rendering(vulkan_context *ctx);
+
+bool vulkan_command_end_rendering(vulkan_context *ctx);
+
 bool vulkan_command_bind_pipeline(vulkan_context *ctx, vulkan_pipeline_id id);
 
 bool vulkan_command_bind_vertex_buffer(vulkan_context *ctx, vulkan_buffer buffer, vulkan_pipeline_id pipeline);
@@ -91,6 +52,8 @@ bool vulkan_command_bind_vertex_buffer(vulkan_context *ctx, vulkan_buffer buffer
 bool vulkan_command_push_constants(vulkan_context *ctx, u32 size, void *data, VkShaderStageFlags stage, vulkan_pipeline_id pipeline);
 
 bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count);
+
+bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 size_z);
 
 // ----------
 

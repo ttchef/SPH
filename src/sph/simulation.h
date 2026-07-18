@@ -22,6 +22,7 @@ typedef struct particle
 typedef struct simulation
 {
 	vulkan_buffer particles;
+	vulkan_pipeline_id update_pipeline;
 	vulkan_pipeline_id render_pipeline;
 } simulation;
 

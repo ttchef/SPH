@@ -11,6 +11,8 @@ static bool buffer_create(vulkan_context *ctx, VkBufferUsageFlags usage, VkMemor
 
 	vulkan_buffer result = {0};
 
+	result.size = size;
+
 	VkBufferCreateInfo buffer_info = {
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		.size = size,

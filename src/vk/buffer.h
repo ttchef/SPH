@@ -10,6 +10,7 @@ typedef struct vulkan_buffer
 {
 	VkBuffer handle;
 	VkDeviceMemory memory;
+	VkDeviceSize size;
 } vulkan_buffer;
 
 // NOTE: automatically copies data into buffer

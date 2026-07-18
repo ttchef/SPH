@@ -1,11 +1,13 @@
 
-#include "types.h"
+#include "vk/descriptor.h"
 #include <vk/pipeline.h>
 #include <vk/context.h>
 #include <math/types.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
+
+typedef bool (*pipeline_create_func)(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline);
 
 //
 // NOTE: Pipeline builder
@@ -57,8 +59,26 @@ void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 verte
 	SDL_memcpy(desc->vertex_attributes, attribues, attribute_count * sizeof(VkVertexInputAttributeDescription));
 }
 
+void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage)
+{
+	if (desc->descriptor_count + 1 > ARRAY_COUNT(desc->descriptors))
+	{
+		SDL_Log("[VULKAN] No space left to add descriptor to this pipeline (%u/%zu)", desc->descriptor_count, ARRAY_COUNT(desc->descriptors));
+		return;
+	}
+
+	vulkan_descriptor descriptor;
+	if (!vulkan_descriptor_storage_buffer_create(ctx, buffer, binding, stage, &descriptor))
+	{
+		return;
+	}
+
+	desc->descriptors[desc->descriptor_count] = descriptor;
+	++desc->descriptor_count;
+}
+
 // TODO: Replace with relative to executable path or embed shader
-static VkShaderModule shader_module_init(vulkan_context *ctx, const char *path)
+static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path)
 {
 	assert(ctx);
 	assert(path);
@@ -87,13 +107,48 @@ static VkShaderModule shader_module_init(vulkan_context *ctx, const char *path)
 	return result;
 }
 
-static bool pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
+static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
+{
+	VkPushConstantRange push_constant = {
+		.offset = 0,
+		.size = sizeof(m4),
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,	
+	};
+
+	VkDescriptorSetLayout descriptor_layouts[desc->descriptor_count];
+	for (u32 i = 0; i < desc->descriptor_count; i++)
+	{
+		descriptor_layouts[i] = desc->descriptors[i].layout;
+	}
+
+	VkPipelineLayoutCreateInfo layout_info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pPushConstantRanges = &push_constant,
+		.pushConstantRangeCount = 1,
+		.pSetLayouts = descriptor_layouts,
+		.setLayoutCount = ARRAY_COUNT(descriptor_layouts),
+	};
+
+	if (vkCreatePipelineLayout(ctx->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
+		return false;
+	}
+
+	SDL_memcpy(out_pipeline->descriptors, desc->descriptors, desc->descriptor_count * sizeof(vulkan_descriptor));
+	out_pipeline->descriptor_count = desc->descriptor_count;
+	out_pipeline->type = desc->type;
+
+	return true;	
+}
+
+static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
 	assert(ctx);
 	assert(out_pipeline);
 
-	VkShaderModule vertex_module = shader_module_init(ctx, "src/shaders/spv/shader.vert.spv");
-	VkShaderModule fragment_module = shader_module_init(ctx, "src/shaders/spv/shader.frag.spv");
+	VkShaderModule vertex_module = shader_module_create(ctx, "src/shaders/spv/shader.vert.spv");
+	VkShaderModule fragment_module = shader_module_create(ctx, "src/shaders/spv/shader.frag.spv");
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
 		{
@@ -188,26 +243,6 @@ static bool pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vul
 		.pDynamicStates = dynamic_states,	
 	};
 
-	VkPushConstantRange push_constant = {
-		.offset = 0,
-		.size = sizeof(m4),
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,	
-	};
-
-	VkPipelineLayoutCreateInfo layout_info = {
-		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-		.pPushConstantRanges = &push_constant,
-		.pushConstantRangeCount = 1,
-	};
-
-	if (vkCreatePipelineLayout(ctx->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
-		vkDestroyShaderModule(ctx->device, vertex_module, NULL);
-		vkDestroyShaderModule(ctx->device, fragment_module, NULL);
-		return false;
-	}
-
 	VkGraphicsPipelineCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 		.pStages = stages,
@@ -235,7 +270,36 @@ static bool pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vul
 	vkDestroyShaderModule(ctx->device, vertex_module, NULL);
 	vkDestroyShaderModule(ctx->device, fragment_module, NULL);
 
-	out_pipeline->type = desc->type;
+	return true;
+}
+
+static bool compute_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
+{
+	// TODO: Not hardcode shader
+	VkShaderModule shader_module = shader_module_create(ctx, "src/shaders/spv/update.comp.spv");
+
+	VkPipelineShaderStageCreateInfo stage = {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
+			.module = shader_module,
+			.pName = "main",
+	};
+
+	VkComputePipelineCreateInfo info = {
+		.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+		.layout = out_pipeline->layout,
+		.stage = stage,
+	};
+
+	if (vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &info, NULL, &out_pipeline->handle) != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to create compute pipeline.");
+		vkDestroyShaderModule(ctx->device, shader_module, NULL);
+
+		return false;
+	}
+	
+	vkDestroyShaderModule(ctx->device, shader_module, NULL);
 
 	return true;
 }
@@ -247,6 +311,11 @@ static void pipeline_destroy(vulkan_context *ctx, vulkan_pipeline *pipeline)
 
 	vkDestroyPipelineLayout(ctx->device, pipeline->layout, NULL);
 	vkDestroyPipeline(ctx->device, pipeline->handle, NULL);
+
+	for (u32 i = 0; i < pipeline->descriptor_count; i++)
+	{
+		vulkan_descriptor_destroy(ctx, &pipeline->descriptors[i]);
+	}
 }
 
 bool vulkan_pipeline_manager_create(vulkan_pipeline_manager *manager)
@@ -282,6 +351,12 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_d
 		return INVALID_PIPELINE;
 	}
 
+	if (!pipeline_layout_create(ctx, desc, &manager->pipelines[manager->count]))
+	{
+		return INVALID_PIPELINE;
+	}
+
+	pipeline_create_func pipeline_create = desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? graphics_pipeline_create : compute_pipeline_create;
 	if (!pipeline_create(ctx, desc, &manager->pipelines[manager->count]))
 	{
 		return INVALID_PIPELINE;

@@ -69,6 +69,14 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	simulation->render_pipeline = vulkan_pipeline_create(vulkan, &render_description);
 	assert(simulation->render_pipeline != INVALID_PIPELINE);
 
+	
+	vulkan_pipeline_desc update_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
+
+	vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles, 0, VK_SHADER_STAGE_COMPUTE_BIT);
+
+	simulation->update_pipeline = vulkan_pipeline_create(vulkan, &update_description);
+	assert(simulation->update_pipeline != INVALID_PIPELINE);	
+
 	return true;
 }
 
@@ -77,12 +85,19 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	assert(vulkan);
 	assert(simulation);
 
+	vulkan_command_bind_pipeline(vulkan, simulation->update_pipeline);
+	vulkan_command_dispatch(vulkan, 32, 1, 1);
+
+	vulkan_command_begin_rendering(vulkan);
+
 	m4 orthographic = m4orthographic(0, window_width, 0, window_height, -1.0f, 1.0f);
 
 	vulkan_command_bind_pipeline(vulkan, simulation->render_pipeline);
 	vulkan_command_push_constants(vulkan, sizeof(orthographic), &orthographic, VK_SHADER_STAGE_VERTEX_BIT, simulation->render_pipeline);
 	vulkan_command_bind_vertex_buffer(vulkan, simulation->particles, simulation->render_pipeline);
 	vulkan_command_draw(vulkan, PARTICLE_COUNT);
+
+	vulkan_command_end_rendering(vulkan);
 }
 
 void simulation_destroy(vulkan_context *vulkan, simulation *simulation)

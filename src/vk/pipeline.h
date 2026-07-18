@@ -3,6 +3,8 @@
 
 #include <types.h>
 #include <vk/types.h>
+#include <vk/buffer.h>
+#include <vk/descriptor.h>
 
 #include <vulkan/vulkan_core.h>
 
@@ -24,13 +26,20 @@ typedef struct vulkan_pipeline_desc
 	VkVertexInputBindingDescription vertex_binding;
 	VkVertexInputAttributeDescription vertex_attributes[VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES];
 	u32 vertex_attribute_count;
+
+	vulkan_descriptor descriptors[12];
+	u32 descriptor_count;	
 } vulkan_pipeline_desc;
 
 typedef struct vulkan_pipeline
 {
 	vulkan_pipeline_type type;
+
 	VkPipeline handle;
 	VkPipelineLayout layout;
+	
+	vulkan_descriptor descriptors[12];
+	u32 descriptor_count;	
 } vulkan_pipeline;
 
 typedef struct vulkan_pipeline_manager
@@ -46,6 +55,8 @@ typedef struct vulkan_pipeline_manager
 vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type);
 
 void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 vertex_stride, VkVertexInputAttributeDescription *attribues, u32 attribute_count);
+
+void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage);
 
 //
 // NOTE: Pipeline manger
