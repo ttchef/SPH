@@ -21,8 +21,10 @@ typedef struct particle
 
 typedef struct simulation
 {
-	vulkan_buffer particles;
-	vulkan_pipeline_id update_pipeline;
+	// NOTE: Buffers get modified every frame
+	vulkan_buffer particles[FRAMES_IN_FLIGHT];
+
+	vulkan_pipeline_id update_pipeline[FRAMES_IN_FLIGHT];
 	vulkan_pipeline_id render_pipeline;
 } simulation;
 

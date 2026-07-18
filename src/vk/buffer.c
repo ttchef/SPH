@@ -150,6 +150,9 @@ bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags u
 error:
 	vkDestroyCommandPool(ctx->device, command_pool, NULL);
 	vulkan_buffer_destroy(ctx, &staging);
+
+	SDL_Log("[VULKAN] Error occured while creating device local buffer.");
+	
 	return false;
 }
 

@@ -113,7 +113,7 @@ bool vulkan_command_end_rendering(vulkan_context *ctx)
 		.size = sizeof(command_end_rendering),	
 	};
 
-	command_begin_rendering end_rendering = {
+	command_end_rendering end_rendering = {
 		.header = header,	
 	};
 
@@ -341,7 +341,7 @@ static void render_queue(vulkan_context *ctx)
 
 			for (u32 i = 0; i < pipeline->descriptor_count; i++)
 			{
-				vkCmdBindDescriptorSets(frame_data->command_buffer, bind_point, pipeline->layout, 0, 1, &pipeline->descriptors[i].set, 0, NULL);
+				vkCmdBindDescriptorSets(frame_data->command_buffer, bind_point, pipeline->layout, i, 1, &pipeline->descriptors[i].set, 0, NULL);
 			}
 		} break;
 		case COMMAND_BIND_VERTEX_BUFFER:
@@ -485,3 +485,5 @@ void vulkan_command_handler_destroy(vulkan_context *ctx, vulkan_command_handler 
 		vkDestroyFence(ctx->device, handler->frame_data[i].in_flight_fence, NULL);
 	}
 }
+
+

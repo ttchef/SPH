@@ -40,6 +40,9 @@ bool vulkan_init(SDL_Window *window, vulkan_context *ctx);
 
 void vulkan_resize(vulkan_context *ctx, u32 w, u32 h);
 
-void vulkan_draw(vulkan_context *ctx, vulkan_buffer *vertex_buffer, u32 window_width, u32 window_height);
+void vulkan_draw(vulkan_context *ctx, u32 window_width, u32 window_height);
 
 void vulkan_deinit(vulkan_context *ctx);
+
+// NOTE: Returns the current frame index
+u32 vulkan_frame_index(vulkan_context *ctx);

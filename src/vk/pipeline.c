@@ -1,5 +1,4 @@
 
-#include "vk/descriptor.h"
 #include <vk/pipeline.h>
 #include <vk/context.h>
 #include <math/types.h>

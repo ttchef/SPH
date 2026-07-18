@@ -99,7 +99,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     time_update(&state->time);
 
     simulation_update(vulkan, state->window.width, state->window.height, &state->simulation);
-    vulkan_draw(vulkan, &state->simulation.particles, state->window.width, state->window.height);
+    vulkan_draw(vulkan, state->window.width, state->window.height);
 
     return SDL_APP_CONTINUE;
 }

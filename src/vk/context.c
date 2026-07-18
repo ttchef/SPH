@@ -307,10 +307,9 @@ void vulkan_resize(vulkan_context *ctx, u32 w, u32 h)
 	vulkan_swapchain_recreate(ctx, &ctx->swapchain, (u32)w, (u32)h, ctx->command_handler.accumulated_frame_index);
 }
 
-void vulkan_draw(vulkan_context *ctx, vulkan_buffer *vertex_buffer, u32 window_width, u32 window_height)
+void vulkan_draw(vulkan_context *ctx, u32 window_width, u32 window_height)
 {
 	assert(ctx);
-	assert(vertex_buffer);
 
 	u32 frame_index = ctx->command_handler.frame_index;
 	vulkan_frame_data *frame_data = &ctx->command_handler.frame_data[frame_index];
@@ -406,4 +405,9 @@ void vulkan_deinit(vulkan_context *ctx)
 #endif
 	
 	vkDestroyInstance(ctx->instance, NULL);
+}
+
+u32 vulkan_frame_index(vulkan_context *ctx)
+{
+	return ctx->command_handler.frame_index;
 }
