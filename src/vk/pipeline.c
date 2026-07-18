@@ -76,6 +76,12 @@ void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_
 	++desc->descriptor_count;
 }
 
+void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages)
+{
+	desc->push_constant_size = size;
+	desc->push_constants_stages = stages;
+}
+
 // TODO: Replace with relative to executable path or embed shader
 static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path)
 {
@@ -110,8 +116,8 @@ static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *de
 {
 	VkPushConstantRange push_constant = {
 		.offset = 0,
-		.size = sizeof(m4),
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,	
+		.size = desc->push_constant_size,
+		.stageFlags = desc->push_constants_stages,	
 	};
 
 	VkDescriptorSetLayout descriptor_layouts[desc->descriptor_count];

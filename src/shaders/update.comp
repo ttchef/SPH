@@ -19,6 +19,13 @@ layout(std430, set = 1, binding = 0) buffer out_p
     particle out_particles[];        
 };
 
+layout (push_constant) uniform pc
+{
+    float dt;
+    uint window_width;
+    uint window_height;    
+};
+
 layout (local_size_x = 306, local_size_y = 1, local_size_z = 1) in;
 
 void main()
@@ -27,7 +34,35 @@ void main()
 
     particle p = in_particles[index];
 
-    p.pos += vec2(0, 0.05);
+    vec2 gravity = vec2(0, 400);
+    vec2 acc = gravity;
+
+    p.vel += acc * dt;
+    p.pos += p.vel * dt;        
+
+    float damping = 0.7;
+    
+    if (p.pos.x < 0.0)
+    {
+        p.pos.x = 0.0;
+        p.vel.x = -p.vel.x * damping;        
+    }
+    else if (p.pos.x > window_width)
+    {
+        p.pos.x = window_width;
+        p.vel.x = -p.vel.x * damping;        
+    }
+
+    if (p.pos.y < 0.0)
+    {
+        p.pos.y = 0.0;
+        p.vel.y = -p.vel.y * damping;
+    }
+    else if (p.pos.y > window_height)
+    {
+        p.pos.y = window_height;
+        p.vel.y = -p.vel.y * damping;    
+    }
 
     out_particles[index] = p;
 }

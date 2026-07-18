@@ -30,6 +30,6 @@ typedef struct simulation
 
 bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation);
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation);
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, f32 dt, simulation *simulation);
 
 void simulation_destroy(vulkan_context *vulkan, simulation *simulation);

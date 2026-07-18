@@ -1,12 +1,25 @@
 
-#include "vk/types.h"
+#include "vk/command.h"
+#include "vk/pipeline.h"
 #include <sph/simulation.h>
 #include <math/matrix.h>
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
+#include <vulkan/vulkan_core.h>
 
 #define PARTICLE_DISTANCE 40.0f
+
+//
+// NOTE: Push constants
+//
+
+typedef struct update_pc
+{
+	f32 dt;
+	u32 window_width;
+	u32 window_height;
+} update_pc;
 
 bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation)
 {
@@ -25,7 +38,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 		*p = (particle){
 			.mass = 1.0f,
-			.pos = v2make((i % (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.x, ((u32)i / (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.y), 
+			.pos = v2make((i % (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.x, ((u32)i / (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.y),
 		};
 	}
 
@@ -69,6 +82,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	};
 
 	vulkan_pipeline_desc_set_vertex_input(&render_description, sizeof(particle), vertex_attributes, ARRAY_COUNT(vertex_attributes));
+	vulkan_pipeline_desc_set_push_constant(&render_description, sizeof(m4), VK_SHADER_STAGE_VERTEX_BIT);
 
 	simulation->render_pipeline = vulkan_pipeline_create(vulkan, &render_description);
 	assert(simulation->render_pipeline != INVALID_PIPELINE);
@@ -83,6 +97,8 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		u32 write_buffer = (i + 1) % FRAMES_IN_FLIGHT;
 		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 
+		vulkan_pipeline_desc_set_push_constant(&update_description, sizeof(update_pc), VK_SHADER_STAGE_COMPUTE_BIT);
+
 		simulation->update_pipeline[i] = vulkan_pipeline_create(vulkan, &update_description);
 		assert(simulation->update_pipeline[i] != INVALID_PIPELINE);	
 	}
@@ -90,12 +106,22 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	return true;
 }
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation)
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, f32 dt, simulation *simulation)
 {
 	assert(vulkan);
 	assert(simulation);
 
-	vulkan_command_bind_pipeline(vulkan, simulation->update_pipeline[vulkan_frame_index(vulkan)]);
+	u32 frame = vulkan_frame_index(vulkan);
+
+	vulkan_command_bind_pipeline(vulkan, simulation->update_pipeline[frame]);
+
+	update_pc update_pc = {
+		.dt = dt,
+		.window_width = window_width,
+		.window_height = window_height,	
+	};
+	vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->update_pipeline[frame]);
+	
 	vulkan_command_dispatch(vulkan, 1, 1, 1);
 
 	vulkan_command_begin_rendering(vulkan);
@@ -105,7 +131,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	vulkan_command_bind_pipeline(vulkan, simulation->render_pipeline);
 	vulkan_command_push_constants(vulkan, sizeof(orthographic), &orthographic, VK_SHADER_STAGE_VERTEX_BIT, simulation->render_pipeline);
 
-	u32 write_buffer = (vulkan_frame_index(vulkan) + 1) % FRAMES_IN_FLIGHT;
+	u32 write_buffer = (frame + 1) % FRAMES_IN_FLIGHT;
 	vulkan_command_bind_vertex_buffer(vulkan, simulation->particles[write_buffer], simulation->render_pipeline);
 
 	vulkan_command_draw(vulkan, PARTICLE_COUNT);
