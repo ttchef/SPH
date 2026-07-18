@@ -7,7 +7,11 @@ CFLAGS := -Wall -Wextra -pedantic -std=c11 $(INCLUDE_PATHS)
 DEBUG_FLAGS := -DDEBUG -O0 -g
 RELEASE_FLAGS := -DNDEBUG -O2 
 
+ifeq ($(OS),Windows_NT)
+LDFLAGS := -lSDL3 -lvulkan-1
+else
 LDFLAGS := -lSDL3 -lvulkan
+endif
 
 SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c \
 			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c
