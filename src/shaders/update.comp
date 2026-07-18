@@ -64,9 +64,15 @@ vec2 calc_pressure_gradient(uint particle_index)
         particle p_j = in_particles[i];
 
         float d = distance(p_i.pos, p_j.pos);
-        if (d <= 0.0001 || d > SMOOTHING_RADIUS)
+        if (d <= 0.0001)
         {
-             continue;   
+            float angle = 2.399963 * float(particle_index);
+            gradient -= vec2(cos(angle), sin(angle)) * 500.0;
+            continue;
+        }
+        if (d > SMOOTHING_RADIUS)
+        {
+             continue;
         }
 
         vec2 smoothing_gradient = W_spiky_gradient(p_i.pos, p_j.pos, SMOOTHING_RADIUS);
