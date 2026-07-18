@@ -3,6 +3,7 @@
 
 #include <SDL3/SDL_vulkan.h>
 #include <SDL3/SDL_log.h>
+#include <vulkan/vulkan_core.h>
 
 #define MAX_EXTENSIONS 16
 
@@ -176,7 +177,7 @@ static bool physical_device_init(vulkan_context *ctx)
 
 		for (u32 j = 0; j < queue_count; j++)
 		{
-			if (props[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			if (props[j].queueFlags & VK_QUEUE_GRAPHICS_BIT && props[j].queueFlags & VK_QUEUE_COMPUTE_BIT)
 			{
 				graphics_index = j;
 			}

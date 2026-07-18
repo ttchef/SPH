@@ -1,13 +1,9 @@
 
 #version 450
 
-struct particle
-{
-    vec2 pos;
-    vec2 vel;
-    float mass;
-    float density;       
-};
+#extension GL_GOOGLE_include_directive : require
+
+#include "sph.glsl"
 
 layout(std430, set = 0, binding = 0) readonly buffer in_p
 {
@@ -23,10 +19,11 @@ layout (push_constant) uniform pc
 {
     float dt;
     uint window_width;
-    uint window_height;    
+    uint window_height;
+    uint particle_count;  
 };
 
-layout (local_size_x = 306, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void main()
 {

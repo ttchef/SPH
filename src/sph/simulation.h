@@ -8,7 +8,7 @@
 
 #include <math/types.h>
 
-#define PARTICLE_COUNT 306
+#define PARTICLE_COUNT 1024
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct particle
@@ -24,7 +24,9 @@ typedef struct simulation
 	// NOTE: Buffers get modified every frame
 	vulkan_buffer particles[FRAMES_IN_FLIGHT];
 
-	vulkan_pipeline_id update_pipeline[FRAMES_IN_FLIGHT];
+	vulkan_pipeline_id density_pipelines[FRAMES_IN_FLIGHT];
+	vulkan_pipeline_id update_pipelines[FRAMES_IN_FLIGHT];
+
 	vulkan_pipeline_id render_pipeline;
 } simulation;
 

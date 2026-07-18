@@ -10,6 +10,7 @@
 
 typedef enum vulkan_render_command_type
 {
+	COMMAND_BARRIER,
 	COMMAND_BEGIN_RENDERING,
 	COMMAND_END_RENDERING,
 	// NOTE: Automatically bind every discriptor set assoisiated with the pipeline
@@ -26,6 +27,16 @@ typedef struct command_header
 	u32 type;
 	u32 size;
 } command_header;
+
+typedef struct command_barrier
+{
+	command_header header;
+
+	VkPipelineStageFlags src_stage;
+	VkPipelineStageFlags dst_stage;
+	VkAccessFlags src_access;
+	VkAccessFlags dst_access;
+} command_barrier;
 
 typedef struct command_begin_rendering
 {
@@ -54,9 +65,10 @@ typedef struct command_push_constants
 {
 	command_header header;
 	u32 size;
-	void *data;
 	VkShaderStageFlags stage;
 	vulkan_pipeline_id pipeline;
+
+	// NOTE: push constant data follows in memory
 } command_push_constants;
 
 typedef struct command_draw
@@ -90,6 +102,24 @@ static bool command_add(vulkan_context *ctx, void *data, u32 size)
 	queue->available -= size;
 
 	return true;
+}
+
+bool vulkan_command_barrier(vulkan_context *ctx, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access)
+{
+	command_header header = {
+		.type = COMMAND_BARRIER,
+		.size = sizeof(command_barrier),	
+	};
+
+	command_barrier barrier = {
+		.header = header,
+		.src_stage = src_stage,
+		.dst_stage = dst_stage,
+		.src_access = src_access,
+		.dst_access = dst_access,	
+	};
+
+	return command_add(ctx, &barrier, header.size);
 }
 
 bool vulkan_command_begin_rendering(vulkan_context *ctx)
@@ -162,18 +192,30 @@ bool vulkan_command_push_constants(vulkan_context *ctx, u32 size, void *data, Vk
 
 	command_header header = {
 		.type = COMMAND_PUSH_CONSTANTS,
-		.size = sizeof(command_push_constants),
+		.size = sizeof(command_push_constants) + size,
 	};
 
 	command_push_constants push_constants = {
 		.header	= header,
 		.size = size,
-		.data = data,
 		.stage = stage,
 		.pipeline = pipeline,
 	};
 
-	return command_add(ctx, &push_constants, header.size);
+	vulkan_command_queue *queue = &ctx->command_handler.render_commands;
+	if (header.size > queue->available)
+	{
+		SDL_Log("[VULKAN] Not enough space for render command.");
+		return false;
+	}
+
+	SDL_memcpy(queue->at, &push_constants, sizeof(push_constants));
+	SDL_memcpy((u8 *)queue->at + sizeof(push_constants), data, size);
+
+	queue->at = (u8 *)queue->at + header.size;
+	queue->available -= header.size;
+
+	return true;
 }
 
 bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count)
@@ -296,6 +338,18 @@ static void render_queue(vulkan_context *ctx)
 
 		switch (header->type)
 		{
+		case COMMAND_BARRIER:
+		{
+			command_barrier *barrier = at;
+			
+			VkMemoryBarrier memory_barrier = {
+				.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+				.srcAccessMask = barrier->src_access,
+				.dstAccessMask = barrier->dst_access,
+			};
+
+			vkCmdPipelineBarrier(frame_data->command_buffer, barrier->src_stage, barrier->dst_stage, 0, 1, &memory_barrier, 0, NULL, 0, NULL);
+		} break;
 		case COMMAND_BEGIN_RENDERING:
 		{
 		    VkClearValue clear_color = {
@@ -361,7 +415,9 @@ static void render_queue(vulkan_context *ctx)
 			vulkan_pipeline *pipeline = vulkan_pipeline_get(ctx, push_constants->pipeline);
 			assert(pipeline);
 
-			vkCmdPushConstants(frame_data->command_buffer, pipeline->layout, push_constants->stage, 0, push_constants->size, push_constants->data);
+			void *data = (u8 *)at + sizeof(command_push_constants);
+
+			vkCmdPushConstants(frame_data->command_buffer, pipeline->layout, push_constants->stage, 0, push_constants->size, data);
 		} break;
 		case COMMAND_DRAW:
 		{

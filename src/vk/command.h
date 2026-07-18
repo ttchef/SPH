@@ -39,7 +39,9 @@ typedef struct vulkan_command_handler
 
 //
 // NOTE: Render commands
-// 
+//
+
+bool vulkan_command_barrier(vulkan_context *ctx, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access);
 
 bool vulkan_command_begin_rendering(vulkan_context *ctx);
 

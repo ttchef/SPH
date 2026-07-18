@@ -82,6 +82,26 @@ void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size
 	desc->push_constants_stages = stages;
 }
 
+void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *vertex, const char *fragment, const char *compute)
+{
+	if (desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS)
+	{
+		assert(compute == NULL);
+		assert(vertex);
+		assert(fragment);
+	}
+	else if (desc->type == VULKAN_PIPELINE_TYPE_COMPUTE)
+	{
+		assert(vertex == NULL);
+		assert(fragment == NULL);
+		assert(compute);
+	}
+
+	desc->vertex_path = vertex;
+	desc->fragment_path = fragment;
+	desc->compute_path = compute;
+}
+
 // TODO: Replace with relative to executable path or embed shader
 static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path)
 {
@@ -90,7 +110,11 @@ static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path
 
 	usize size;
 	u8 *data = SDL_LoadFile(path, &size);
-	assert(data);
+	if (!data)
+	{
+		SDL_Log("[VULKAN] %s", SDL_GetError());
+		assert(0);
+	}
 
 	VkShaderModuleCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -128,8 +152,8 @@ static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *de
 
 	VkPipelineLayoutCreateInfo layout_info = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-		.pPushConstantRanges = &push_constant,
-		.pushConstantRangeCount = 1,
+		.pPushConstantRanges = desc->push_constant_size == 0 ? NULL : &push_constant,
+		.pushConstantRangeCount = desc->push_constant_size == 0 ? 0 : 1,
 		.pSetLayouts = descriptor_layouts,
 		.setLayoutCount = ARRAY_COUNT(descriptor_layouts),
 	};
@@ -152,8 +176,8 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 	assert(ctx);
 	assert(out_pipeline);
 
-	VkShaderModule vertex_module = shader_module_create(ctx, "src/shaders/spv/shader.vert.spv");
-	VkShaderModule fragment_module = shader_module_create(ctx, "src/shaders/spv/shader.frag.spv");
+	VkShaderModule vertex_module = shader_module_create(ctx, desc->vertex_path);
+	VkShaderModule fragment_module = shader_module_create(ctx, desc->fragment_path);
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
 		{
@@ -281,7 +305,7 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 static bool compute_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
 	// TODO: Not hardcode shader
-	VkShaderModule shader_module = shader_module_create(ctx, "src/shaders/spv/update.comp.spv");
+	VkShaderModule shader_module = shader_module_create(ctx, desc->compute_path);
 
 	VkPipelineShaderStageCreateInfo stage = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

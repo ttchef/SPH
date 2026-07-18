@@ -1,0 +1,69 @@
+
+#version 450
+
+#extension GL_GOOGLE_include_directive : require
+
+#include "sph.glsl"
+
+layout(std430, set = 0, binding = 0) readonly buffer in_p
+{
+    particle in_particles[];        
+};
+
+layout(std430, set = 1, binding = 0) buffer out_p
+{
+    particle out_particles[];        
+};
+
+layout (push_constant) uniform pc
+{
+    uint particle_count;  
+};
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+float W_poly6(vec2 p_i, vec2 p_j, float r)
+{
+    float d = distance(p_i, p_j);
+
+    if (d > r)
+    {
+        return 0.0;        
+    }
+
+    float normalization = 4 / (PI * pow(r, 8));
+    float shape_func = pow((r * r) - (d * d), 3);
+
+    return normalization * shape_func;
+}
+
+float calc_density(uint particle_index)
+{
+    particle p_i = in_particles[particle_index];
+
+    float density = 0.0;
+    
+    for (uint i = 0; i < particle_count; i++)
+    {
+        particle p_j = in_particles[i];
+
+        density += p_j.mass * W_poly6(p_i.pos, p_j.pos, SMOOTHING_RADIUS);
+    }
+
+    return density;
+}
+
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= particle_count)
+    {
+        return;        
+    }
+
+    particle p = in_particles[index];
+    p.density = calc_density(index);
+
+    out_particles[index] = p;
+}
+
