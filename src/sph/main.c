@@ -99,7 +99,15 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     time_update(&state->time);
 
-    simulation_update(vulkan, state->window.width, state->window.height, state->time.delta, &state->simulation);
+    static f32 counter;
+    counter += state->time.delta;
+    if (counter > 1.0f)
+    {
+        SDL_Log("[ENGINE] Frame time: %.4f\nFps: %.4f\n", state->time.delta, 1.0f / state->time.delta);
+        counter = 0.0f;
+    }
+
+    simulation_update(vulkan, state->window.width, state->window.height, state->time, &state->simulation);
     vulkan_draw(vulkan, state->window.width, state->window.height);
 
     return SDL_APP_CONTINUE;

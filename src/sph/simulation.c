@@ -1,5 +1,4 @@
 
-#include "vk/command.h"
 #include <SDL3/SDL_init.h>
 #include <sph/simulation.h>
 #include <math/matrix.h>
@@ -8,7 +7,9 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define PARTICLE_DISTANCE 40.0f
+#define PARTICLE_DISTANCE 15.0f
+#define FIXED_DT (1.0f / 240.0f)
+#define MAX_STEPS_PER_FRAME 4
 
 //
 // NOTE: Push constants
@@ -27,10 +28,68 @@ typedef struct update_pc
 	u32 particle_count;
 } update_pc;
 
+void simulation_measure_rest_density(vulkan_context *vulkan, simulation *simulation)
+{
+	vulkan_pipeline *pipeline = vulkan_pipeline_get(vulkan, simulation->density_pipelines[0]);
+
+	VkCommandBufferAllocateInfo alloc_info = {
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = vulkan->command_handler.command_pool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1,
+	};
+	VkCommandBuffer cmd;
+	vkAllocateCommandBuffers(vulkan->device, &alloc_info, &cmd);
+
+	VkCommandBufferBeginInfo begin_info = {
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+	};
+	vkBeginCommandBuffer(cmd, &begin_info);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->handle);
+	for (u32 i = 0; i < pipeline->descriptor_count; i++)
+	{
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->layout, i, 1, &pipeline->descriptors[i].set, 0, NULL);
+	}
+
+	density_pc pc = { .particle_count = PARTICLE_COUNT };
+	vkCmdPushConstants(cmd, pipeline->layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
+
+	const u32 group_count = (PARTICLE_COUNT + 255) / 256;
+	vkCmdDispatch(cmd, group_count, 1, 1);
+
+	VkMemoryBarrier barrier = {
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+		.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+		.dstAccessMask = VK_ACCESS_HOST_READ_BIT,
+	};
+	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &barrier, 0, NULL, 0, NULL);
+
+	vkEndCommandBuffer(cmd);
+
+	VkSubmitInfo submit = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .commandBufferCount = 1, .pCommandBuffers = &cmd };
+	vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit, VK_NULL_HANDLE);
+	vkQueueWaitIdle(vulkan->graphics_queue.handle);   // now this actually waits for THIS dispatch
+	vkFreeCommandBuffers(vulkan->device, vulkan->command_handler.command_pool, 1, &cmd);
+
+	vulkan_buffer densities;
+	if (vulkan_buffer_device_local_get_data(vulkan, simulation->particles[0], &densities))
+	{
+		particle *particles = densities.host_visible.data;
+		u32 grid_side = (u32)SDL_sqrtf(PARTICLE_COUNT);
+		u32 interior_index = (grid_side / 2) * grid_side + (grid_side / 2);  // avoid edge particles, see below
+		SDL_Log("[SPH] Rest density (interior particle): %.10f", particles[interior_index].density);
+	}
+}
+
 bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation)
 {
 	assert(vulkan);
 	assert(simulation);
+
+	simulation->accumulator = 0.0;
+	simulation->sim_buffer = 0;
 
 	particle *particles = SDL_calloc(PARTICLE_COUNT, sizeof(particle));
 	assert(particles);
@@ -112,72 +171,69 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		assert(simulation->density_pipelines[i] != INVALID_PIPELINE);
 
 		
-		vulkan_pipeline_desc update_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
+		vulkan_pipeline_desc update_pos_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
 
-		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&update_pos_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&update_pos_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 		
-		vulkan_pipeline_desc_set_shaders(&update_description, NULL, NULL, "src/shaders/spv/update.comp.spv");
+		vulkan_pipeline_desc_set_shaders(&update_pos_description, NULL, NULL, "src/shaders/spv/update.comp.spv");
 
-		vulkan_pipeline_desc_set_push_constant(&update_description, sizeof(update_pc), VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_set_push_constant(&update_pos_description, sizeof(update_pc), VK_SHADER_STAGE_COMPUTE_BIT);
 
-		simulation->update_pipelines[i] = vulkan_pipeline_create(vulkan, &update_description);
-		assert(simulation->update_pipelines[i] != INVALID_PIPELINE);	
+		simulation->update_pos_pipelines[i] = vulkan_pipeline_create(vulkan, &update_pos_description);
+		assert(simulation->update_pos_pipelines[i] != INVALID_PIPELINE);	
 	}
+
+	simulation_measure_rest_density(vulkan, simulation);
 
 	return true;
 }
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, f32 dt, simulation *simulation)
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, simulation *simulation)
 {
 	assert(vulkan);
 	assert(simulation);
 
-	u32 frame = vulkan_frame_index(vulkan);
-	u32 write_buffer = (frame + 1) % FRAMES_IN_FLIGHT;
+	simulation->accumulator += time.delta;
+	simulation->accumulator = MIN(simulation->accumulator, FIXED_DT * MAX_STEPS_PER_FRAME);
 
-	// NOTE: First pass calculate densities
-	vulkan_command_bind_pipeline(vulkan, simulation->density_pipelines[frame]);
-
-	density_pc density_pc = {
-		.particle_count = PARTICLE_COUNT,	
-	};
-
-	vulkan_command_push_constants(vulkan, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->density_pipelines[frame]);
-
-	const u32 group_size = 256;
-	const u32 group_count = (PARTICLE_COUNT + group_size - 1) / group_size;
-	vulkan_command_dispatch(vulkan, group_count, 1, 1);
-
-	if (frame == 4)
+	while (simulation->accumulator >= FIXED_DT)
 	{
-		vkDeviceWaitIdle(vulkan->device);
-		vulkan_buffer densities;
-		if (!vulkan_buffer_device_local_get_data(vulkan, simulation->particles[frame], &densities))
-		{
-			return;
-		}
-		for (u32 i = 0; i < PARTICLE_COUNT; i++)
-		{
-			particle *particles = densities.host_visible.data;
-			SDL_Log("[VULKAN] Particle %u: %.10f", i, particles[i].density);
-		}
-		// assert(0);
+		u32 sim = simulation->sim_buffer;
+
+		// NOTE: First pass calculate densities
+		vulkan_command_bind_pipeline(vulkan, simulation->density_pipelines[sim]);
+
+		density_pc density_pc = {
+			.particle_count = PARTICLE_COUNT,	
+		};
+
+		vulkan_command_push_constants(vulkan, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->density_pipelines[sim]);
+
+		const u32 group_size = 256;
+		const u32 group_count = (PARTICLE_COUNT + group_size - 1) / group_size;
+		vulkan_command_dispatch(vulkan, group_count, 1, 1);
+
+		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);	
+
+		// NOTE: Second pass update particles
+		vulkan_command_bind_pipeline(vulkan, simulation->update_pos_pipelines[sim]);
+
+		update_pc update_pc = {
+			.dt = FIXED_DT,
+			.window_width = window_width,
+			.window_height = window_height,
+			.particle_count = PARTICLE_COUNT,	
+		};
+		vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->update_pos_pipelines[sim]);
+		vulkan_command_dispatch(vulkan, group_count, 1, 1);
+
+		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
+
+		simulation->sim_buffer = (simulation->sim_buffer + 1) % FRAMES_IN_FLIGHT;
+		simulation->accumulator -= FIXED_DT;
 	}
-
-	vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);	
-
-	// NOTE: Second pass update particles
-	vulkan_command_bind_pipeline(vulkan, simulation->update_pipelines[frame]);
-
-	update_pc update_pc = {
-		.dt = dt,
-		.window_width = window_width,
-		.window_height = window_height,
-		.particle_count = PARTICLE_COUNT,	
-	};
-	vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->update_pipelines[frame]);
-	vulkan_command_dispatch(vulkan, group_count, 1, 1);
+	vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
 
 	// NOTE: Render
 	vulkan_command_begin_rendering(vulkan);
@@ -187,7 +243,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	vulkan_command_bind_pipeline(vulkan, simulation->render_pipeline);
 	vulkan_command_push_constants(vulkan, sizeof(orthographic), &orthographic, VK_SHADER_STAGE_VERTEX_BIT, simulation->render_pipeline);
 
-	vulkan_command_bind_vertex_buffer(vulkan, simulation->particles[write_buffer], simulation->render_pipeline);
+	vulkan_command_bind_vertex_buffer(vulkan, simulation->particles[simulation->sim_buffer], simulation->render_pipeline);
 
 	vulkan_command_draw(vulkan, PARTICLE_COUNT);
 
