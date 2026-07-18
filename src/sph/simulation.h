@@ -8,7 +8,7 @@
 
 #include <math/types.h>
 
-#define PARTICLE_COUNT 1024
+#define PARTICLE_COUNT 2024
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct particle

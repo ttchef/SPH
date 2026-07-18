@@ -153,7 +153,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	{
 		vkDeviceWaitIdle(vulkan->device);
 		vulkan_buffer densities;
-		if (!vulkan_buffer_device_local_get_data(vulkan, simulation->particles[write_buffer], &densities))
+		if (!vulkan_buffer_device_local_get_data(vulkan, simulation->particles[frame], &densities))
 		{
 			return;
 		}
