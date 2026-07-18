@@ -138,23 +138,23 @@ void main()
     
     if (p.pos.x < 0.0)
     {
-        p.pos.x = 0.0;
+        p.pos.x = 2.5;
         p.vel.x = -p.vel.x * damping;        
     }
     else if (p.pos.x > window_width)
     {
-        p.pos.x = window_width;
+        p.pos.x = window_width - 2.5;
         p.vel.x = -p.vel.x * damping;        
     }
 
     if (p.pos.y < 0.0)
     {
-        p.pos.y = 0.0;
+        p.pos.y = 2.5;
         p.vel.y = -p.vel.y * damping;
     }
     else if (p.pos.y > window_height)
     {
-        p.pos.y = window_height;
+        p.pos.y = window_height - 2.5;
         p.vel.y = -p.vel.y * damping;    
     }
 
