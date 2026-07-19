@@ -20,17 +20,12 @@ layout(std430, set = 2, binding = 0) buffer si
     uint start_indices[];
 };
 
-layout (push_constant) uniform pc
-{
-    uint particle_count;  
-};
-
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void main()
 {
     uint index = gl_GlobalInvocationID.x;
-    if (index >= particle_count)
+    if (index >= PARTICLE_COUNT)
     {
         return;        
     }
@@ -38,7 +33,7 @@ void main()
     particle p = particles[index];
 
     ivec2 cell = position_to_cell(p.pos);
-    uint cell_key = cell_hash(cell, particle_count);
+    uint cell_key = cell_hash(cell, PARTICLE_COUNT);
     
     spatial_lookup[index].particle_index = index;
     spatial_lookup[index].cell_key = cell_key;

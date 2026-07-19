@@ -24,6 +24,9 @@ struct spatial_lookup_entry
     uint cell_key;       
 };
 
+// NOTE: changed in the pipeline creation
+layout (constant_id = 1) const uint PARTICLE_COUNT = 1024;
+
 const ivec2 NEIGHBOR_OFFSETS[9] = ivec2[](
     ivec2(-1,-1), ivec2(0,-1), ivec2(1,-1),
     ivec2(-1, 0), ivec2(0, 0), ivec2(1, 0),

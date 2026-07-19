@@ -102,6 +102,23 @@ void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *ve
 	desc->compute_path = compute;
 }
 
+void vulkan_pipeline_desc_set_specialization_constant(vulkan_pipeline_desc *desc, u32 size, void *data, VkShaderStageFlags stage)
+{
+	if (desc->type == VULKAN_PIPELINE_TYPE_COMPUTE)
+	{
+		assert(stage == VK_SHADER_STAGE_COMPUTE_BIT);	
+	}
+	else if (desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS)
+	{
+		assert(stage == VK_SHADER_STAGE_VERTEX_BIT || stage == VK_SHADER_STAGE_FRAGMENT_BIT);
+	}
+
+	desc->has_specialization_constant = true;
+	desc->specialization_constant_data = data;
+	desc->specialization_constant_size = size;
+	desc->specialitation_shader_stage = stage;	
+}
+
 // TODO: Replace with relative to executable path or embed shader
 static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path)
 {
@@ -179,18 +196,33 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 	VkShaderModule vertex_module = shader_module_create(ctx, desc->vertex_path);
 	VkShaderModule fragment_module = shader_module_create(ctx, desc->fragment_path);
 
+	VkSpecializationMapEntry entry = {
+		.constantID = 1,
+		.offset = 0,
+		.size = desc->specialization_constant_size,
+	};
+
+	VkSpecializationInfo specialization = {
+		.mapEntryCount = 1,
+		.pMapEntries = &entry,
+		.dataSize = desc->specialization_constant_size,
+		.pData = desc->specialization_constant_data,	
+	};
+
 	VkPipelineShaderStageCreateInfo stages[2] = {
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_VERTEX_BIT,
 			.module = vertex_module,
 			.pName = "main",
+			.pSpecializationInfo = (desc->has_specialization_constant && desc->specialitation_shader_stage == VK_SHADER_STAGE_VERTEX_BIT) ? &specialization : NULL,
 		},
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
 			.module = fragment_module,
 			.pName = "main",
+			.pSpecializationInfo = (desc->has_specialization_constant && desc->specialitation_shader_stage == VK_SHADER_STAGE_FRAGMENT_BIT) ? &specialization : NULL,
 		},
 	};
 
@@ -307,11 +339,25 @@ static bool compute_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *d
 	// TODO: Not hardcode shader
 	VkShaderModule shader_module = shader_module_create(ctx, desc->compute_path);
 
+	VkSpecializationMapEntry entry = {
+		.constantID = 1,
+		.offset = 0,
+		.size = desc->specialization_constant_size,
+	};
+
+	VkSpecializationInfo specialization = {
+		.mapEntryCount = 1,
+		.pMapEntries = &entry,
+		.dataSize = desc->specialization_constant_size,
+		.pData = desc->specialization_constant_data,	
+	};
+
 	VkPipelineShaderStageCreateInfo stage = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
 			.module = shader_module,
 			.pName = "main",
+			.pSpecializationInfo = (desc->has_specialization_constant && desc->specialitation_shader_stage == VK_SHADER_STAGE_COMPUTE_BIT) ? &specialization : NULL,
 	};
 
 	VkComputePipelineCreateInfo info = {

@@ -15,17 +15,12 @@ layout (std430, set = 1, binding = 0) buffer si
     uint start_indices[];
 };
 
-layout (push_constant) uniform pc
-{
-    uint particle_count;        
-};
-
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void main()
 {
     uint index = gl_GlobalInvocationID.x;
-    if (index >= particle_count)
+    if (index >= PARTICLE_COUNT)
     {
         return;        
     }
