@@ -1,4 +1,5 @@
 
+#include "vk/buffer.h"
 #include <SDL3/SDL_init.h>
 #include <sph/simulation.h>
 #include <math/matrix.h>
@@ -7,7 +8,7 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define PARTICLE_DISTANCE 15.0f
+#define PARTICLE_DISTANCE 10.0f
 #define FIXED_DT (1.0f / 240.0f)
 #define MAX_STEPS_PER_FRAME 4
 
@@ -70,7 +71,7 @@ void simulation_measure_rest_density(vulkan_context *vulkan, simulation *simulat
 
 	VkSubmitInfo submit = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .commandBufferCount = 1, .pCommandBuffers = &cmd };
 	vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit, VK_NULL_HANDLE);
-	vkQueueWaitIdle(vulkan->graphics_queue.handle);   // now this actually waits for THIS dispatch
+	vkQueueWaitIdle(vulkan->graphics_queue.handle);   
 	vkFreeCommandBuffers(vulkan->device, vulkan->command_handler.command_pool, 1, &cmd);
 
 	vulkan_buffer densities;
@@ -78,9 +79,11 @@ void simulation_measure_rest_density(vulkan_context *vulkan, simulation *simulat
 	{
 		particle *particles = densities.host_visible.data;
 		u32 grid_side = (u32)SDL_sqrtf(PARTICLE_COUNT);
-		u32 interior_index = (grid_side / 2) * grid_side + (grid_side / 2);  // avoid edge particles, see below
+		u32 interior_index = (grid_side / 2) * grid_side + (grid_side / 2); 
 		SDL_Log("[SPH] Rest density (interior particle): %.10f", particles[interior_index].density);
 	}
+
+	vulkan_buffer_destroy(vulkan, &densities);
 }
 
 bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation)

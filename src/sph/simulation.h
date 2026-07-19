@@ -8,7 +8,7 @@
 #include <sph/time.h>
 #include <math/types.h>
 
-#define PARTICLE_COUNT 4024
+#define PARTICLE_COUNT 10024
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct particle

@@ -16,7 +16,7 @@ layout (push_constant) uniform pc
 void main()
 {
     gl_Position = orthographic * vec4(in_pos, 0.0, 1.0);
-    gl_PointSize = 5.0;
+    gl_PointSize = 3.0;
 
     out_vel = in_vel;
 }

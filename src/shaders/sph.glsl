@@ -6,7 +6,7 @@
 #define VISCOSITY_COEFF 5000.0
 
 // NOTE: Get from simulating in a grid
-#define TARGET_DENSITY 0.0044446052    
+#define TARGET_DENSITY 0.0100026466    
 
 struct particle
 {

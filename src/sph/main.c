@@ -103,7 +103,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     counter += state->time.delta;
     if (counter > 1.0f)
     {
-        SDL_Log("[ENGINE] Frame time: %.4f\nFps: %.4f\n", state->time.delta, 1.0f / state->time.delta);
+        SDL_Log("[ENGINE] Fps: %.4f\n", 1.0f / state->time.delta);
         counter = 0.0f;
     }
 
