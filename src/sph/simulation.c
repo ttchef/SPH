@@ -1,5 +1,6 @@
 
 #include "vk/pipeline.h"
+#include "vk/types.h"
 #include <sph/simulation.h>
 #include <math/matrix.h>
 #include <vk/context.h>
@@ -10,6 +11,7 @@
 #define PARTICLE_DISTANCE 6.0f
 #define FIXED_DT (1.0f / 240.0f)
 #define MAX_STEPS_PER_FRAME 4
+#define RADIX_SORT_PASSES 4
 
 // TODO: Make particle count as a specilazation constant in the shaders
 
@@ -129,7 +131,7 @@ void simulation_check_sorted(vulkan_context *vulkan, simulation *simulation)
 	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &compute_barrier, 0, NULL, 0, NULL);
 
 	// NOTE: Sorting spatial lookup
-	for (u32 i = 0; i < 4; i++)
+	for (u32 i = 0; i < RADIX_SORT_PASSES; i++)
 	{
 		u32 pass_buf = (sim + i) % FRAMES_IN_FLIGHT;
 
@@ -268,6 +270,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	{
 		u32 read_buffer = i;
 		u32 write_buffer = (i + 1) % FRAMES_IN_FLIGHT;
+		u32 sorted_buffer = (i + RADIX_SORT_PASSES) % FRAMES_IN_FLIGHT;
 
 		vulkan_pipeline_desc spatial_lookup_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
 
@@ -306,8 +309,8 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 		vulkan_pipeline_desc start_indices_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
 
-		vulkan_pipeline_desc_add_storage_buffer(&start_indices_description, vulkan, simulation->spatial_lookup[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&start_indices_description, vulkan, simulation->start_indices[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&start_indices_description, vulkan, simulation->spatial_lookup[sorted_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&start_indices_description, vulkan, simulation->start_indices[sorted_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 
 		vulkan_pipeline_desc_set_shaders(&start_indices_description, NULL, NULL, "src/shaders/spv/start_indices.comp.spv");
 		vulkan_pipeline_desc_set_specialization_constant(&start_indices_description, sizeof(u32), (void *)&PARTICLE_COUNT, VK_SHADER_STAGE_COMPUTE_BIT);
@@ -319,8 +322,8 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->spatial_lookup[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->start_indices[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->spatial_lookup[sorted_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->start_indices[sorted_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 
 		vulkan_pipeline_desc_set_shaders(&density_description, NULL, NULL, "src/shaders/spv/density.comp.spv");
 		vulkan_pipeline_desc_set_specialization_constant(&density_description, sizeof(u32), (void *)&PARTICLE_COUNT, VK_SHADER_STAGE_COMPUTE_BIT);
@@ -334,8 +337,8 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->spatial_lookup[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->start_indices[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->spatial_lookup[sorted_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->start_indices[sorted_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 		
 		vulkan_pipeline_desc_set_shaders(&update_description, NULL, NULL, "src/shaders/spv/update.comp.spv");
 		vulkan_pipeline_desc_set_push_constant(&update_description, sizeof(update_pc), VK_SHADER_STAGE_COMPUTE_BIT);
@@ -401,10 +404,12 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		vulkan_command_bind_pipeline(vulkan, simulation->start_indices_pipelines[sim]);
 		vulkan_command_dispatch(vulkan, group_count, 1, 1);
 
+		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
+
 		// NOTE: Calculating densities
 		vulkan_command_bind_pipeline(vulkan, simulation->density_pipelines[sim]);
 		vulkan_command_dispatch(vulkan, group_count, 1, 1);
-
+		
 		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);	
 
 		// NOTE: Update particles
