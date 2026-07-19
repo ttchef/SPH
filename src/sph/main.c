@@ -9,8 +9,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#define START_WINDOW_WIDTH 1920
-#define START_WINDOW_HEIGHT 1080
+#define START_WINDOW_WIDTH 2560
+#define START_WINDOW_HEIGHT 1440
 
 typedef struct window
 {

@@ -35,7 +35,12 @@ typedef struct vulkan_pipeline_desc
 	u32 descriptor_count;
 
 	u32 push_constant_size;
-	VkShaderStageFlags push_constants_stages;	
+	VkShaderStageFlags push_constants_stages;
+
+	bool has_specialization_constant;
+	void *specialization_constant_data;
+	u32 specialization_constant_size;
+	VkShaderStageFlags specialitation_shader_stage;
 } vulkan_pipeline_desc;
 
 typedef struct vulkan_pipeline
@@ -68,6 +73,8 @@ void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_
 void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages);
 
 void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *vertex, const char *fragment, const char *compute);
+
+void vulkan_pipeline_desc_set_specialization_constant(vulkan_pipeline_desc *desc, u32 size, void *data, VkShaderStageFlags stage);
 
 //
 // NOTE: Pipeline manger

@@ -1,0 +1,35 @@
+
+#version 450
+
+#extension GL_GOOGLE_include_directive : require
+
+#include "sph.glsl"
+
+layout (std430, set = 0, binding = 0) readonly buffer sp
+{
+    spatial_lookup_entry spatial_lookup[];
+};
+
+layout (std430, set = 1, binding = 0) buffer si
+{
+    uint start_indices[];
+};
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= PARTICLE_COUNT)
+    {
+        return;        
+    }
+
+    uint key = spatial_lookup[index].cell_key;
+    uint key_prev = (index == 0) ? U32_MAX : spatial_lookup[index - 1].cell_key;
+
+    if (key != key_prev)
+    {
+        start_indices[key] = index;     
+    }        
+}

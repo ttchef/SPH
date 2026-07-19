@@ -1,0 +1,55 @@
+
+#version 450
+#extension GL_GOOGLE_include_directive: enable
+
+#include "sph.glsl"
+
+layout (std430, set = 0, binding = 0) readonly buffer sp
+{
+    spatial_lookup_entry spatial_lookup[];         
+};
+
+layout (std430, set = 1, binding = 0) buffer hs
+{
+    uint histograms[];
+};
+
+layout (push_constant) uniform pc
+{
+    uint element_count;
+    uint shift;
+    uint workgroup_count;
+    uint blocks_per_workgroup;       
+};
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#define RADIX_SORT_BINS 256
+#define WORKGROUP_SIZE gl_WorkGroupSize.x
+
+shared uint[RADIX_SORT_BINS] local_histogram;
+
+void main()
+{
+    if (gl_LocalInvocationID.x < RADIX_SORT_BINS)
+    {
+        local_histogram[gl_LocalInvocationID.x] = 0u;        
+    }
+    barrier();
+
+    for (uint i = 0; i < blocks_per_workgroup; i++)
+    {
+        uint element_id = gl_WorkGroupID.x * blocks_per_workgroup * WORKGROUP_SIZE + i * WORKGROUP_SIZE + gl_LocalInvocationID.x;
+        if (element_id < element_count)
+        {
+            const uint bin = uint(spatial_lookup[element_id].cell_key >> shift) & uint(RADIX_SORT_BINS - 1);
+            atomicAdd(local_histogram[bin], 1u);         
+        }
+    }
+    barrier();
+
+    if (gl_LocalInvocationID.x < RADIX_SORT_BINS)
+    {
+        histograms[RADIX_SORT_BINS * gl_WorkGroupID.x + gl_LocalInvocationID.x] = local_histogram[gl_LocalInvocationID.x];      
+    }
+}

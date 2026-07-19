@@ -8,7 +8,7 @@
 #include <sph/time.h>
 #include <math/types.h>
 
-#define PARTICLE_COUNT 10024
+static const u32 PARTICLE_COUNT = 120024;
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct particle
@@ -31,8 +31,12 @@ typedef struct simulation
 	vulkan_buffer particles[FRAMES_IN_FLIGHT];
 	vulkan_buffer spatial_lookup[FRAMES_IN_FLIGHT];
 	vulkan_buffer start_indices[FRAMES_IN_FLIGHT];
+	vulkan_buffer histograms[FRAMES_IN_FLIGHT];
 
 	vulkan_pipeline_id spatial_lookup_pipelines[FRAMES_IN_FLIGHT];
+	vulkan_pipeline_id radixsort_histogram_pipelines[FRAMES_IN_FLIGHT];
+	vulkan_pipeline_id radixsort_pipelines[FRAMES_IN_FLIGHT];
+	vulkan_pipeline_id start_indices_pipelines[FRAMES_IN_FLIGHT];
 	vulkan_pipeline_id density_pipelines[FRAMES_IN_FLIGHT];
 	vulkan_pipeline_id update_pipelines[FRAMES_IN_FLIGHT];
 
