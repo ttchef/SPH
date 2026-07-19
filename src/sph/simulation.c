@@ -1,6 +1,4 @@
 
-#include "vk/pipeline.h"
-#include "vk/types.h"
 #include <sph/simulation.h>
 #include <math/matrix.h>
 #include <vk/context.h>
@@ -8,7 +6,7 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define PARTICLE_DISTANCE 6.0f
+#define PARTICLE_DISTANCE 4.0f
 #define FIXED_DT (1.0f / 240.0f)
 #define MAX_STEPS_PER_FRAME 4
 #define RADIX_SORT_PASSES 4
@@ -53,13 +51,71 @@ void simulation_measure_rest_density(vulkan_context *vulkan, simulation *simulat
 	};
 	vkBeginCommandBuffer(cmd, &begin_info);
 
+
+	const u32 sim = simulation->sim_buffer;
+	const u32 group_size = 256;
+	const u32 group_count = (PARTICLE_COUNT + group_size - 1) / group_size;
+
+	VkMemoryBarrier compute_barrier = {
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+		.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+		.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+	};
+
+#define BIND_COMPUTE(pipeline_id)                                                                            \
+	do                                                                                                        \
+	{                                                                                                         \
+		vulkan_pipeline *_p = vulkan_pipeline_get(vulkan, (pipeline_id));                                     \
+		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _p->handle);                                   \
+		for (u32 _i = 0; _i < _p->descriptor_count; _i++)                                                     \
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _p->layout, _i, 1, &_p->descriptors[_i].set, 0, NULL); \
+	} while (0)
+
+	// NOTE: Spatial lookup
+	BIND_COMPUTE(simulation->spatial_lookup_pipelines[sim]);
+
+	vkCmdDispatch(cmd, group_count, 1, 1);
+	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &compute_barrier, 0, NULL, 0, NULL);
+
+	// NOTE: Sorting spatial lookup
+	for (u32 i = 0; i < RADIX_SORT_PASSES; i++)
+	{
+		u32 pass_buf = (sim + i) % FRAMES_IN_FLIGHT;
+
+		radixsort_pc radixsort_pc = {
+			.element_count = PARTICLE_COUNT,
+			.workgroup_count = group_count,
+			.blocks_per_workgroup = 32,
+			.shift = 8 * i,
+		};
+
+		BIND_COMPUTE(simulation->radixsort_histogram_pipelines[pass_buf]);
+		{
+			vulkan_pipeline *p = vulkan_pipeline_get(vulkan, simulation->radixsort_histogram_pipelines[pass_buf]);
+			vkCmdPushConstants(cmd, p->layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(radixsort_pc), &radixsort_pc);
+		}
+		vkCmdDispatch(cmd, group_count, 1, 1);
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &compute_barrier, 0, NULL, 0, NULL);
+
+		BIND_COMPUTE(simulation->radixsort_pipelines[pass_buf]);
+		{
+			vulkan_pipeline *p = vulkan_pipeline_get(vulkan, simulation->radixsort_pipelines[pass_buf]);
+			vkCmdPushConstants(cmd, p->layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(radixsort_pc), &radixsort_pc);
+		}
+		vkCmdDispatch(cmd, group_count, 1, 1);
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &compute_barrier, 0, NULL, 0, NULL);
+	}
+
+	BIND_COMPUTE(simulation->start_indices_pipelines[sim]);
+	vkCmdDispatch(cmd, group_count, 1, 1);
+	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &compute_barrier, 0, NULL, 0, NULL);
+		
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->handle);
 	for (u32 i = 0; i < pipeline->descriptor_count; i++)
 	{
 		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->layout, i, 1, &pipeline->descriptors[i].set, 0, NULL);
 	}
 
-	const u32 group_count = (PARTICLE_COUNT + 255) / 256;
 	vkCmdDispatch(cmd, group_count, 1, 1);
 
 	VkMemoryBarrier barrier = {
@@ -159,13 +215,17 @@ void simulation_check_sorted(vulkan_context *vulkan, simulation *simulation)
 		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &compute_barrier, 0, NULL, 0, NULL);
 	}
 
+	BIND_COMPUTE(simulation->start_indices_pipelines[sim]);
+	vkCmdDispatch(cmd, group_count, 1, 1);
+	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &compute_barrier, 0, NULL, 0, NULL);
+
 	VkMemoryBarrier host_barrier = {
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
 		.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
 		.dstAccessMask = VK_ACCESS_HOST_READ_BIT,
 	};
 	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &host_barrier, 0, NULL, 0, NULL);
-
+		
 	vkEndCommandBuffer(cmd);
 
 	VkSubmitInfo submit = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .commandBufferCount = 1, .pCommandBuffers = &cmd };
@@ -361,6 +421,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	simulation->accumulator += time.delta;
 	simulation->accumulator = MIN(simulation->accumulator, FIXED_DT * MAX_STEPS_PER_FRAME);
 
+	// /*
 	while (simulation->accumulator >= FIXED_DT)
 	{
 		const u32 sim = simulation->sim_buffer;
@@ -380,10 +441,12 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 			vulkan_command_bind_pipeline(vulkan, simulation->radixsort_histogram_pipelines[pass_buf]);
 
+			const u32 sort_groups = 32;
+			const u32 blocks_per_workgroup = (PARTICLE_COUNT + sort_groups * group_size - 1) / (sort_groups * group_size);
 			radixsort_pc radixsort_pc = {
 				.element_count = PARTICLE_COUNT,
 				.workgroup_count = group_count,
-				.blocks_per_workgroup = 32,
+				.blocks_per_workgroup = blocks_per_workgroup,
 				.shift = 8 * i,
 			};
 
@@ -428,6 +491,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		simulation->sim_buffer = (simulation->sim_buffer + 1) % FRAMES_IN_FLIGHT;
 		simulation->accumulator -= FIXED_DT;
 	}
+	// */
 	vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
 
 	// NOTE: Render

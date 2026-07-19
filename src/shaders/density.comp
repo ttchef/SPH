@@ -27,19 +27,23 @@ layout(std430, set = 3, binding = 0) readonly buffer si
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
+const float W_poly6_normalization = 4 / (PI * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS);
+
 float W_poly6(vec2 p_i, vec2 p_j, float r)
 {
-    float d = distance(p_i, p_j);
+    vec2 delta = p_i - p_j;
+    float d = delta.x * delta.x + delta.y * delta.y;
 
-    if (d > r)
+    if (d > r * r)
     {
         return 0.0;        
     }
 
-    float normalization = 4 / (PI * pow(r, 8));
+    d = sqrt(d);
+
     float shape_func = pow((r * r) - (d * d), 3);
 
-    return normalization * shape_func;
+    return W_poly6_normalization * shape_func;
 }
 
 float calc_density(uint particle_index)

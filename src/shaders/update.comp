@@ -34,6 +34,8 @@ layout (push_constant) uniform pc
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
+const float W_spiky_normalization = -3.0 / (PI * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS);
+
 vec2 W_spiky_gradient(vec2 p_i, vec2 p_j, float r)
 {
     float d = distance(p_i, p_j);
@@ -43,7 +45,7 @@ vec2 W_spiky_gradient(vec2 p_i, vec2 p_j, float r)
         return vec2(0, 0);        
     }
 
-    float scale = -3.0 / (PI * pow(r, 4)) * (r - d) / d;
+    float scale = W_spiky_normalization * (r - d) / d;
     return (p_i - p_j) * scale;
 }
 
@@ -57,12 +59,17 @@ float calc_pressure(float density)
     return pressure < 0.0 ? 0.0 : pressure; 
 }
 
-vec2 calc_pressure_gradient(uint particle_index)
+vec2 calc_force(uint particle_index)
 {
     particle p_i = in_particles[particle_index];
 
-    vec2 gradient = vec2(0, 0);
+    vec2 pressure = vec2(0, 0);
+    vec2 viscosity = vec2(0, 0);
+
     ivec2 cell = position_to_cell(p_i.pos);
+
+    // NOTE: Moved out for better performance
+    float term1 = calc_pressure(p_i.density) / (p_i.density * p_i.density);
 
     for (uint n = 0; n < 9; n++)
     {
@@ -88,7 +95,7 @@ vec2 calc_pressure_gradient(uint particle_index)
             if (d <= 0.0001)
             {
                 float angle = 2.399963 * float(particle_index);
-                gradient -= vec2(cos(angle), sin(angle)) * 500.0;
+                pressure -= vec2(cos(angle), sin(angle)) * 500.0;
                 continue;
             }
             if (d > SMOOTHING_RADIUS)
@@ -96,59 +103,26 @@ vec2 calc_pressure_gradient(uint particle_index)
                  continue;
             }
 
-            vec2 smoothing_gradient = W_spiky_gradient(p_i.pos, p_j.pos, SMOOTHING_RADIUS);
+            vec2 gradient = W_spiky_gradient(p_i.pos, p_j.pos, SMOOTHING_RADIUS);
 
-            float term1 = calc_pressure(p_i.density) / (p_i.density * p_i.density);
             float term2 = calc_pressure(p_j.density) / (p_j.density * p_j.density);
 
-            smoothing_gradient *= p_j.mass * (term1 + term2);
-            gradient += smoothing_gradient;   
-        }
-    }
-
-    return -gradient;
-}
-
-vec2 calc_velocity_laplacian(uint particle_index)
-{    
-    particle p_i = in_particles[particle_index];
-
-    vec2 force = vec2(0, 0);
-    ivec2 cell = position_to_cell(p_i.pos);
-
-    for (uint n = 0; n < 9; n++)
-    {
-        uint key = cell_hash(cell + NEIGHBOR_OFFSETS[n], PARTICLE_COUNT);
-        uint start = start_indices[key];
-
-        if (start == U32_MAX)
-        {
-            continue;        
-        }
-
-        for (uint idx = start; idx < PARTICLE_COUNT && spatial_lookup[idx].cell_key == key; idx++)
-        {
-            uint i = spatial_lookup[idx].particle_index;
-            if (i == particle_index)
-            {
-                continue;        
-            }
-
-            particle p_j = in_particles[i];
+            pressure += gradient * p_j.mass * (term1 + term2);
 
             vec2 v_ij = p_i.vel - p_j.vel;
             vec2 x_ij = p_i.pos - p_j.pos;
 
-            vec2 smoothing = W_spiky_gradient(p_i.pos, p_j.pos, SMOOTHING_RADIUS);
-
-            float numerator = dot(x_ij, smoothing);
+            float numerator = dot(x_ij, gradient);
             float denominator = dot(x_ij, x_ij) + 0.01 * SMOOTHING_RADIUS * SMOOTHING_RADIUS;
 
-            force += v_ij * (p_j.mass / p_j.density) * (numerator / denominator) * VISCOSITY_COEFF;  
+            viscosity += v_ij * (p_j.mass / p_j.density) * (numerator / denominator) * VISCOSITY_COEFF;
         }
-     }
+    }
 
-    return force * 2;
+    pressure = -pressure;
+    viscosity *= 2;
+
+    return pressure + viscosity;
 }
 
 void main()
@@ -163,8 +137,7 @@ void main()
 
     vec2 gravity = vec2(0, 550);
     vec2 acc = gravity;
-    acc += calc_pressure_gradient(index);
-    acc += calc_velocity_laplacian(index);
+    acc += calc_force(index);
 
     p.vel += acc * dt;
     p.pos += p.vel * dt;        

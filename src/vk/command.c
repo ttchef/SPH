@@ -402,9 +402,6 @@ static void render_queue(vulkan_context *ctx)
 		{
 			command_bind_vertex_buffer *bind_vertex_buffer = at;
 
-			vulkan_pipeline *pipeline = vulkan_pipeline_get(ctx, bind_vertex_buffer->pipeline);
-			assert(pipeline);
-
 			VkDeviceSize offset = {0};
 			vkCmdBindVertexBuffers(frame_data->command_buffer, 0, 1, &bind_vertex_buffer->buffer.handle, &offset);
 		} break;

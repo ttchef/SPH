@@ -2,12 +2,12 @@
 
 #define PI 3.1415926538
 
-#define SMOOTHING_RADIUS 50.0
+#define SMOOTHING_RADIUS 25.0
 #define VISCOSITY_COEFF 5000.0
 
 // NOTE: Get from simulating in a grid
-// #define TARGET_DENSITY 0.0100026466
-#define TARGET_DENSITY 0.0277777854
+#define TARGET_DENSITY 0.0604654476
+// #define TARGET_DENSITY 0.0277777854
 #define U32_MAX (~0u)    
 
 struct particle
