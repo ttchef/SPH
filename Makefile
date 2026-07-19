@@ -24,6 +24,7 @@ shaders:
 	glslc src/shaders/shader.frag -fshader-stage=frag -o src/shaders/spv/shader.frag.spv
 	glslc src/shaders/update.comp -fshader-stage=comp -o src/shaders/spv/update.comp.spv
 	glslc src/shaders/density.comp -fshader-stage=comp -o src/shaders/spv/density.comp.spv
+	glslc src/shaders/spatial_lookup.comp -fshader-stage=comp -o src/shaders/spv/spatial_lookup.comp.spv
 
 debug:
 	$(CC) $(SRC_FILES) $(CFLAGS) $(DEBUG_FLAGS) -o main $(LDFLAGS)

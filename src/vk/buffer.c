@@ -61,13 +61,19 @@ static bool buffer_create(vulkan_context *ctx, VkBufferUsageFlags usage, VkMemor
 bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, usize size, const void *data, vulkan_buffer *out_buffer)
 {
 	assert(ctx);
-	assert(data);
 	assert(out_buffer);
 
 	vulkan_buffer result = {0};
 	buffer_create(ctx, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, &result);
 
 	result.type = VULKAN_BUFFER_TYPE_DEVICE_LOCAL;
+
+	// NOTE: No data to copy into the buffer
+	if (!data)
+	{
+		*out_buffer = result;
+		return true;
+	}
 
 	vulkan_buffer staging = {0};
 	buffer_create(ctx, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &staging);

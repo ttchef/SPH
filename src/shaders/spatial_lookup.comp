@@ -1,0 +1,61 @@
+
+#version 450
+
+#extension GL_GOOGLE_include_directive : require
+
+#include "sph.glsl"
+
+layout(std430, set = 0, binding = 0) readonly buffer in_p
+{
+    particle particles[];
+};
+
+layout(std430, set = 1, binding = 0) buffer sp
+{
+    spatial_lookup_entry spatial_lookup[];      
+};
+
+layout(std430, set = 2, binding = 0) buffer si
+{
+    uint start_indices[];
+};
+
+layout (push_constant) uniform pc
+{
+    uint particle_count;  
+};
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+uvec2 position_to_cell(vec2 pos, float radius)
+{
+    return uvec2(pos.x / radius, pos.y / radius);        
+}
+
+uint cell_hash(uvec2 cell)
+{
+    uint a = cell.x * 15824;
+    uint b = cell.y * 9737333;
+    return (a + b) % particle_count;        
+}
+
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= particle_count)
+    {
+        return;        
+    }
+
+    particle p = particles[index];
+
+    uvec2 cell = position_to_cell(p.pos, SMOOTHING_RADIUS);
+    uint cell_key = cell_hash(cell);
+    
+    spatial_lookup[index].particle_index = index;
+    spatial_lookup[index].cell_key = cell_key;
+
+    start_indices[index] = U32_MAX;
+}
+
+

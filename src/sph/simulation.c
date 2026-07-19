@@ -1,5 +1,5 @@
 
-#include "vk/buffer.h"
+#include "vk/command.h"
 #include <SDL3/SDL_init.h>
 #include <sph/simulation.h>
 #include <math/matrix.h>
@@ -15,6 +15,11 @@
 //
 // NOTE: Push constants
 //
+
+typedef struct spatial_lookup_pc
+{
+	u32 particle_count;
+} spatial_lookup_pc;
 
 typedef struct density_pc
 {
@@ -114,6 +119,10 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	{
 		VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		vulkan_buffer_device_local_create(vulkan, usage, PARTICLE_COUNT * sizeof(particle), particles, &simulation->particles[i]);
+
+		usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		vulkan_buffer_device_local_create(vulkan, usage, PARTICLE_COUNT * sizeof(spatial_lookup_entry), NULL, &simulation->spatial_lookup[i]);
+		vulkan_buffer_device_local_create(vulkan, usage, PARTICLE_COUNT * sizeof(u32), NULL, &simulation->start_indices[i]);
 	}
 
 	vulkan_pipeline_desc render_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
@@ -161,30 +170,40 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		u32 read_buffer = i;
 		u32 write_buffer = (i + 1) % FRAMES_IN_FLIGHT;
 
+		vulkan_pipeline_desc spatial_lookup_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
+
+		vulkan_pipeline_desc_add_storage_buffer(&spatial_lookup_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&spatial_lookup_description, vulkan, simulation->spatial_lookup[i], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&spatial_lookup_description, vulkan, simulation->start_indices[i], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+
+		vulkan_pipeline_desc_set_shaders(&spatial_lookup_description, NULL, NULL, "src/shaders/spv/spatial_lookup.comp.spv");
+		vulkan_pipeline_desc_set_push_constant(&spatial_lookup_description, sizeof(spatial_lookup_pc), VK_SHADER_STAGE_COMPUTE_BIT);
+
+		simulation->spatial_lookup_pipelines[i] = vulkan_pipeline_create(vulkan, &spatial_lookup_description);
+		assert(simulation->spatial_lookup_pipelines[i] != INVALID_PIPELINE);
+
 		vulkan_pipeline_desc density_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
 
 		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 
 		vulkan_pipeline_desc_set_shaders(&density_description, NULL, NULL, "src/shaders/spv/density.comp.spv");
-
 		vulkan_pipeline_desc_set_push_constant(&density_description, sizeof(density_pc), VK_SHADER_STAGE_COMPUTE_BIT);
 		
 		simulation->density_pipelines[i] = vulkan_pipeline_create(vulkan, &density_description);
 		assert(simulation->density_pipelines[i] != INVALID_PIPELINE);
 
 		
-		vulkan_pipeline_desc update_pos_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
+		vulkan_pipeline_desc update_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
 
-		vulkan_pipeline_desc_add_storage_buffer(&update_pos_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&update_pos_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&update_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 		
-		vulkan_pipeline_desc_set_shaders(&update_pos_description, NULL, NULL, "src/shaders/spv/update.comp.spv");
+		vulkan_pipeline_desc_set_shaders(&update_description, NULL, NULL, "src/shaders/spv/update.comp.spv");
+		vulkan_pipeline_desc_set_push_constant(&update_description, sizeof(update_pc), VK_SHADER_STAGE_COMPUTE_BIT);
 
-		vulkan_pipeline_desc_set_push_constant(&update_pos_description, sizeof(update_pc), VK_SHADER_STAGE_COMPUTE_BIT);
-
-		simulation->update_pos_pipelines[i] = vulkan_pipeline_create(vulkan, &update_pos_description);
-		assert(simulation->update_pos_pipelines[i] != INVALID_PIPELINE);	
+		simulation->update_pipelines[i] = vulkan_pipeline_create(vulkan, &update_description);
+		assert(simulation->update_pipelines[i] != INVALID_PIPELINE);	
 	}
 
 	simulation_measure_rest_density(vulkan, simulation);
@@ -202,7 +221,21 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 	while (simulation->accumulator >= FIXED_DT)
 	{
-		u32 sim = simulation->sim_buffer;
+		const u32 sim = simulation->sim_buffer;
+		const u32 group_size = 256;
+		const u32 group_count = (PARTICLE_COUNT + group_size - 1) / group_size;
+
+		// NOTE: First pass calculate spatial lookup
+		vulkan_command_bind_pipeline(vulkan, simulation->spatial_lookup_pipelines[sim]);
+
+		spatial_lookup_pc spatial_lookup_pc = {
+			.particle_count = PARTICLE_COUNT,	
+		};
+
+		vulkan_command_push_constants(vulkan, sizeof(spatial_lookup_pc), &spatial_lookup_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->spatial_lookup_pipelines[sim]);
+		vulkan_command_dispatch(vulkan, group_count, 1, 1);
+
+		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);	
 
 		// NOTE: First pass calculate densities
 		vulkan_command_bind_pipeline(vulkan, simulation->density_pipelines[sim]);
@@ -212,15 +245,12 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		};
 
 		vulkan_command_push_constants(vulkan, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->density_pipelines[sim]);
-
-		const u32 group_size = 256;
-		const u32 group_count = (PARTICLE_COUNT + group_size - 1) / group_size;
 		vulkan_command_dispatch(vulkan, group_count, 1, 1);
 
 		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);	
 
 		// NOTE: Second pass update particles
-		vulkan_command_bind_pipeline(vulkan, simulation->update_pos_pipelines[sim]);
+		vulkan_command_bind_pipeline(vulkan, simulation->update_pipelines[sim]);
 
 		update_pc update_pc = {
 			.dt = FIXED_DT,
@@ -228,7 +258,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 			.window_height = window_height,
 			.particle_count = PARTICLE_COUNT,	
 		};
-		vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->update_pos_pipelines[sim]);
+		vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->update_pipelines[sim]);
 		vulkan_command_dispatch(vulkan, group_count, 1, 1);
 
 		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
@@ -261,5 +291,7 @@ void simulation_destroy(vulkan_context *vulkan, simulation *simulation)
 	for (u32 i = 0; i < FRAMES_IN_FLIGHT; i++)
 	{
 		vulkan_buffer_destroy(vulkan, &simulation->particles[i]);
+		vulkan_buffer_destroy(vulkan, &simulation->spatial_lookup[i]);
+		vulkan_buffer_destroy(vulkan, &simulation->start_indices[i]);
 	}
 }

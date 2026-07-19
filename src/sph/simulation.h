@@ -19,16 +19,22 @@ typedef struct particle
 	f32 density;
 } particle;
 
+// NOTE: IMPORTANT!!! Needs to match with GPU implementation
+typedef struct spatial_lookup_entry
+{
+	u32 particle_index;
+	u32 cell_key;
+} spatial_lookup_entry;
+
 typedef struct simulation
 {
-	// NOTE: Buffers get modified every frame
 	vulkan_buffer particles[FRAMES_IN_FLIGHT];
+	vulkan_buffer spatial_lookup[FRAMES_IN_FLIGHT];
+	vulkan_buffer start_indices[FRAMES_IN_FLIGHT];
 
+	vulkan_pipeline_id spatial_lookup_pipelines[FRAMES_IN_FLIGHT];
 	vulkan_pipeline_id density_pipelines[FRAMES_IN_FLIGHT];
-
-	// NOTE: Verlet integration
-	vulkan_pipeline_id update_pos_pipelines[FRAMES_IN_FLIGHT];
-	vulkan_pipeline_id update_vel_pipelines[FRAMES_IN_FLIGHT];
+	vulkan_pipeline_id update_pipelines[FRAMES_IN_FLIGHT];
 
 	vulkan_pipeline_id render_pipeline;
 
