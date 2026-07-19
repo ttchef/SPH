@@ -17,7 +17,7 @@ endif
 SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c \
 			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c
 
-all: shaders debug
+all: debug
 
 shaders:
 	mkdir -p src/shaders/spv
@@ -30,8 +30,8 @@ shaders:
 	glslc src/shaders/radixsort.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/radixsort.comp.spv
 	glslc src/shaders/start_indices.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/start_indices.comp.spv
 
-debug:
+debug: shaders
 	$(CC) $(SRC_FILES) $(CFLAGS) $(DEBUG_FLAGS) -o main $(LDFLAGS)
 
-release:
+release: shaders
 	$(CC) $(SRC_FILES) $(CFLAGS) $(RELEASE_FLAGS) -o main $(LDFLAGS)
