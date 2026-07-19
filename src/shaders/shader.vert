@@ -15,7 +15,8 @@ layout (std430, set = 0, binding = 0) readonly buffer in_p
 
 layout (push_constant) uniform pc
 {
-    mat4 orthographic;       
+    mat4 view;
+    mat4 perspective;       
 };
 
 void main()
@@ -35,10 +36,10 @@ void main()
 
     vec2 offset = offsets[corner_id];
 
-    vec4 view_pos = vec4(center_world, 1.0);
+    vec4 view_pos = view * vec4(center_world, 1.0);
     view_pos.xy += offset * radius;
 
-    gl_Position = orthographic * view_pos;
+    gl_Position = perspective * view_pos;
         
     out_vel = particles[particle_id].vel;
     out_uv = offset;

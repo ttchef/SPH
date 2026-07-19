@@ -6,6 +6,7 @@
 #include <vk/command.h>
 #include <vk/types.h>
 #include <sph/time.h>
+#include <sph/camera.h>
 #include <math/types.h>
 
 static const u32 PARTICLE_COUNT = 20024;
@@ -47,6 +48,6 @@ typedef struct simulation
 
 bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation);
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, simulation *simulation);
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, simulation *simulation);
 
 void simulation_destroy(vulkan_context *vulkan, simulation *simulation);

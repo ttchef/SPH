@@ -35,3 +35,5 @@ static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 #define CLAMP(n, lower, upper) (MAX(MIN(n, upper), lower))
 #define KILOBYTES(x) ((x) * 1024)
 #define MEGABYTES(x) ((KILOBYTES(x)) * 1024)
+
+#define TO_RADIANS(deg) ((deg) * 3.14159265f / 180.0f)

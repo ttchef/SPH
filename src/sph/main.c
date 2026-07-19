@@ -1,8 +1,9 @@
 
 
-#include <SDL3/SDL_timer.h>
 #include <sph/time.h>
 #include <sph/simulation.h>
+#include <sph/camera.h>
+#include <sph/input.h>
 #include <vk/context.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -25,6 +26,8 @@ typedef struct app_state
 {
     time time;
     simulation simulation;
+    camera camera;
+    input input;
     window window;
     vulkan_context vulkan;
 } app_state;
@@ -63,6 +66,9 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
+    state->camera = camera_create();
+    state->input = input_create();
+
     return SDL_APP_CONTINUE; 
 }
 
@@ -72,6 +78,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     assert(state);
 
     UNUSED(state);
+
+    input_update(&state->input, event);
     
     if (event->type == SDL_EVENT_QUIT)
     {
@@ -98,6 +106,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     assert(vulkan);
 
     time_update(&state->time);
+    camera_update(&state->camera, &state->input, state->time.delta);
 
     static f32 counter;
     counter += state->time.delta;
@@ -107,9 +116,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         counter = 0.0f;
     }
 
-    simulation_update(vulkan, state->window.width, state->window.height, state->time, &state->simulation);
+    simulation_update(vulkan, state->window.width, state->window.height, state->time, state->camera, &state->simulation);
     vulkan_draw(vulkan, state->window.width, state->window.height);
 
+    input_update(&state->input, NULL);
     return SDL_APP_CONTINUE;
 }
 

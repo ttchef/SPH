@@ -1,5 +1,4 @@
 
-#include "vk/pipeline.h"
 #include <sph/simulation.h>
 #include <math/matrix.h>
 #include <vk/context.h>
@@ -32,6 +31,12 @@ typedef struct update_pc
 	u32 window_width;
 	u32 window_height;
 } update_pc;
+
+typedef struct render_pc
+{
+	m4 view;
+	m4 perspective;
+} render_pc;
 
 void simulation_measure_rest_density(vulkan_context *vulkan, simulation *simulation)
 {
@@ -369,7 +374,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 		vulkan_pipeline_desc render_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
 
-		vulkan_pipeline_desc_set_push_constant(&render_description, sizeof(m4), VK_SHADER_STAGE_VERTEX_BIT);
+		vulkan_pipeline_desc_set_push_constant(&render_description, sizeof(render_pc), VK_SHADER_STAGE_VERTEX_BIT);
 		vulkan_pipeline_desc_set_shaders(&render_description, "src/shaders/spv/shader.vert.spv", "src/shaders/spv/shader.frag.spv", NULL);
 
 		vulkan_pipeline_desc_add_storage_buffer(&render_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_VERTEX_BIT);
@@ -384,7 +389,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	return true;
 }
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, simulation *simulation)
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, simulation *simulation)
 {
 	assert(vulkan);
 	assert(simulation);
@@ -394,7 +399,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 	const u32 sim = simulation->sim_buffer;
 
-	// /*
+	/*
 	while (simulation->accumulator >= FIXED_DT)
 	{
 		const u32 group_size = 256;
@@ -469,10 +474,16 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	// NOTE: Render
 	vulkan_command_begin_rendering(vulkan);
 
-	m4 orthographic = m4orthographic(0, window_width, 0, window_height, -1.0f, 1.0f);
+	m4 view = camera_view(&camera);
+	m4 perspective = m4perspective(0, window_width, window_height, 0, 0.1f, 1000.0f);
+
+	render_pc render_pc = {
+		.view = view,
+		.perspective = perspective,	
+	};
 	
 	vulkan_command_bind_pipeline(vulkan, simulation->render_pipeline[sim]);
-	vulkan_command_push_constants(vulkan, sizeof(orthographic), &orthographic, VK_SHADER_STAGE_VERTEX_BIT, simulation->render_pipeline[sim]);
+	vulkan_command_push_constants(vulkan, sizeof(render_pc), &render_pc, VK_SHADER_STAGE_VERTEX_BIT, simulation->render_pipeline[sim]);
 	
 	vulkan_command_draw(vulkan, PARTICLE_COUNT * 6);
 

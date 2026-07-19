@@ -1,0 +1,69 @@
+
+#include "sph/input.h"
+#include <sph/camera.h>
+#include <math/core.h>
+
+camera camera_create(void)
+{
+	camera result = {0};
+
+	result.pos = v3make(0, 0, 1);
+	result.dir = v3make(0, 0, -1);
+
+	result.yaw = -90.0f;
+	result.pitch = 0.0f;
+
+	result.speed = 5.0f;
+	result.sensitivity = 1.5f;
+
+	return result;	
+}
+
+void camera_update(camera *camera, input *input, f32 dt)
+{
+	const v3 forward = v3norm(v3make(camera->dir.x, 0.0f, camera->dir.z));
+	const v3 up = v3up();
+	const v3 right = v3norm(v3cross(camera->dir, up));
+
+	if (input_down(input, INPUT_W))
+	{
+		camera->pos = v3add(camera->pos, v3scale(forward, camera->speed * dt));
+	}
+	if (input_down(input, INPUT_S))
+	{
+		camera->pos = v3sub(camera->pos, v3scale(forward, camera->speed * dt));
+	}
+	if (input_down(input, INPUT_A))
+	{
+		camera->pos = v3sub(camera->pos, v3scale(right, camera->speed * dt));
+	}
+	if (input_down(input, INPUT_D))
+	{
+		camera->pos = v3add(camera->pos, v3scale(right, camera->speed * dt));
+	}
+
+	camera->yaw += input->mouse_delta.x * camera->sensitivity;
+	camera->pitch += input->mouse_delta.y * camera->sensitivity;
+
+	camera->pitch = CLAMP(camera->pitch, -89.0f, 89.0f);
+
+	f32 yaw_rad = TO_RADIANS(camera->yaw);
+	f32 pitch_rad = TO_RADIANS(camera->pitch);
+
+	v3 look_dir = v3make(SDL_cosf(pitch_rad) * SDL_cosf(yaw_rad), SDL_sinf(pitch_rad), SDL_cosf(pitch_rad) * SDL_sinf(yaw_rad));
+	camera->dir = v3norm(look_dir);
+}
+
+m4 camera_view(camera *camera)
+{
+    f32 pitch_rad = TO_RADIANS(camera->pitch);
+    f32 yaw_rad   = TO_RADIANS(camera->yaw);
+
+    m4 translation = m4translate(-camera->pos.x, -camera->pos.y, -camera->pos.z);
+
+    m4 rotation_x = m4rotate(-pitch_rad, 1.0f, 0.0f, 0.0f);
+    m4 rotation_y = m4rotate((yaw_rad + TO_RADIANS(90.0f)), 0.0f, 1.0f, 0.0f);
+    m4 rotation = m4multiply(rotation_x, rotation_y);
+
+    return m4multiply(rotation, translation);		
+}

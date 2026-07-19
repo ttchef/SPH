@@ -9,13 +9,13 @@ DEBUG_FLAGS := -DDEBUG -O0 -g
 RELEASE_FLAGS := -DNDEBUG -O2 
 
 ifeq ($(OS),Windows_NT)
-LDFLAGS := -lSDL3 -lvulkan-1
+LDFLAGS := -lSDL3 -lvulkan-1 -lm
 else
-LDFLAGS := -lSDL3 -lvulkan
+LDFLAGS := -lSDL3 -lvulkan -lm
 endif
 
 SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c \
-			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c
+			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c src/sph/camera.c src/sph/input.c
 
 all: debug
 
