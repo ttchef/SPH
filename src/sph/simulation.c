@@ -6,7 +6,7 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define PARTICLE_DISTANCE 10.0f
+#define PARTICLE_DISTANCE 6.0f
 #define FIXED_DT (1.0f / 240.0f)
 #define MAX_STEPS_PER_FRAME 4
 
@@ -342,6 +342,8 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->particles[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->spatial_lookup[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&density_description, vulkan, simulation->start_indices[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 
 		vulkan_pipeline_desc_set_shaders(&density_description, NULL, NULL, "src/shaders/spv/density.comp.spv");
 		vulkan_pipeline_desc_set_push_constant(&density_description, sizeof(density_pc), VK_SHADER_STAGE_COMPUTE_BIT);

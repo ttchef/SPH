@@ -35,12 +35,6 @@ layout (push_constant) uniform pc
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-const ivec2 NEIGHBOR_OFFSETS[9] = ivec2[](
-    ivec2(-1,-1), ivec2(0,-1), ivec2(1,-1),
-    ivec2(-1, 0), ivec2(0, 0), ivec2(1, 0),
-    ivec2(-1, 1), ivec2(0, 1), ivec2(1, 1)
-);
-
 vec2 W_spiky_gradient(vec2 p_i, vec2 p_j, float r)
 {
     float d = distance(p_i, p_j);

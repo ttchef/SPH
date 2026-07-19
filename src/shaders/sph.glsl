@@ -6,8 +6,8 @@
 #define VISCOSITY_COEFF 5000.0
 
 // NOTE: Get from simulating in a grid
-#define TARGET_DENSITY 0.0100026466
-
+// #define TARGET_DENSITY 0.0100026466
+#define TARGET_DENSITY 0.0277777854
 #define U32_MAX (~0u)    
 
 struct particle
@@ -23,6 +23,12 @@ struct spatial_lookup_entry
     uint particle_index;
     uint cell_key;       
 };
+
+const ivec2 NEIGHBOR_OFFSETS[9] = ivec2[](
+    ivec2(-1,-1), ivec2(0,-1), ivec2(1,-1),
+    ivec2(-1, 0), ivec2(0, 0), ivec2(1, 0),
+    ivec2(-1, 1), ivec2(0, 1), ivec2(1, 1)
+);
 
 ivec2 position_to_cell(vec2 pos)
 {
