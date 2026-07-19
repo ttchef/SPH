@@ -23,3 +23,16 @@ struct spatial_lookup_entry
     uint particle_index;
     uint cell_key;       
 };
+
+ivec2 position_to_cell(vec2 pos)
+{
+    return ivec2(pos.x / SMOOTHING_RADIUS, pos.y / SMOOTHING_RADIUS);        
+}
+
+uint cell_hash(ivec2 cell, uint particle_count)
+{
+    uint a = uint(cell.x) * 15824;
+    uint b = uint(cell.y) * 9737333;
+    return (a + b) % particle_count;        
+}
+

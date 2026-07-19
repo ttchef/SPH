@@ -27,18 +27,6 @@ layout (push_constant) uniform pc
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-uvec2 position_to_cell(vec2 pos, float radius)
-{
-    return uvec2(pos.x / radius, pos.y / radius);        
-}
-
-uint cell_hash(uvec2 cell)
-{
-    uint a = cell.x * 15824;
-    uint b = cell.y * 9737333;
-    return (a + b) % particle_count;        
-}
-
 void main()
 {
     uint index = gl_GlobalInvocationID.x;
@@ -49,8 +37,8 @@ void main()
 
     particle p = particles[index];
 
-    uvec2 cell = position_to_cell(p.pos, SMOOTHING_RADIUS);
-    uint cell_key = cell_hash(cell);
+    ivec2 cell = position_to_cell(p.pos);
+    uint cell_key = cell_hash(cell, particle_count);
     
     spatial_lookup[index].particle_index = index;
     spatial_lookup[index].cell_key = cell_key;
