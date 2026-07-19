@@ -234,6 +234,8 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		};
 	}
 
+	const u32 group_size = 256;
+	const u32 group_count = (PARTICLE_COUNT + group_size - 1) / group_size;
 	for (u32 i = 0; i < FRAMES_IN_FLIGHT; i++)
 	{
 		VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -242,7 +244,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		vulkan_buffer_device_local_create(vulkan, usage, PARTICLE_COUNT * sizeof(spatial_lookup_entry), NULL, &simulation->spatial_lookup[i]);
 		vulkan_buffer_device_local_create(vulkan, usage, PARTICLE_COUNT * sizeof(u32), NULL, &simulation->start_indices[i]);
-		vulkan_buffer_device_local_create(vulkan, usage, PARTICLE_COUNT * sizeof(u32), NULL, &simulation->histograms[i]);
+		vulkan_buffer_device_local_create(vulkan, usage, 256 * group_count * sizeof(u32), NULL, &simulation->histograms[i]);
 	}
 
 	vulkan_pipeline_desc render_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
