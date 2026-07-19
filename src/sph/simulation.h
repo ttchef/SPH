@@ -8,7 +8,7 @@
 #include <sph/time.h>
 #include <math/types.h>
 
-static const u32 PARTICLE_COUNT = 100024;
+static const u32 PARTICLE_COUNT = 120024;
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct particle

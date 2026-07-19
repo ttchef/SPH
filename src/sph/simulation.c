@@ -8,7 +8,7 @@
 
 #define PARTICLE_DISTANCE 4.0f
 #define FIXED_DT (1.0f / 240.0f)
-#define MAX_STEPS_PER_FRAME 4
+#define MAX_STEPS_PER_FRAME 2
 #define RADIX_SORT_PASSES 4
 
 // TODO: Make particle count as a specilazation constant in the shaders

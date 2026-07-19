@@ -7,7 +7,7 @@
 
 // NOTE: Get from simulating in a grid
 #define TARGET_DENSITY 0.0604654476
-// #define TARGET_DENSITY 0.0277777854
+// #define TARGET_DENSITY 0.0257538725
 #define U32_MAX (~0u)    
 
 struct particle
