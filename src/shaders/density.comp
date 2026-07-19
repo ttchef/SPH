@@ -27,18 +27,17 @@ layout(std430, set = 3, binding = 0) readonly buffer si
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-const float W_poly6_normalization = 4 / (PI * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS);
+const float W_poly6_normalization = 315.0 / (64.0 * PI * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS);
 
-float W_poly6(vec2 p_i, vec2 p_j, float r)
+float W_poly6(vec3 p_i, vec3 p_j, float r)
 {
-    vec2 delta = p_i - p_j;
-    float d = delta.x * delta.x + delta.y * delta.y;
-
+    vec3 delta = p_i - p_j;
+    float d = dot(delta, delta);
+    
     if (d > r * r)
     {
         return 0.0;        
     }
-
     d = sqrt(d);
 
     float shape_func = pow((r * r) - (d * d), 3);
@@ -51,9 +50,9 @@ float calc_density(uint particle_index)
     particle p_i = in_particles[particle_index];
 
     float density = 0.0;
-    ivec2 cell = position_to_cell(p_i.pos);
+    ivec3 cell = position_to_cell(p_i.pos);
 
-    for (uint n = 0; n < 9; n++)
+    for (uint n = 0; n < NEIGHBOR_CELL_COUNT; n++)
     {
         uint key = cell_hash(cell + NEIGHBOR_OFFSETS[n], PARTICLE_COUNT);
         uint start = start_indices[key];
@@ -73,7 +72,7 @@ float calc_density(uint particle_index)
 
             particle p_j = in_particles[i];
 
-            density += p_j.mass * W_poly6(p_i.pos, p_j.pos, SMOOTHING_RADIUS);
+            density += p_j.mass * W_poly6(p_i.pos.xyz, p_j.pos.xyz, SMOOTHING_RADIUS);
         }
      }
 

@@ -234,15 +234,15 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 
 	VkPipelineVertexInputStateCreateInfo vertex_input = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-		.vertexBindingDescriptionCount = 1,
-		.pVertexBindingDescriptions = &desc->vertex_binding,
-		.vertexAttributeDescriptionCount = desc->vertex_attribute_count,
-		.pVertexAttributeDescriptions = desc->vertex_attributes,
+		.vertexBindingDescriptionCount = desc->vertex_attribute_count == 0 ? 0 : 1,
+		.pVertexBindingDescriptions = desc->vertex_attribute_count == 0 ? NULL : &desc->vertex_binding,
+		.vertexAttributeDescriptionCount = desc->vertex_attribute_count == 0 ? 0 : desc->vertex_attribute_count,
+		.pVertexAttributeDescriptions = desc->vertex_attribute_count == 0 ? NULL : desc->vertex_attributes,
 	};
 
 	VkPipelineInputAssemblyStateCreateInfo assembly_input = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-		.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
+		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	};
 
 	VkPipelineViewportStateCreateInfo viewport = {

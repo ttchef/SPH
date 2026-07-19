@@ -1,12 +1,17 @@
 
 #version 450
 
-layout (location = 0) in vec2 in_pos;
-layout (location = 1) in vec2 in_vel;
-layout (location = 2) in float in_mass;
-layout (location = 3) in float in_density;
+#extension GL_GOOGLE_include_directive : require
 
-layout (location = 0) out vec2 out_vel;
+#include "sph.glsl"
+
+layout (location = 0) out vec4 out_vel;
+layout (location = 1) out vec2 out_uv;
+
+layout (std430, set = 0, binding = 0) readonly buffer in_p
+{
+    particle particles[];
+};
 
 layout (push_constant) uniform pc
 {
@@ -15,8 +20,26 @@ layout (push_constant) uniform pc
 
 void main()
 {
-    gl_Position = orthographic * vec4(in_pos, 0.0, 1.0);
-    gl_PointSize = 3.0;
+    uint particle_id = gl_VertexIndex / 6;
+    uint corner_id = gl_VertexIndex % 6;
 
-    out_vel = in_vel;
+    vec4 pos = particles[particle_id].pos;
+    vec3 center_world = pos.xyz;
+
+    const float radius = 5.0;
+
+    const vec2 offsets[6] = vec2[](
+        vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(-1.0, 1.0),
+        vec2(-1.0, 1.0),  vec2(1.0, -1.0), vec2(1.0, 1.0)
+    );
+
+    vec2 offset = offsets[corner_id];
+
+    vec4 view_pos = vec4(center_world, 1.0);
+    view_pos.xy += offset * radius;
+
+    gl_Position = orthographic * view_pos;
+        
+    out_vel = particles[particle_id].vel;
+    out_uv = offset;
 }

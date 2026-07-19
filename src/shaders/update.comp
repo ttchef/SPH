@@ -34,19 +34,22 @@ layout (push_constant) uniform pc
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-const float W_spiky_normalization = -3.0 / (PI * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS);
+const float W_spiky_normalization = -45.0 / (PI * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS * SMOOTHING_RADIUS);
 
-vec2 W_spiky_gradient(vec2 p_i, vec2 p_j, float r)
+vec3 W_spiky_gradient(vec3 p_i, vec3 p_j)
 {
-    float d = distance(p_i, p_j);
-
-    if (d <= 0.0001 || d > r)
+    vec3 delta = p_i - p_j;
+    float d = dot(delta, delta);
+    
+    if (d <= 0.0001 || d > SMOOTHING_RADIUS * SMOOTHING_RADIUS)
     {
-        return vec2(0, 0);        
+        return vec3(0, 0, 0);
     }
 
-    float scale = W_spiky_normalization * (r - d) / d;
-    return (p_i - p_j) * scale;
+    d = sqrt(d);
+    
+    float scale = W_spiky_normalization * (SMOOTHING_RADIUS - d) / d;
+    return delta * scale;
 }
 
 float calc_pressure(float density)
@@ -59,19 +62,31 @@ float calc_pressure(float density)
     return pressure < 0.0 ? 0.0 : pressure; 
 }
 
-vec2 calc_force(uint particle_index)
+vec3 random_unit_vector3(uint seed)
+{
+    float a = fract(sin(float(seed) * 12.9898) * 43758.5453);
+    float b = fract(sin(float(seed) * 78.2330) * 12543.548);
+
+    float theta = a * 2.0 * PI;
+    float z = b * 2.0 - 1.0;
+    float r = sqrt(1.0 - z * z);
+
+    return vec3(r * cos(theta), r * sin(theta), z);
+}
+
+vec3 calc_force(uint particle_index)
 {
     particle p_i = in_particles[particle_index];
 
-    vec2 pressure = vec2(0, 0);
-    vec2 viscosity = vec2(0, 0);
+    vec3 pressure = vec3(0, 0, 0);
+    vec3 viscosity = vec3(0, 0, 0);
 
-    ivec2 cell = position_to_cell(p_i.pos);
+    ivec3 cell = position_to_cell(p_i.pos);
 
     // NOTE: Moved out for better performance
     float term1 = calc_pressure(p_i.density) / (p_i.density * p_i.density);
 
-    for (uint n = 0; n < 9; n++)
+    for (uint n = 0; n < NEIGHBOR_CELL_COUNT; n++)
     {
         uint key = cell_hash(cell + NEIGHBOR_OFFSETS[n], PARTICLE_COUNT);
         uint start = start_indices[key];
@@ -94,8 +109,8 @@ vec2 calc_force(uint particle_index)
             float d = distance(p_i.pos, p_j.pos);
             if (d <= 0.0001)
             {
-                float angle = 2.399963 * float(particle_index);
-                pressure -= vec2(cos(angle), sin(angle)) * 500.0;
+                vec3 dir = random_unit_vector3(particle_index);
+                pressure -= dir * 500.0;
                 continue;
             }
             if (d > SMOOTHING_RADIUS)
@@ -103,14 +118,14 @@ vec2 calc_force(uint particle_index)
                  continue;
             }
 
-            vec2 gradient = W_spiky_gradient(p_i.pos, p_j.pos, SMOOTHING_RADIUS);
+            vec3 gradient = W_spiky_gradient(p_i.pos.xyz, p_j.pos.xyz);
 
             float term2 = calc_pressure(p_j.density) / (p_j.density * p_j.density);
 
             pressure += gradient * p_j.mass * (term1 + term2);
 
-            vec2 v_ij = p_i.vel - p_j.vel;
-            vec2 x_ij = p_i.pos - p_j.pos;
+            vec3 v_ij = vec3(p_i.vel - p_j.vel);
+            vec3 x_ij = vec3(p_i.pos - p_j.pos);
 
             float numerator = dot(x_ij, gradient);
             float denominator = dot(x_ij, x_ij) + 0.01 * SMOOTHING_RADIUS * SMOOTHING_RADIUS;
@@ -135,12 +150,12 @@ void main()
 
     particle p = in_particles[index];
 
-    vec2 gravity = vec2(0, 550);
-    vec2 acc = gravity;
+    vec3 gravity = vec3(0, 550, 0);
+    vec3 acc = gravity;
     acc += calc_force(index);
 
-    p.vel += acc * dt;
-    p.pos += p.vel * dt;        
+    p.vel += vec4(acc * dt, 0.0);
+    p.pos += p.vel * dt, 0.0;        
 
     float damping = 0.67;
     

@@ -248,14 +248,15 @@ static bool logical_device_init(vulkan_context *ctx)
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,	
 	};
 
-	VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
-		.dynamicRendering = VK_TRUE,	
+	VkPhysicalDeviceVulkan13Features features13 = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+		.shaderDemoteToHelperInvocation = VK_TRUE,
+		.dynamicRendering = VK_TRUE,
 	};
 
 	VkDeviceCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		.pNext = &dynamic_rendering,
+		.pNext = &features13,
 		.queueCreateInfoCount = queue_count,
 		.pQueueCreateInfos = queue_infos,
 		.enabledExtensionCount = ARRAY_COUNT(device_extensions),
