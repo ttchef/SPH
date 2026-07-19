@@ -419,8 +419,9 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 			vulkan_command_push_constants(vulkan, sizeof(radixsort_pc), &radixsort_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->radixsort_pipelines[pass_buf]);
 			vulkan_command_dispatch(vulkan, group_count, 1, 1);
+
+			vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
 		}
-		vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
 
 		// NOTE: Updating start indices
 		vulkan_command_bind_pipeline(vulkan, simulation->start_indices_pipelines[sim]);
