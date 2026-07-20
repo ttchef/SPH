@@ -307,26 +307,6 @@ bool vulkan_init(SDL_Window *window, vulkan_context *ctx)
 
 #undef CHECK
 
-	//
-	// NOTE: Render pipelines
-	// 
-
-	vulkan_pipeline_desc cube_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
-	vulkan_pipeline_desc_set_push_constant(&cube_description, sizeof(vulkan_cube_pc), VK_SHADER_STAGE_VERTEX_BIT);
-	vulkan_pipeline_desc_set_shaders(&cube_description, "src/shaders/spv/cube.vert.spv", "src/shaders/spv/cube.frag.spv", NULL);
-
-	ctx->cube_pipeline = vulkan_pipeline_create(ctx, &cube_description);
-	assert(ctx->cube_pipeline != INVALID_PIPELINE);
-
-	vulkan_pipeline_desc cube_line_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
-
-	vulkan_pipeline_desc_set_push_constant(&cube_line_description, sizeof(vulkan_cube_pc), VK_SHADER_STAGE_VERTEX_BIT);
-	vulkan_pipeline_desc_set_shaders(&cube_line_description, "src/shaders/spv/cube_line.vert.spv", "src/shaders/spv/cube_line.frag.spv", NULL);
-	vulkan_pipeline_desc_set_topology(&cube_line_description, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
-
-	ctx->cube_line_pipeline = vulkan_pipeline_create(ctx, &cube_line_description);
-	assert(ctx->cube_line_pipeline != INVALID_PIPELINE);
-
 	return true;
 }
 

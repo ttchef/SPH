@@ -1,8 +1,8 @@
 
-#include "vk/command.h"
 #include <sph/simulation.h>
 #include <sph/window.h>
-#include <math/matrix.h>
+#include <sph/render.h>
+#include <math/core.h>
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
@@ -29,9 +29,10 @@ typedef struct radixsort_pc
 
 typedef struct update_pc
 {
+	v4 cube_min;
+	v4 cube_max;
 	f32 dt;
-	u32 window_width;
-	u32 window_height;
+	f32 padding[3];
 } update_pc;
 
 typedef struct render_pc
@@ -392,10 +393,12 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	simulation_measure_rest_density(vulkan, simulation);
 	// simulation_check_sorted(vulkan, simulation);
 
+	simulation->boundary_cube = cubemake(v3zero(), v3make(200, 50, 200));
+
 	return true;
 }
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, simulation *simulation)
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, render *render, simulation *simulation)
 {
 	assert(vulkan);
 	assert(simulation);
@@ -461,10 +464,13 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		// NOTE: Update particles
 		vulkan_command_bind_pipeline(vulkan, simulation->update_pipelines[sim]);
 
+		v3 cube_min = v3sub(simulation->boundary_cube.pos, v3scale(simulation->boundary_cube.size, 0.5f));
+		v3 cube_max = v3add(simulation->boundary_cube.pos, v3scale(simulation->boundary_cube.size, 0.5f));
+
 		update_pc update_pc = {
 			.dt = FIXED_DT,
-			.window_width = window_width,
-			.window_height = window_height,
+			.cube_min = v4fromv3(cube_min, 1.0),
+			.cube_max = v4fromv3(cube_max, 1.0),
 		};
 		vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, simulation->update_pipelines[sim]);
 		vulkan_command_dispatch(vulkan, group_count, 1, 1);
@@ -496,7 +502,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	vulkan_command_draw(vulkan, PARTICLE_COUNT * 6);
 
 	m4 view_proj = m4mul(perspective, view);
-	vulkan_command_cube_line_draw(vulkan, v3zero(), v3make(100, 10, 100), view_proj);
+	render_cube_lines(vulkan, render, simulation->boundary_cube.pos, simulation->boundary_cube.size, color4make(1.0f, 0.0f, 0.0f, 1.0f), view_proj);
 
 	vulkan_command_end_rendering(vulkan);
 }

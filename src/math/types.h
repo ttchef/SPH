@@ -70,6 +70,16 @@ static inline v4 v4make(f32 x, f32 y, f32 z, f32 w)
 	return (v4){x, y, z, w};
 }
 
+static inline v4 v4fromv3(v3 v, f32 w)
+{
+	return v4make(v.x, v.y, v.z, w);
+}
+
+static inline v4 v4fromcolor4(color4 color)
+{
+	return v4make(color.r, color.g, color.b, color.a);
+}
+
 static inline v4 v4zero(void)
 {
 	return v4make(0, 0, 0, 0);
@@ -79,3 +89,15 @@ typedef struct m4
 {
 	f32 m[16];
 } m4;
+
+// NOTE: Origin in center
+typedef struct cube
+{
+	v3 pos;
+	v3 size;
+} cube;
+
+static inline cube cubemake(v3 pos, v3 size)
+{
+	return (cube){pos, size};
+}

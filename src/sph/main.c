@@ -1,5 +1,7 @@
 
 
+#include "sph/render.h"
+#include <SDL3/SDL_init.h>
 #include <sph/time.h>
 #include <sph/simulation.h>
 #include <sph/camera.h>
@@ -19,6 +21,7 @@ typedef struct app_state
     simulation simulation;
     camera camera;
     input input;
+    render render;
     window window;
     vulkan_context vulkan;
 } app_state;
@@ -54,6 +57,12 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     if (!simulation_create(&state->vulkan, START_WINDOW_WIDTH, START_WINDOW_HEIGHT, &state->simulation))
     {
         SDL_Log("[ENGINE] Failed to initialize simulation.");
+        return SDL_APP_FAILURE;
+    }
+
+    if (!render_create(&state->vulkan, &state->render))
+    {
+        SDL_Log("[ENGINE] Failed to initialize render.");
         return SDL_APP_FAILURE;
     }
 
@@ -107,7 +116,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         counter = 0.0f;
     }
 
-    simulation_update(vulkan, state->window.width, state->window.height, state->time, state->camera, &state->simulation);
+    simulation_update(vulkan, state->window.width, state->window.height, state->time, state->camera, &state->render, &state->simulation);
+
     vulkan_draw(vulkan, state->window.width, state->window.height);
 
     input_update(&state->input, NULL);

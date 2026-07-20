@@ -37,3 +37,17 @@ static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 #define MEGABYTES(x) ((KILOBYTES(x)) * 1024)
 
 #define TO_RADIANS(deg) ((deg) * 3.14159265f / 180.0f)
+
+typedef struct color4
+{
+	f32 r;
+	f32 g;
+	f32 b;
+	f32 a;
+} color4;
+
+static inline color4 color4make(f32 r, f32 g, f32 b, f32 a)
+{
+	return (color4){r, g, b, a};
+}
+

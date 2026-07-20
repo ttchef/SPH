@@ -3,7 +3,8 @@
 
 layout (push_constant) uniform pc
 {
-    mat4 mvp;       
+    mat4 mvp;
+    vec4 color;     
 };
 
 const vec3 cube_vertices[36] = vec3[](

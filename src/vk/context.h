@@ -10,15 +10,6 @@
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
 
-//
-// NOTE: Render push constants
-// 
-
-typedef struct vulkan_cube_pc
-{
-	m4 mvp;
-} vulkan_cube_pc;
-
 typedef struct vulkan_queue
 {
 	VkQueue handle;
@@ -43,12 +34,6 @@ struct vulkan_context
 	vulkan_swapchain swapchain;
 	vulkan_command_handler command_handler;
 	vulkan_pipeline_manager pipeline_manager;
-
-	//
-	// NOTE: Render pipelines for usefull primitives
-	//
-	vulkan_pipeline_id cube_pipeline;
-	vulkan_pipeline_id cube_line_pipeline;
 };
 
 bool vulkan_init(SDL_Window *window, vulkan_context *ctx);

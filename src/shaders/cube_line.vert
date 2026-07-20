@@ -3,7 +3,8 @@
 
 layout (push_constant) uniform pc
 {
-    mat4 mvp;       
+    mat4 mvp;
+    vec4 color;       
 };
 
 vec3 cube_line_vertices[] = vec3[](

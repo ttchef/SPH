@@ -24,7 +24,7 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
 	const v3 up = v3up();
 	const v3 right = v3norm(v3cross(camera->dir, up));
 
-	SDL_Log("[ENGINE] Camera Pos: (%.3f, %.3f, %.3f)", camera->pos.x, camera->pos.y, camera->pos.z);
+	// SDL_Log("[ENGINE] Camera Pos: (%.3f, %.3f, %.3f)", camera->pos.x, camera->pos.y, camera->pos.z);
 
 	if (input_down(input, INPUT_W))
 	{

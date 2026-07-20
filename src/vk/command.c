@@ -21,8 +21,6 @@ typedef enum vulkan_render_command_type
 	// NOTE: vkCmdDraw, uses currently bound pipeline 
 	COMMAND_DRAW,
 	COMMAND_DISPATCH,
-	COMMAND_CUBE_DRAW,
-	COMMAND_CUBE_LINE_DRAW,
 } vulkan_render_command_type;
 
 typedef struct command_header
@@ -93,9 +91,18 @@ typedef struct command_cube_draw
 	command_header header;
 	v3 pos;
 	v3 size;
+	color4 color;
 	m4 view_proj;
-	bool line;
 } command_cube_draw;
+
+typedef struct command_cube_line_draw
+{
+	command_header header;
+	v3 pos;
+	v3 size;
+	color4 color;
+	m4 view_proj;
+} command_cube_line_draw;
 
 static bool command_add(vulkan_context *ctx, void *data, u32 size)
 {
@@ -264,42 +271,6 @@ bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 si
 	};
 
 	return command_add(ctx, &dispatch, header.size);
-}
-
-bool vulkan_command_cube_draw(vulkan_context *ctx, v3 pos, v3 size, m4 view_proj)
-{
-	command_header header = {
-		.type = COMMAND_CUBE_DRAW,
-		.size = sizeof(command_cube_draw),	
-	};
-
-	command_cube_draw cube_draw = {
-		.header = header,
-		.pos = pos,
-		.size = size,
-		.view_proj = view_proj,
-		.line = false,
-	};
-
-	return command_add(ctx, &cube_draw, header.size);
-}
-
-bool vulkan_command_cube_line_draw(vulkan_context *ctx, v3 pos, v3 size, m4 view_proj)
-{
-	command_header header = {
-		.type = COMMAND_CUBE_DRAW,
-		.size = sizeof(command_cube_draw),	
-	};
-
-	command_cube_draw cube_draw = {
-		.header = header,
-		.pos = pos,
-		.size = size,
-		.view_proj = view_proj,
-		.line = true,
-	};
-
-	return command_add(ctx, &cube_draw, header.size);
 }
 
 bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *handler)
@@ -487,29 +458,6 @@ static void render_queue(vulkan_context *ctx)
 			command_dispatch *dispatch = at;
 
 			vkCmdDispatch(frame_data->command_buffer, dispatch->size_x, dispatch->size_y, dispatch->size_z);
-		} break;
-		case COMMAND_CUBE_DRAW:
-		{
-			command_cube_draw *cube_draw = at;
-
-			v3 pos = cube_draw->pos;
-			v3 size = cube_draw->size;
-			
-			m4 translate = m4translate(pos.x, pos.y, pos.z);
-			m4 scale = m4scale(size.x, size.y, size.z);
-
-			m4 model = m4mul(scale, translate);
-			m4 mvp = m4mul(cube_draw->view_proj, model);
-
-			vulkan_cube_pc pc = {
-				.mvp = mvp,	
-			};
-
-			vulkan_pipeline *pipeline = cube_draw->line ? vulkan_pipeline_get(ctx, ctx->cube_line_pipeline) : vulkan_pipeline_get(ctx, ctx->cube_pipeline);
-
-			vkCmdBindPipeline(frame_data->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
-			vkCmdPushConstants(frame_data->command_buffer, pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pc), &pc);
-			vkCmdDraw(frame_data->command_buffer, 36, 1, 0, 0);	
 		} break;
 		default:
 		{

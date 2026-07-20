@@ -27,9 +27,10 @@ layout(std430, set = 3, binding = 0) readonly buffer si
 
 layout (push_constant) uniform pc
 {
+    vec4 cube_min;
+    vec4 cube_max;
     float dt;
-    uint window_width;
-    uint window_height;
+    float padding[3];
 };
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
@@ -159,36 +160,36 @@ void main()
 
     float damping = 0.67;
     
-    if (p.pos.x < 0.0)
+    if (p.pos.x < cube_min.x)
     {
-        p.pos.x = 0;
+        p.pos.x = cube_min.x;
         p.vel.x = -p.vel.x * damping;        
     }
-    else if (p.pos.x > 100)
+    else if (p.pos.x > cube_max.x)
     {
-        p.pos.x = 100;
+        p.pos.x = cube_max.x;
         p.vel.x = -p.vel.x * damping;        
     }
 
-    if (p.pos.y < 0.0)
+    if (p.pos.y < cube_min.y)
     {
-        p.pos.y = 0;
+        p.pos.y = cube_min.y;
         p.vel.y = -p.vel.y * damping;
     }
-    else if (p.pos.y > 100)
+    else if (p.pos.y > cube_max.y)
     {
-        p.pos.y = 100;
+        p.pos.y = cube_max.y;
         p.vel.y = -p.vel.y * damping;    
     }
 
-    if (p.pos.z < 0)
+    if (p.pos.z < cube_min.z)
     {
-        p.pos.z = 0;
+        p.pos.z = cube_min.z;
         p.vel.z = -p.vel.z * damping;        
     }
-    else if (p.pos.z > 100)
+    else if (p.pos.z > cube_max.z)
     {
-        p.pos.z = 100;
+        p.pos.z = cube_max.z;
         p.vel.z = -p.vel.z * damping;        
     }
 
