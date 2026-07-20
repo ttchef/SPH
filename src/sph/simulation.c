@@ -324,8 +324,8 @@ bool simulation_create(vulkan_context *vulkan, simulation *simulation)
 
 		vulkan_pipeline_desc radixsort_histograms_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_COMPUTE);
 
-		vulkan_pipeline_desc_add_storage_buffer(&radixsort_histograms_description, vulkan, simulation->spatial_lookup[i], 0, VK_SHADER_STAGE_COMPUTE_BIT);
-		vulkan_pipeline_desc_add_storage_buffer(&radixsort_histograms_description, vulkan, simulation->histograms[i], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&radixsort_histograms_description, vulkan, simulation->spatial_lookup[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
+		vulkan_pipeline_desc_add_storage_buffer(&radixsort_histograms_description, vulkan, simulation->histograms[read_buffer], 0, VK_SHADER_STAGE_COMPUTE_BIT);
 
 		vulkan_pipeline_desc_set_shaders(&radixsort_histograms_description, NULL, NULL, "src/shaders/spv/radixsort_histograms.comp.spv");
 		vulkan_pipeline_desc_set_push_constant(&radixsort_histograms_description, sizeof(radixsort_pc), VK_SHADER_STAGE_COMPUTE_BIT);
@@ -411,11 +411,11 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	simulation->accumulator += time.delta;
 	simulation->accumulator = MIN(simulation->accumulator, FIXED_DT * MAX_STEPS_PER_FRAME);
 
-	const u32 sim = simulation->sim_buffer;
-
+	u32 sim = simulation->sim_buffer;
 	// /*
 	while (simulation->accumulator >= FIXED_DT)
 	{
+		sim = simulation->sim_buffer;
 		const u32 group_size = 256;
 		const u32 group_count = (PARTICLE_COUNT + group_size - 1) / group_size;
 
