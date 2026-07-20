@@ -29,7 +29,7 @@ void main()
     vec4 pos = particles[particle_id].pos;
     vec3 center_world = pos.xyz;
 
-    const float radius = 1.0;
+    const float radius = 3.5;
 
     const vec2 offsets[6] = vec2[](
         vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(-1.0, 1.0),

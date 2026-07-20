@@ -1,7 +1,4 @@
 
-#include "math/matrix.h"
-#include "sph/ui.h"
-#include "vk/command.h"
 #include <sph/simulation.h>
 #include <sph/window.h>
 #include <sph/render.h>
@@ -11,7 +8,7 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define PARTICLE_DISTANCE 2.0f
+#define PARTICLE_DISTANCE 5.5f
 #define FIXED_DT (1.0f / 240.0f)
 #define MAX_STEPS_PER_FRAME 2
 #define RADIX_SORT_PASSES 4
@@ -272,7 +269,7 @@ bool simulation_create(vulkan_context *vulkan, simulation *simulation)
 	particle *particles = SDL_calloc(PARTICLE_COUNT, sizeof(particle));
 	assert(particles);
 
-	u32 grid_size = (u32)SDL_sqrtf(PARTICLE_COUNT);
+	u32 grid_size = (u32)SDL_roundf(SDL_powf((f32)PARTICLE_COUNT, 1.0f / 3.0f));
 	f32 half_grid_width = (grid_size - 1) * PARTICLE_DISTANCE * 0.5f;
 
 	for (u32 i = 0; i < PARTICLE_COUNT; i++)
@@ -280,12 +277,17 @@ bool simulation_create(vulkan_context *vulkan, simulation *simulation)
 		particle *p = &particles[i];
 		assert(p);
 
-		f32 x = (i % grid_size) * PARTICLE_DISTANCE - half_grid_width;
-		f32 y = (i / grid_size) * PARTICLE_DISTANCE - half_grid_width;
+		u32 x_index = i % grid_size;
+		u32 y_index = (i / grid_size) % grid_size;
+		u32 z_index = i / (grid_size * grid_size);
+
+		f32 x = x_index * PARTICLE_DISTANCE - half_grid_width;
+		f32 y = y_index * PARTICLE_DISTANCE - half_grid_width;
+		f32 z = z_index * PARTICLE_DISTANCE - half_grid_width;
 
 		*p = (particle){
 			.mass = 1.0f,
-			.pos = v4make(x, y, 0.0f, 1.0f),
+			.pos = v4make(x, y, z, 1.0f),
 		};
 	}
 
@@ -396,7 +398,7 @@ bool simulation_create(vulkan_context *vulkan, simulation *simulation)
 	simulation_measure_rest_density(vulkan, simulation);
 	// simulation_check_sorted(vulkan, simulation);
 
-	simulation->boundary_cube = cubemake(v3zero(), v3make(200, 50, 200));
+	simulation->boundary_cube = cubemake(v3zero(), v3make(300, 300, 300));
 
 	return true;
 }
