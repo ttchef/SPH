@@ -317,6 +317,7 @@ void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain)
 	{
 		vkDestroyImageView(ctx->device, swapchain->image_views[i], NULL);
 		vkDestroySemaphore(ctx->device, swapchain->finished[i], NULL);
+		vulkan_image_destroy(ctx, swapchain->depth_images[i]);
 	}
 
 	vkDestroySwapchainKHR(ctx->device, swapchain->handle, NULL);

@@ -41,6 +41,9 @@ typedef struct vulkan_pipeline_desc
 	void *specialization_constant_data;
 	u32 specialization_constant_size;
 	VkShaderStageFlags specialitation_shader_stage;
+
+	VkPolygonMode polygon_mode;
+	VkPrimitiveTopology topology;
 } vulkan_pipeline_desc;
 
 typedef struct vulkan_pipeline
@@ -50,13 +53,13 @@ typedef struct vulkan_pipeline
 	VkPipeline handle;
 	VkPipelineLayout layout;
 	
-	vulkan_descriptor descriptors[12];
+	vulkan_descriptor descriptors[18];
 	u32 descriptor_count;	
 } vulkan_pipeline;
 
 typedef struct vulkan_pipeline_manager
 {
-	vulkan_pipeline pipelines[64];
+	vulkan_pipeline pipelines[128];
 	u32 count;
 } vulkan_pipeline_manager;
 
@@ -75,6 +78,10 @@ void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size
 void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *vertex, const char *fragment, const char *compute);
 
 void vulkan_pipeline_desc_set_specialization_constant(vulkan_pipeline_desc *desc, u32 size, void *data, VkShaderStageFlags stage);
+
+void vulkan_pipeline_desc_set_polygon_mode(vulkan_pipeline_desc *desc, VkPolygonMode polygon_mode);
+
+void vulkan_pipeline_desc_set_topology(vulkan_pipeline_desc *desc, VkPrimitiveTopology topology);
 
 //
 // NOTE: Pipeline manger

@@ -86,7 +86,7 @@ m4 camera_view(camera *camera)
 
     m4 rotation_x = m4rotate(-pitch_rad, 1.0f, 0.0f, 0.0f);
     m4 rotation_y = m4rotate((yaw_rad + TO_RADIANS(90.0f)), 0.0f, 1.0f, 0.0f);
-    m4 rotation = m4multiply(rotation_x, rotation_y);
+    m4 rotation = m4mul(rotation_x, rotation_y);
 
-    return m4multiply(rotation, translation);		
+    return m4mul(rotation, translation);		
 }

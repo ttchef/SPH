@@ -57,6 +57,10 @@ bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count);
 
 bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 size_z);
 
+bool vulkan_command_cube_draw(vulkan_context *ctx, v3 pos, v3 size, m4 view_proj);
+
+bool vulkan_command_cube_line_draw(vulkan_context *ctx, v3 pos, v3 size, m4 view_proj);
+
 // ----------
 
 bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *handler);

@@ -1,4 +1,5 @@
 
+#include "vk/command.h"
 #include <sph/simulation.h>
 #include <sph/window.h>
 #include <math/matrix.h>
@@ -380,7 +381,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 		vulkan_pipeline_desc render_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
 
 		vulkan_pipeline_desc_set_push_constant(&render_description, sizeof(render_pc), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		vulkan_pipeline_desc_set_shaders(&render_description, "src/shaders/spv/shader.vert.spv", "src/shaders/spv/shader.frag.spv", NULL);
+		vulkan_pipeline_desc_set_shaders(&render_description, "src/shaders/spv/particle.vert.spv", "src/shaders/spv/particle.frag.spv", NULL);
 
 		vulkan_pipeline_desc_add_storage_buffer(&render_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -493,6 +494,9 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	vulkan_command_push_constants(vulkan, sizeof(render_pc), &render_pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, simulation->render_pipeline[sim]);
 	
 	vulkan_command_draw(vulkan, PARTICLE_COUNT * 6);
+
+	m4 view_proj = m4mul(perspective, view);
+	vulkan_command_cube_line_draw(vulkan, v3zero(), v3make(100, 10, 100), view_proj);
 
 	vulkan_command_end_rendering(vulkan);
 }

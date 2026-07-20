@@ -15,7 +15,7 @@ static inline m4 m4identity(void)
     }};
 }
 
-static inline m4 m4multiply(m4 a, m4 b)
+static inline m4 m4mul(m4 a, m4 b)
 {
     m4 result;
     for (int col = 0; col < 4; ++col)

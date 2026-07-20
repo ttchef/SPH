@@ -21,6 +21,8 @@ vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type)
 	case VULKAN_PIPELINE_TYPE_GRAPHICS:
 	{
 		result.type = VULKAN_PIPELINE_TYPE_GRAPHICS;
+		result.polygon_mode = VK_POLYGON_MODE_FILL;
+		result.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	} break;
 
 	case VULKAN_PIPELINE_TYPE_COMPUTE:
@@ -117,6 +119,16 @@ void vulkan_pipeline_desc_set_specialization_constant(vulkan_pipeline_desc *desc
 	desc->specialization_constant_data = data;
 	desc->specialization_constant_size = size;
 	desc->specialitation_shader_stage = stage;	
+}
+
+void vulkan_pipeline_desc_set_polygon_mode(vulkan_pipeline_desc *desc, VkPolygonMode polygon_mode)
+{
+	desc->polygon_mode = polygon_mode;
+}
+
+void vulkan_pipeline_desc_set_topology(vulkan_pipeline_desc *desc, VkPrimitiveTopology topology)
+{
+	desc->topology = topology;
 }
 
 // TODO: Replace with relative to executable path or embed shader
@@ -244,7 +256,7 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 
 	VkPipelineInputAssemblyStateCreateInfo assembly_input = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		.topology = desc->topology,
 	};
 
 	VkPipelineViewportStateCreateInfo viewport = {
@@ -258,7 +270,7 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 		.lineWidth = 1.0f,
 		.depthClampEnable = VK_FALSE,
 		.depthBiasEnable = VK_FALSE,
-		.polygonMode = VK_POLYGON_MODE_FILL,
+		.polygonMode = desc->polygon_mode,
 		.cullMode = VK_CULL_MODE_NONE,
 		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 	};

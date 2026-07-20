@@ -1,4 +1,5 @@
 
+#include "vk/pipeline.h"
 #include <vk/context.h>
 
 #include <SDL3/SDL_vulkan.h>
@@ -248,6 +249,10 @@ static bool logical_device_init(vulkan_context *ctx)
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,	
 	};
 
+	VkPhysicalDeviceFeatures features = {
+		.fillModeNonSolid = VK_TRUE,	
+	};
+
 	VkPhysicalDeviceVulkan13Features features13 = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
 		.shaderDemoteToHelperInvocation = VK_TRUE,
@@ -257,6 +262,7 @@ static bool logical_device_init(vulkan_context *ctx)
 	VkDeviceCreateInfo info = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.pNext = &features13,
+		.pEnabledFeatures = &features,
 		.queueCreateInfoCount = queue_count,
 		.pQueueCreateInfos = queue_infos,
 		.enabledExtensionCount = ARRAY_COUNT(device_extensions),
@@ -300,6 +306,26 @@ bool vulkan_init(SDL_Window *window, vulkan_context *ctx)
 	CHECK(vulkan_pipeline_manager_create(&ctx->pipeline_manager));
 
 #undef CHECK
+
+	//
+	// NOTE: Render pipelines
+	// 
+
+	vulkan_pipeline_desc cube_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
+	vulkan_pipeline_desc_set_push_constant(&cube_description, sizeof(vulkan_cube_pc), VK_SHADER_STAGE_VERTEX_BIT);
+	vulkan_pipeline_desc_set_shaders(&cube_description, "src/shaders/spv/cube.vert.spv", "src/shaders/spv/cube.frag.spv", NULL);
+
+	ctx->cube_pipeline = vulkan_pipeline_create(ctx, &cube_description);
+	assert(ctx->cube_pipeline != INVALID_PIPELINE);
+
+	vulkan_pipeline_desc cube_line_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
+
+	vulkan_pipeline_desc_set_push_constant(&cube_line_description, sizeof(vulkan_cube_pc), VK_SHADER_STAGE_VERTEX_BIT);
+	vulkan_pipeline_desc_set_shaders(&cube_line_description, "src/shaders/spv/cube_line.vert.spv", "src/shaders/spv/cube_line.frag.spv", NULL);
+	vulkan_pipeline_desc_set_topology(&cube_line_description, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
+
+	ctx->cube_line_pipeline = vulkan_pipeline_create(ctx, &cube_line_description);
+	assert(ctx->cube_line_pipeline != INVALID_PIPELINE);
 
 	return true;
 }
