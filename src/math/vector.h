@@ -19,6 +19,11 @@ static inline v2 v2sub(v2 a, v2 b)
 	return v2make(a.x - b.x, a.y - b.y);
 }
 
+static inline v2 v2scale(v2 v, f32 s)
+{
+	return v2make(v.x * s, v.y * s);
+}
+
 //
 // NOTE: V3
 // 

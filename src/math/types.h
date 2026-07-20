@@ -47,6 +47,11 @@ static inline v3 v3make(f32 x, f32 y, f32 z)
 	return (v3){x, y, z};
 }
 
+static inline v3 v3fromv2(v2 v, f32 z)
+{
+	return v3make(v.x, v.y, z);
+}
+
 static inline v3 v3zero(void)
 {
 	return v3make(0, 0, 0);

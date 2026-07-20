@@ -1,4 +1,5 @@
 
+#include "types.h"
 #include <vk/pipeline.h>
 #include <vk/context.h>
 #include <math/types.h>
@@ -23,6 +24,8 @@ vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type)
 		result.type = VULKAN_PIPELINE_TYPE_GRAPHICS;
 		result.polygon_mode = VK_POLYGON_MODE_FILL;
 		result.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		result.depth_test = VK_TRUE;
+		result.depth_write = VK_TRUE;
 	} break;
 
 	case VULKAN_PIPELINE_TYPE_COMPUTE:
@@ -131,6 +134,12 @@ void vulkan_pipeline_desc_set_topology(vulkan_pipeline_desc *desc, VkPrimitiveTo
 	desc->topology = topology;
 }
 
+void vulkan_pipeline_desc_set_depth(vulkan_pipeline_desc *desc, VkBool32 depth_test, VkBool32 depth_write)
+{
+	desc->depth_test = depth_test;
+	desc->depth_write = depth_write;
+}
+
 // TODO: Replace with relative to executable path or embed shader
 static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path)
 {
@@ -173,10 +182,18 @@ static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *de
 		.stageFlags = desc->push_constants_stages,	
 	};
 
-	VkDescriptorSetLayout descriptor_layouts[desc->descriptor_count];
-	for (u32 i = 0; i < desc->descriptor_count; i++)
+	VkDescriptorSetLayout *descriptor_layouts = NULL;
+
+	VkDescriptorSetLayout layouts[ARRAY_COUNT(desc->descriptors)];
+
+	if (desc->descriptor_count > 0)
 	{
-		descriptor_layouts[i] = desc->descriptors[i].layout;
+		assert(desc->descriptor_count <= ARRAY_COUNT(desc->descriptors));
+		for (u32 i = 0; i < desc->descriptor_count; i++)
+		{
+			layouts[i] = desc->descriptors[i].layout;
+		}
+		descriptor_layouts = layouts;
 	}
 
 	VkPipelineLayoutCreateInfo layout_info = {
@@ -184,7 +201,7 @@ static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *de
 		.pPushConstantRanges = desc->push_constant_size == 0 ? NULL : &push_constant,
 		.pushConstantRangeCount = desc->push_constant_size == 0 ? 0 : 1,
 		.pSetLayouts = descriptor_layouts,
-		.setLayoutCount = ARRAY_COUNT(descriptor_layouts),
+		.setLayoutCount = desc->descriptor_count,
 	};
 
 	if (vkCreatePipelineLayout(ctx->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)
@@ -283,8 +300,8 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 	VkPipelineDepthStencilStateCreateInfo depth_stencil = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 		.depthCompareOp = VK_COMPARE_OP_LESS,
-		.depthTestEnable = VK_TRUE,
-		.depthWriteEnable = VK_TRUE,
+		.depthTestEnable = desc->depth_test,
+		.depthWriteEnable = desc->depth_write,
 		.minDepthBounds = 0.0f,
 		.maxDepthBounds = 1.0f,
 	};

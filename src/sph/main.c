@@ -1,11 +1,11 @@
 
 
-#include "sph/render.h"
 #include <SDL3/SDL_init.h>
 #include <sph/time.h>
 #include <sph/simulation.h>
 #include <sph/camera.h>
 #include <sph/input.h>
+#include <sph/ui.h>
 #include <vk/context.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -21,6 +21,7 @@ typedef struct app_state
     simulation simulation;
     camera camera;
     input input;
+    ui ui;
     render render;
     window window;
     vulkan_context vulkan;
@@ -54,7 +55,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    if (!simulation_create(&state->vulkan, START_WINDOW_WIDTH, START_WINDOW_HEIGHT, &state->simulation))
+    if (!simulation_create(&state->vulkan, &state->simulation))
     {
         SDL_Log("[ENGINE] Failed to initialize simulation.");
         return SDL_APP_FAILURE;
@@ -68,6 +69,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
 
     state->camera = camera_create();
     state->input = input_create();
+    state->ui = ui_create(state->window.width, state->window.height);
 
     return SDL_APP_CONTINUE; 
 }
@@ -107,6 +109,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     time_update(&state->time);
     camera_update(&state->camera, &state->window, &state->input, state->time.delta);
+    ui_update(&state->ui, state->window.width, state->window.height);
 
     static f32 counter;
     counter += state->time.delta;
@@ -116,7 +119,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         counter = 0.0f;
     }
 
-    simulation_update(vulkan, state->window.width, state->window.height, state->time, state->camera, &state->render, &state->simulation);
+    simulation_update(vulkan, state->window.width, state->window.height, state->time, state->camera, &state->render, &state->ui, &state->simulation);
 
     vulkan_draw(vulkan, state->window.width, state->window.height);
 

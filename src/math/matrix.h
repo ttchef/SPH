@@ -88,14 +88,15 @@ static inline m4 m4rotate(f32 angle_radians, f32 axis_x, f32 axis_y, f32 axis_z)
     return result;
 }
 
+// NOTE: Flips Y
 static inline m4 m4orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
 {
 	m4 result = (m4){ .m = {
 		2 / (right - left), 0, 0, 0,
-		0, 2 / (top - bottom), 0, 0,
+		0, -2 / (top - bottom), 0, 0,
 		0, 0, 1 / (far - near), 0,
 		-(right + left) / (right - left),
-		-(top + bottom) / (top - bottom),
+		(top + bottom) / (top - bottom),
 		-near / (far - near), 1,
 	}};
 

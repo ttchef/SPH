@@ -7,6 +7,7 @@
 #include <vk/types.h>
 #include <sph/time.h>
 #include <sph/render.h>
+#include <sph/ui.h>
 #include <sph/camera.h>
 #include <math/types.h>
 
@@ -51,8 +52,8 @@ typedef struct simulation
 	cube boundary_cube;
 } simulation;
 
-bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation);
+bool simulation_create(vulkan_context *vulkan, simulation *simulation);
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, render *render, simulation *simulation);
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, render *render, ui *ui, simulation *simulation);
 
 void simulation_destroy(vulkan_context *vulkan, simulation *simulation);

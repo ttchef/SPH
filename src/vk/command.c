@@ -1,5 +1,5 @@
 
-#include "vk/pipeline.h"
+#include "vk/swapchain.h"
 #include <vk/command.h>
 #include <vk/context.h>
 #include <vk/buffer.h>
@@ -9,7 +9,7 @@
 
 #include <math/matrix.h>
 
-typedef enum vulkan_render_command_type
+typedef enum 
 {
 	COMMAND_BARRIER,
 	COMMAND_BEGIN_RENDERING,
@@ -21,15 +21,16 @@ typedef enum vulkan_render_command_type
 	// NOTE: vkCmdDraw, uses currently bound pipeline 
 	COMMAND_DRAW,
 	COMMAND_DISPATCH,
+	COMMAND_SET_VIEWPORT,
 } vulkan_render_command_type;
 
-typedef struct command_header
+typedef struct
 {
 	u32 type;
 	u32 size;
 } command_header;
 
-typedef struct command_barrier
+typedef struct 
 {
 	command_header header;
 
@@ -39,30 +40,30 @@ typedef struct command_barrier
 	VkAccessFlags dst_access;
 } command_barrier;
 
-typedef struct command_begin_rendering
+typedef struct 
 {
 	command_header header;
 } command_begin_rendering;
 
-typedef struct command_end_rendering
+typedef struct 
 {
 	command_header header;
 } command_end_rendering;
 
-typedef struct command_bind_pipeline
+typedef struct 
 {
 	command_header header;
 	vulkan_pipeline_id id;
 } command_bind_pipeline;
 
-typedef struct command_bind_vertex_buffer
+typedef struct 
 {
 	command_header header;
 	vulkan_buffer buffer;
 	vulkan_pipeline_id pipeline;
 } command_bind_vertex_buffer;
 
-typedef struct command_push_constants
+typedef struct 
 {
 	command_header header;
 	u32 size;
@@ -72,13 +73,13 @@ typedef struct command_push_constants
 	// NOTE: push constant data follows in memory
 } command_push_constants;
 
-typedef struct command_draw
+typedef struct 
 {
 	command_header header;
 	u32 vertex_count;
 } command_draw;
 
-typedef struct command_dispatch
+typedef struct 
 {
 	command_header header;
 	u32 size_x;
@@ -86,23 +87,14 @@ typedef struct command_dispatch
 	u32 size_z;
 } command_dispatch;
 
-typedef struct command_cube_draw
+typedef struct 
 {
 	command_header header;
-	v3 pos;
-	v3 size;
-	color4 color;
-	m4 view_proj;
-} command_cube_draw;
-
-typedef struct command_cube_line_draw
-{
-	command_header header;
-	v3 pos;
-	v3 size;
-	color4 color;
-	m4 view_proj;
-} command_cube_line_draw;
+	u32 x;
+	u32 y;
+	u32 width;
+	u32 height;
+} command_set_viewport;
 
 static bool command_add(vulkan_context *ctx, void *data, u32 size)
 {
@@ -271,6 +263,24 @@ bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 si
 	};
 
 	return command_add(ctx, &dispatch, header.size);
+}
+
+bool vulkan_command_set_viewport(vulkan_context *ctx, u32 x, u32 y, u32 width, u32 height)
+{
+	command_header header = {
+		.type = COMMAND_SET_VIEWPORT,
+		.size = sizeof(command_set_viewport),	
+	};
+
+	command_set_viewport set_viewport = {
+		.header = header,
+		.x = x,
+		.y = y,
+		.width = width,
+		.height = height,	
+	};
+
+	return command_add(ctx, &set_viewport, header.size);
 }
 
 bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *handler)
@@ -459,6 +469,21 @@ static void render_queue(vulkan_context *ctx)
 
 			vkCmdDispatch(frame_data->command_buffer, dispatch->size_x, dispatch->size_y, dispatch->size_z);
 		} break;
+		case COMMAND_SET_VIEWPORT:
+		{
+			command_set_viewport *set_viewport = at;
+
+			VkViewport viewport = {
+				.x = set_viewport->x,
+				.y = set_viewport->y,
+				.width = set_viewport->width,
+				.height = set_viewport->height,
+				.minDepth = 0.0f,
+				.maxDepth = 1.0f,	
+			};
+
+			vkCmdSetViewport(frame_data->command_buffer, 0, 1, &viewport);
+		} break;
 		default:
 		{
 			SDL_Log("[VULKAN] Unkown render command of type: %u", header->type);
@@ -511,18 +536,10 @@ bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *
                          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0,
                          NULL, 0, NULL, 1, &memory_barrier);
 
-    VkViewport viewport = {
-    	.width = ctx->swapchain.extent.width,
-    	.height = ctx->swapchain.extent.height,
-    	.maxDepth = 1.0f,	
-    };
-
     VkRect2D scissor = {
     	.extent = ctx->swapchain.extent,
     	.offset = (VkOffset2D){0, 0},	
     };
-
-    vkCmdSetViewport(frame_data->command_buffer, 0, 1, &viewport);
     vkCmdSetScissor(frame_data->command_buffer, 0, 1, &scissor);
 
     render_queue(ctx);

@@ -1,6 +1,6 @@
 #include <sph/render.h>
 #include <vk/context.h>
-#include <math/matrix.h>
+#include <math/core.h>
 #include <vulkan/vulkan_core.h>
 
 // NOTE: Used for both cube and cube_lines
@@ -9,6 +9,13 @@ typedef struct cube_pc
 	m4 mvp;
 	v4 color;
 } cube_pc;
+
+typedef struct quad_pc
+{
+	m4 mvp;
+	v4 color;
+} quad_pc;
+
 
 bool render_create(vulkan_context *vulkan, render *render)
 {
@@ -27,6 +34,19 @@ bool render_create(vulkan_context *vulkan, render *render)
 
 	render->cube_lines_pipeline = vulkan_pipeline_create(vulkan, &cube_lines_description);
 	assert(render->cube_lines_pipeline != INVALID_PIPELINE);
+
+	vulkan_pipeline_desc quad_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
+
+	vulkan_pipeline_desc_set_push_constant(&quad_description, sizeof(quad_pc), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+	vulkan_pipeline_desc_set_shaders(&quad_description, "src/shaders/spv/quad.vert.spv", "src/shaders/spv/quad.frag.spv", NULL);
+
+	render->quad_pipeline = vulkan_pipeline_create(vulkan, &quad_description);
+	assert(render->quad_pipeline != INVALID_PIPELINE);
+
+	vulkan_pipeline_desc_set_depth(&quad_description, VK_FALSE, VK_FALSE);
+	
+	render->quad_scene_pipeline = vulkan_pipeline_create(vulkan, &quad_description);
+	assert(render->quad_scene_pipeline != INVALID_PIPELINE);
 	
 	return true;
 }
@@ -67,4 +87,43 @@ void render_cube_lines(vulkan_context *vulkan, render *render, v3 pos, v3 size, 
 	
 	vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, render->cube_lines_pipeline);
 	vulkan_command_draw(vulkan,  36);
+}
+
+void render_quad(vulkan_context *vulkan, render *render, v3 pos, v2 size, color4 color, m4 view_proj)
+{
+	vulkan_command_bind_pipeline(vulkan, render->quad_pipeline);
+	
+	m4 translate = m4translate(pos.x, pos.y, pos.z);
+	m4 scale = m4scale(size.x, size.y, 1.0f);
+
+	m4 model = m4mul(scale, translate);
+	m4 mvp = m4mul(view_proj, model);
+
+	quad_pc pc = {
+		.mvp = mvp,
+		.color = v4fromcolor4(color),
+	};
+	
+	vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, render->quad_pipeline);
+	vulkan_command_draw(vulkan, 6);
+}
+
+void render_screen_quad(vulkan_context *vulkan, render *render, v2 pos, v2 size, color4 color, m4 orthographic)
+{
+	vulkan_command_bind_pipeline(vulkan, render->quad_scene_pipeline);
+
+	pos = v2add(pos, v2scale(size, 0.5f));	
+	m4 translate = m4translate(pos.x, pos.y, 0.0f);
+	m4 scale = m4scale(size.x, size.y, 1.0f);
+
+	m4 model = m4mul(translate, scale);
+	m4 mvp = m4mul(orthographic, model);
+
+	quad_pc pc = {
+		.mvp = mvp,
+		.color = v4fromcolor4(color),
+	};
+	
+	vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, render->quad_scene_pipeline);
+	vulkan_command_draw(vulkan, 6);
 }

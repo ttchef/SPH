@@ -11,5 +11,6 @@ layout (push_constant) uniform pc
 
 void main()
 {
-    frag_color = color;        
+    frag_color = color;
 }
+

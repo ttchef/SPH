@@ -44,6 +44,9 @@ typedef struct vulkan_pipeline_desc
 
 	VkPolygonMode polygon_mode;
 	VkPrimitiveTopology topology;
+
+	VkBool32 depth_test;
+	VkBool32 depth_write;
 } vulkan_pipeline_desc;
 
 typedef struct vulkan_pipeline
@@ -82,6 +85,8 @@ void vulkan_pipeline_desc_set_specialization_constant(vulkan_pipeline_desc *desc
 void vulkan_pipeline_desc_set_polygon_mode(vulkan_pipeline_desc *desc, VkPolygonMode polygon_mode);
 
 void vulkan_pipeline_desc_set_topology(vulkan_pipeline_desc *desc, VkPrimitiveTopology topology);
+
+void vulkan_pipeline_desc_set_depth(vulkan_pipeline_desc *desc, VkBool32 depth_test, VkBool32 depth_write);
 
 //
 // NOTE: Pipeline manger

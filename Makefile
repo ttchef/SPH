@@ -16,7 +16,7 @@ endif
 
 SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c \
 			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c src/sph/camera.c src/sph/input.c \
-			 src/vk/image.c src/sph/render.c
+			 src/vk/image.c src/sph/render.c src/sph/ui.c
 
 all: debug
 
@@ -28,6 +28,8 @@ shaders:
 	glslc src/shaders/cube.frag -fshader-stage=frag $(GLSLC_FLAGS) -o src/shaders/spv/cube.frag.spv
 	glslc src/shaders/cube_line.vert -fshader-stage=vert $(GLSLC_FLAGS) -o src/shaders/spv/cube_line.vert.spv
 	glslc src/shaders/cube_line.frag -fshader-stage=frag $(GLSLC_FLAGS) -o src/shaders/spv/cube_line.frag.spv
+	glslc src/shaders/quad.vert -fshader-stage=vert $(GLSLC_FLAGS) -o src/shaders/spv/quad.vert.spv
+	glslc src/shaders/quad.frag -fshader-stage=frag $(GLSLC_FLAGS) -o src/shaders/spv/quad.frag.spv
 	glslc src/shaders/update.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/update.comp.spv
 	glslc src/shaders/density.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/density.comp.spv
 	glslc src/shaders/spatial_lookup.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/spatial_lookup.comp.spv

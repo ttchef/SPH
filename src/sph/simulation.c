@@ -1,4 +1,7 @@
 
+#include "math/matrix.h"
+#include "sph/ui.h"
+#include "vk/command.h"
 #include <sph/simulation.h>
 #include <sph/window.h>
 #include <sph/render.h>
@@ -258,7 +261,7 @@ void simulation_check_sorted(vulkan_context *vulkan, simulation *simulation)
 	vulkan_buffer_destroy(vulkan, &spatial_lookup_buffer);
 }
 
-bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation)
+bool simulation_create(vulkan_context *vulkan, simulation *simulation)
 {
 	assert(vulkan);
 	assert(simulation);
@@ -398,7 +401,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	return true;
 }
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, render *render, simulation *simulation)
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, render *render, ui *ui, simulation *simulation)
 {
 	assert(vulkan);
 	assert(simulation);
@@ -486,9 +489,13 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	// NOTE: Render
 	vulkan_command_begin_rendering(vulkan);
 
+	const u32 viewport_width = window_width - ui->settings_width;
+	const u32 viewport_height = window_height;
+	vulkan_command_set_viewport(vulkan, 0, 0, viewport_width, viewport_height);
+
 	m4 view = camera_view(&camera);
 
-	f32 aspect_ratio = (f32)window_width / (f32)window_height;
+	f32 aspect_ratio = (f32)viewport_width / (f32)viewport_height;
 	m4 perspective = m4perspective(TO_RADIANS(60.0f), aspect_ratio, 0.1f, 1000.0f);
 
 	render_pc render_pc = {
@@ -502,7 +509,9 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	vulkan_command_draw(vulkan, PARTICLE_COUNT * 6);
 
 	m4 view_proj = m4mul(perspective, view);
-	render_cube_lines(vulkan, render, simulation->boundary_cube.pos, simulation->boundary_cube.size, color4make(1.0f, 0.0f, 0.0f, 1.0f), view_proj);
+	render_cube_lines(vulkan, render, simulation->boundary_cube.pos, simulation->boundary_cube.size, RED, view_proj);
+
+	ui_draw(vulkan, render, ui);
 
 	vulkan_command_end_rendering(vulkan);
 }

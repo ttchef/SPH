@@ -57,9 +57,7 @@ bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count);
 
 bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 size_z);
 
-bool vulkan_command_cube_draw(vulkan_context *ctx, v3 pos, v3 size, color4 color, m4 view_proj);
-
-bool vulkan_command_cube_line_draw(vulkan_context *ctx, v3 pos, v3 size, color4 color, m4 view_proj);
+bool vulkan_command_set_viewport(vulkan_context *ctx, u32 x, u32 y, u32 width, u32 height);
 
 // ----------
 
