@@ -230,6 +230,8 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = 1,
 		.pColorAttachmentFormats = &ctx->swapchain.fmt,
+		.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
+		.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
 	};
 
 	VkPipelineVertexInputStateCreateInfo vertex_input = {
@@ -269,10 +271,10 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 	VkPipelineDepthStencilStateCreateInfo depth_stencil = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 		.depthCompareOp = VK_COMPARE_OP_LESS,
-		.depthTestEnable = VK_FALSE,
-		.depthWriteEnable = VK_FALSE,
+		.depthTestEnable = VK_TRUE,
+		.depthWriteEnable = VK_TRUE,
 		.minDepthBounds = 0.0f,
-		.maxDepthBounds = 1.0f,	
+		.maxDepthBounds = 1.0f,
 	};
 	
     VkPipelineColorBlendAttachmentState color_blend_attachment = {

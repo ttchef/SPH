@@ -365,11 +365,23 @@ static void render_queue(vulkan_context *ctx)
 		        .clearValue = clear_color,
 		    };
 
+		    VkRenderingAttachmentInfo depth_attachment_info ={
+		    	.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		    	.imageView = ctx->swapchain.depth_images[ctx->swapchain.image_index].view,
+		    	.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		    	.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		    	.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		    	.clearValue = {
+		    		.depthStencil = {1.0f, 0.0f},
+		    	},	
+		    };
+
 		    VkRenderingInfo render_info = {
 		    	.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 		    	.layerCount = 1,
 		    	.colorAttachmentCount = 1,
 		    	.pColorAttachments = &color_attachment_info,
+		    	.pDepthAttachment = &depth_attachment_info,
 		    	.renderArea =
 		    	{
 		    		.extent = ctx->swapchain.extent,

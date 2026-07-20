@@ -9,7 +9,7 @@
 #include <sph/camera.h>
 #include <math/types.h>
 
-static const u32 PARTICLE_COUNT = 20024;
+static const u32 PARTICLE_COUNT = 2024;
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct particle
@@ -18,6 +18,8 @@ typedef struct particle
 	v4 vel;
 	f32 mass;
 	f32 density;
+
+	f32 padding[2];
 } particle;
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation

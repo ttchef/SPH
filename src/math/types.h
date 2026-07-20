@@ -19,6 +19,22 @@ static inline v2 v2zero(void)
 	return v2make(0, 0);
 }
 
+typedef struct v2u
+{
+	u32 x;
+	u32 y;
+} v2u;
+
+static inline v2u v2umake(u32 x, u32 y)
+{
+	return (v2u){x, y};
+}
+
+static inline v2u v2uzero(void)
+{
+	return v2umake(0, 0);
+}
+
 typedef struct v3
 {
 	f32 x;
@@ -38,7 +54,7 @@ static inline v3 v3zero(void)
 
 static inline v3 v3up(void)
 {
-	return v3make(0, -1, 0);
+	return v3make(0, 1, 0);
 }
 
 typedef struct v4

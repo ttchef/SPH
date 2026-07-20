@@ -150,7 +150,7 @@ void main()
 
     particle p = in_particles[index];
 
-    vec3 gravity = vec3(0, 550, 0);
+    vec3 gravity = vec3(0, -550, 0);
     vec3 acc = gravity;
     acc += calc_force(index);
 
@@ -161,34 +161,34 @@ void main()
     
     if (p.pos.x < 0.0)
     {
-        p.pos.x = 2.5;
+        p.pos.x = 0;
         p.vel.x = -p.vel.x * damping;        
     }
-    else if (p.pos.x > window_width)
+    else if (p.pos.x > 100)
     {
-        p.pos.x = window_width - 2.5;
+        p.pos.x = 100;
         p.vel.x = -p.vel.x * damping;        
     }
 
     if (p.pos.y < 0.0)
     {
-        p.pos.y = 2.5;
+        p.pos.y = 0;
         p.vel.y = -p.vel.y * damping;
     }
-    else if (p.pos.y > window_height)
+    else if (p.pos.y > 100)
     {
-        p.pos.y = window_height - 2.5;
+        p.pos.y = 100;
         p.vel.y = -p.vel.y * damping;    
     }
 
-    if (p.pos.z < -100.0)
-    {
-        p.pos.z = -100;
-        p.vel.z = -p.vel.z * damping;        
-    }
-    else if (p.pos.z > 0)
+    if (p.pos.z < 0)
     {
         p.pos.z = 0;
+        p.vel.z = -p.vel.z * damping;        
+    }
+    else if (p.pos.z > 100)
+    {
+        p.pos.z = 100;
         p.vel.z = -p.vel.z * damping;        
     }
 

@@ -15,7 +15,8 @@ LDFLAGS := -lSDL3 -lvulkan -lm
 endif
 
 SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c \
-			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c src/sph/camera.c src/sph/input.c
+			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c src/sph/camera.c src/sph/input.c \
+			 src/vk/image.c
 
 all: debug
 

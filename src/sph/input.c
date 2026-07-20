@@ -1,6 +1,7 @@
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_scancode.h>
 #include <sph/input.h>
 #include <math/vector.h>
 #include <types.h>
@@ -20,6 +21,8 @@ static u32 scancode_to_enum(u32 scancode)
 	case SDL_SCANCODE_A: return INPUT_A;
 	case SDL_SCANCODE_S: return INPUT_S;
 	case SDL_SCANCODE_D: return INPUT_D;
+	case SDL_SCANCODE_SPACE: return INPUT_SPACE;
+	case SDL_SCANCODE_LSHIFT: return INPUT_LSHIFT;
 	}
 
 	return INPUT_UNKOWN;

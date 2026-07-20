@@ -102,15 +102,16 @@ static inline m4 m4orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 ne
 	return result;
 }
 
-static inline m4 m4perspective(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far)
+static inline m4 m4perspective(f32 fov_radians, f32 aspect_ratio, f32 near_plane, f32 far_plane)
 {
+    f32 half_tan_fov = tanf(fov_radians / 2.0f);
+    
     m4 result = (m4){ .m = {
-        2 * near / (right - left), 0, 0, 0,
-        0, 2 * near / (top - bottom), 0, 0,
-        (right + left) / (right - left), (top + bottom) / (top - bottom), -far / (far - near), -1,
-        0, 0, -(far * near) / (far - near), 0
+        1.0f / (aspect_ratio * half_tan_fov), 0.0f, 0.0f, 0.0f,
+        0.0f, -1.0f / half_tan_fov, 0.0f, 0.0f, // Note: Negative Y scales for Vulkan clip space
+        0.0f, 0.0f, -far_plane / (far_plane - near_plane), -1.0f,
+        0.0f, 0.0f, -(far_plane * near_plane) / (far_plane - near_plane), 0.0f
     }};
 
     return result;
 }
-

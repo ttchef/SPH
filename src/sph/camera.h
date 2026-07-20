@@ -4,6 +4,7 @@
 #include <types.h>
 #include <math/types.h>
 #include <sph/input.h>
+#include <sph/window.h>
 
 typedef struct camera {
     f32 speed;
@@ -12,9 +13,6 @@ typedef struct camera {
     f32 yaw;
     f32 pitch;
 
-    bool left_mouse_last;
-
-    v2 last_mouse;
     v3 pos;
     v3 dir;
 
@@ -23,6 +21,6 @@ typedef struct camera {
 
 camera camera_create(void);
 
-void camera_update(camera *camera, input *input, f32 dt);
+void camera_update(camera *camera, window *window, input *input, f32 dt);
 
 m4 camera_view(camera *camera);

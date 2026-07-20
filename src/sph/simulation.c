@@ -1,12 +1,13 @@
 
 #include <sph/simulation.h>
+#include <sph/window.h>
 #include <math/matrix.h>
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define PARTICLE_DISTANCE 6.0f
+#define PARTICLE_DISTANCE 2.0f
 #define FIXED_DT (1.0f / 240.0f)
 #define MAX_STEPS_PER_FRAME 2
 #define RADIX_SORT_PASSES 4
@@ -266,16 +267,20 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	particle *particles = SDL_calloc(PARTICLE_COUNT, sizeof(particle));
 	assert(particles);
 
-	v2 start = v2make(window_width / 2.0f - PARTICLE_DISTANCE * SDL_sqrtf(PARTICLE_COUNT) * 0.5f, window_height / 2.0f - PARTICLE_DISTANCE * SDL_sqrtf(PARTICLE_COUNT) * 0.5f);
+	u32 grid_size = (u32)SDL_sqrtf(PARTICLE_COUNT);
+	f32 half_grid_width = (grid_size - 1) * PARTICLE_DISTANCE * 0.5f;
 
 	for (u32 i = 0; i < PARTICLE_COUNT; i++)
 	{
 		particle *p = &particles[i];
 		assert(p);
 
+		f32 x = (i % grid_size) * PARTICLE_DISTANCE - half_grid_width;
+		f32 y = (i / grid_size) * PARTICLE_DISTANCE - half_grid_width;
+
 		*p = (particle){
 			.mass = 1.0f,
-			.pos = v4make((i % (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.x, ((u32)i / (u32)SDL_sqrtf(PARTICLE_COUNT)) * PARTICLE_DISTANCE + start.y, 0.0f, 1.0f),
+			.pos = v4make(x, y, 0.0f, 1.0f),
 		};
 	}
 
@@ -374,7 +379,7 @@ bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 		vulkan_pipeline_desc render_description = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
 
-		vulkan_pipeline_desc_set_push_constant(&render_description, sizeof(render_pc), VK_SHADER_STAGE_VERTEX_BIT);
+		vulkan_pipeline_desc_set_push_constant(&render_description, sizeof(render_pc), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 		vulkan_pipeline_desc_set_shaders(&render_description, "src/shaders/spv/shader.vert.spv", "src/shaders/spv/shader.frag.spv", NULL);
 
 		vulkan_pipeline_desc_add_storage_buffer(&render_description, vulkan, simulation->particles[write_buffer], 0, VK_SHADER_STAGE_VERTEX_BIT);
@@ -399,7 +404,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 
 	const u32 sim = simulation->sim_buffer;
 
-	/*
+	// /*
 	while (simulation->accumulator >= FIXED_DT)
 	{
 		const u32 group_size = 256;
@@ -475,7 +480,9 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	vulkan_command_begin_rendering(vulkan);
 
 	m4 view = camera_view(&camera);
-	m4 perspective = m4perspective(0, window_width, window_height, 0, 0.1f, 1000.0f);
+
+	f32 aspect_ratio = (f32)window_width / (f32)window_height;
+	m4 perspective = m4perspective(TO_RADIANS(60.0f), aspect_ratio, 0.1f, 1000.0f);
 
 	render_pc render_pc = {
 		.view = view,
@@ -483,7 +490,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	};
 	
 	vulkan_command_bind_pipeline(vulkan, simulation->render_pipeline[sim]);
-	vulkan_command_push_constants(vulkan, sizeof(render_pc), &render_pc, VK_SHADER_STAGE_VERTEX_BIT, simulation->render_pipeline[sim]);
+	vulkan_command_push_constants(vulkan, sizeof(render_pc), &render_pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, simulation->render_pipeline[sim]);
 	
 	vulkan_command_draw(vulkan, PARTICLE_COUNT * 6);
 

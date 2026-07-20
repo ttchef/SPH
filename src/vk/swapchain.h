@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <vk/types.h>
+#include <vk/image.h>
 
 #include <vulkan/vulkan_core.h>
 
@@ -15,6 +16,7 @@ typedef struct vulkan_swapchain_zoombie
 	VkImageView *image_views;
 	VkImage *images;
 	VkSemaphore *finished;
+	vulkan_image *depth_images;
 	
 	u32 image_count;
 	u64 frame_retired;
@@ -28,6 +30,7 @@ typedef struct vulkan_swapchain
 	
 	VkImageView *image_views;
 	VkImage *images;
+	vulkan_image *depth_images;
 	VkSemaphore *finished;
 	
 	u32 image_count;

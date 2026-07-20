@@ -13,15 +13,6 @@
 #define START_WINDOW_WIDTH 2560
 #define START_WINDOW_HEIGHT 1440
 
-typedef struct window
-{
-    SDL_Window *handle;
-
-    // NOTE: Automatically gets updated
-    u32 width;
-    u32 height;
-} window;
-
 typedef struct app_state
 {
     time time;
@@ -106,7 +97,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     assert(vulkan);
 
     time_update(&state->time);
-    camera_update(&state->camera, &state->input, state->time.delta);
+    camera_update(&state->camera, &state->window, &state->input, state->time.delta);
 
     static f32 counter;
     counter += state->time.delta;

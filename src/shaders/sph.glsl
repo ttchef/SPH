@@ -7,7 +7,7 @@
 
 // NOTE: Get from simulating in a grid
 // #define TARGET_DENSITY 0.0604654476
-#define TARGET_DENSITY 0.0257538725
+#define TARGET_DENSITY 0.0087538725
 #define U32_MAX (~0u)    
 
 struct particle
@@ -15,7 +15,8 @@ struct particle
     vec4 pos;
     vec4 vel;
     float mass;
-    float density;       
+    float density;
+    float padding[2];      
 };
 
 struct spatial_lookup_entry
