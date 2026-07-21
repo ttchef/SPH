@@ -6,7 +6,7 @@ camera camera_create(void)
 {
 	camera result = {0};
 
-	result.pos = v3make(0, 0, 400);
+	result.pos = v3make(0, 0, 600);
 	result.dir = v3make(0, 0, -1);
 
 	result.yaw = -90.0f;

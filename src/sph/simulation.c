@@ -398,7 +398,7 @@ bool simulation_create(vulkan_context *vulkan, simulation *simulation)
 	simulation_measure_rest_density(vulkan, simulation);
 	// simulation_check_sorted(vulkan, simulation);
 
-	simulation->boundary_cube = cubemake(v3zero(), v3make(300, 300, 300));
+	simulation->boundary_cube = cubemake(v3zero(), v3make(500, 900, 500));
 
 	return true;
 }
@@ -498,7 +498,7 @@ void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_heig
 	m4 view = camera_view(&camera);
 
 	f32 aspect_ratio = (f32)viewport_width / (f32)viewport_height;
-	m4 perspective = m4perspective(TO_RADIANS(60.0f), aspect_ratio, 0.1f, 1000.0f);
+	m4 perspective = m4perspective(TO_RADIANS(60.0f), aspect_ratio, 0.1f, 3000.0f);
 
 	render_pc render_pc = {
 		.view = view,

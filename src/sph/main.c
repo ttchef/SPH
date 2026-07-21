@@ -6,6 +6,7 @@
 #include <sph/camera.h>
 #include <sph/input.h>
 #include <sph/ui.h>
+#include <sph/ttf.h>
 #include <vk/context.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -70,6 +71,16 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     state->camera = camera_create();
     state->input = input_create();
     state->ui = ui_create(state->window.width, state->window.height);
+
+    usize size;
+    void *font_data = SDL_LoadFile("assets/fonts/jet-brains.ttf", &size);
+
+    ttf_font font;
+    if (!ttf_create(size, font_data, &font))
+    {
+        SDL_Log("[ENGINE] Failed to load font.");
+        return SDL_APP_FAILURE;
+    }
 
     return SDL_APP_CONTINUE; 
 }
