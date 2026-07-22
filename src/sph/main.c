@@ -1,6 +1,5 @@
 
 
-#include <SDL3/SDL_init.h>
 #include <sph/time.h>
 #include <sph/simulation.h>
 #include <sph/camera.h>
@@ -70,17 +69,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
 
     state->camera = camera_create();
     state->input = input_create();
-    state->ui = ui_create(state->window.width, state->window.height);
-
-    usize size;
-    void *font_data = SDL_LoadFile("assets/fonts/jet-brains.ttf", &size);
-
-    ttf_font font;
-    if (!ttf_create(&state->vulkan, size, font_data, &font))
-    {
-        SDL_Log("[ENGINE] Failed to load font.");
-        return SDL_APP_FAILURE;
-    }
+    state->ui = ui_create(&state->vulkan, state->window.width, state->window.height, "assets/fonts/jet-brains.ttf");
 
     return SDL_APP_CONTINUE; 
 }
@@ -145,6 +134,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     app_state *state = (app_state *)appstate;
     assert(state);
 
+    ui_destroy(&state->vulkan, &state->ui);
     simulation_destroy(&state->vulkan, &state->simulation);
     vulkan_deinit(&state->vulkan);
 }

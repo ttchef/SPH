@@ -30,4 +30,4 @@ typedef struct
 
 bool ttf_create(vulkan_context *vulkan, u32 size, void *data, ttf_font *out_font);
 
-void ttf_destroy(ttf_font *font);
+void ttf_destroy(vulkan_context *vulkan, ttf_font *font);

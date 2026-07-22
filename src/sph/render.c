@@ -127,3 +127,14 @@ void render_screen_quad(vulkan_context *vulkan, render *render, v2 pos, v2 size,
 	vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, render->quad_scene_pipeline);
 	vulkan_command_draw(vulkan, 6);
 }
+
+void render_text(vulkan_context *vulkan, render *render, ttf_font *font, const char *text, v2 pos, f32 scale, m4 orthographic)
+{
+	v2 size = v2make(scale * 64, scale * 64);
+	for (u32 i = 0; i < SDL_strlen(text); i++)
+	{
+		render_screen_quad(vulkan, render, pos, size, RED, orthographic);
+
+		pos.x += font->glyphs[text[i] - 'A'].advance * scale;	
+	}
+}

@@ -312,6 +312,7 @@ bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size
     }
 
     vkDestroyCommandPool(ctx->device, command_pool, NULL);
+    vulkan_buffer_destroy(ctx, &staging);
 
 	image->layout = layout;
 	image->access = access;
@@ -320,5 +321,7 @@ bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size
 
 error:
     vkDestroyCommandPool(ctx->device, command_pool, NULL);
+    vulkan_buffer_destroy(ctx, &staging);
     return false;
 }
+

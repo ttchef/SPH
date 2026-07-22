@@ -1,4 +1,6 @@
 
+#include "vk/image.h"
+#include "vk/types.h"
 #include <types.h>
 #include <sph/ttf.h>
 #include <sph/memory.h>
@@ -1380,7 +1382,8 @@ bool ttf_create(vulkan_context *vulkan, u32 size, void *data, ttf_font *out_font
 	return true;	
 }
 
-void ttf_destroy(ttf_font *font)
+void ttf_destroy(vulkan_context *vulkan, ttf_font *font)
 {
 	pack_destroy(&font->pack);
+	vulkan_image_destroy(vulkan, font->atlas);
 }
