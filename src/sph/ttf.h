@@ -4,6 +4,7 @@
 #include <types.h>
 #include <math/types.h>
 #include <vk/image.h>
+#include <vk/types.h>
 
 typedef struct
 {
@@ -11,7 +12,6 @@ typedef struct
 	u16 max_width;
 	u16 max_height;
 	u16 skyline_count;
-	bool is_insitialized;
 } ttf_pack;
 
 typedef struct
@@ -28,6 +28,6 @@ typedef struct
 	vulkan_image atlas;
 } ttf_font;
 
-bool ttf_create(u32 size, void *data, ttf_font *out_font);
+bool ttf_create(vulkan_context *vulkan, u32 size, void *data, ttf_font *out_font);
 
 void ttf_destroy(ttf_font *font);

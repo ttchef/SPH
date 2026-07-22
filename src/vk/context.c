@@ -1,5 +1,4 @@
 
-#include "vk/pipeline.h"
 #include <vk/context.h>
 
 #include <SDL3/SDL_vulkan.h>

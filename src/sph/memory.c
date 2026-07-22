@@ -49,18 +49,18 @@ i8 memory_stream_read_i8(memory_stream *stream)
 
 i16 memory_stream_read_i16_be(memory_stream *stream)
 {
-	i8 *x = memory_stream_consume(stream, sizeof(i16));
+	u8 *x = memory_stream_consume(stream, sizeof(i16));
 	return ((i16)x[0] << 8) | ((i32)x[1]);
 }
 
 i32 memory_stream_read_i32_be(memory_stream *stream)
 {
-	i8 *x = memory_stream_consume(stream, sizeof(i32));
+	u8 *x = memory_stream_consume(stream, sizeof(i32));
 	return ((i32)x[0] << 24) | ((i32)x[1] << 16) | ((i32)x[2] << 8) | ((i32)x[3]);
 }
 
 i64 memory_stream_read_i64_be(memory_stream *stream)
 {
-	i8 *x = memory_stream_consume(stream, sizeof(i64));
+	u8 *x = memory_stream_consume(stream, sizeof(i64));
 	return ((i64)x[0] << 56) | ((i64)x[1] << 48) | ((i64)x[2] << 40) | ((i64)x[3] << 32) | ((i64)x[4] << 24) | ((i64)x[5] << 16) | ((i64)x[6] << 8) | ((i64)x[7]);
 }

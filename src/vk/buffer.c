@@ -4,7 +4,7 @@
 #include <vk/utils.h>
 #include <vulkan/vulkan_core.h>
 
-static bool buffer_create(vulkan_context *ctx, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, usize size, vulkan_buffer *out_buffer)
+static bool buffer_create(vulkan_context *ctx, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, u32 size, vulkan_buffer *out_buffer)
 {
 	assert(ctx);
 	assert(out_buffer);
@@ -21,7 +21,7 @@ static bool buffer_create(vulkan_context *ctx, VkBufferUsageFlags usage, VkMemor
 
 	if (vkCreateBuffer(ctx->device, &buffer_info, NULL, &result.handle) != VK_SUCCESS)
 	{
-		SDL_Log("[VULKAN] Failed to create device local buffer of size: %zu", size);
+		SDL_Log("[VULKAN] Failed to create device local buffer of size: %u", size);
 		return false;
 	}
 
@@ -58,7 +58,7 @@ static bool buffer_create(vulkan_context *ctx, VkBufferUsageFlags usage, VkMemor
 	return true;
 }
 
-bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, usize size, const void *data, vulkan_buffer *out_buffer)
+bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer)
 {
 	assert(ctx);
 	assert(out_buffer);
@@ -76,7 +76,10 @@ bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags u
 	}
 
 	vulkan_buffer staging = {0};
-	buffer_create(ctx, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &staging);
+	if (!buffer_create(ctx, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &staging))
+	{
+		return false;
+	}
 
 	void *mapped;
 	vkMapMemory(ctx->device, staging.memory, 0, size, 0, &mapped);
@@ -162,6 +165,33 @@ error:
 	SDL_Log("[VULKAN] Error occured while creating device local buffer.");
 	
 	return false;
+}
+
+bool vulkan_buffer_host_visible_create(vulkan_context *ctx, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer)
+{
+	vulkan_buffer result = {0};
+
+	result.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
+
+	if (!buffer_create(ctx, usage, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &result))
+	{
+		return false;
+	}
+
+	if (vkMapMemory(ctx->device, result.memory, 0, result.size, 0, &result.host_visible.data) != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to map host visible buffer memory.");
+		return false;
+	}
+
+	*out_buffer = result;
+
+	if (data)
+	{
+		SDL_memcpy(out_buffer->host_visible.data, data, size);
+	}
+
+	return true;
 }
 
 bool vulkan_buffer_device_local_get_data(vulkan_context *ctx, vulkan_buffer buffer, vulkan_buffer *out_buffer)

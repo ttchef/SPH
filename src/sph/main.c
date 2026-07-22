@@ -76,7 +76,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     void *font_data = SDL_LoadFile("assets/fonts/jet-brains.ttf", &size);
 
     ttf_font font;
-    if (!ttf_create(size, font_data, &font))
+    if (!ttf_create(&state->vulkan, size, font_data, &font))
     {
         SDL_Log("[ENGINE] Failed to load font.");
         return SDL_APP_FAILURE;

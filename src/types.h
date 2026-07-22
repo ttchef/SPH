@@ -36,6 +36,8 @@ static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 #define KILOBYTES(x) ((x) * 1024)
 #define MEGABYTES(x) ((KILOBYTES(x)) * 1024)
 
+#define IS_BIT_SET(byte, bit) ((((byte) & (1u << (bit))) != 0u))
+
 #define FOURCC_BE(a, b, c, d) (((u32)(a) << 24) | ((u32)(b) << 16) | ((u32)(c) << 8) | (u32)(d))
 #define FOURCC_LE(a, b, c, d) ((u32)(a) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(d) << 24))
 
@@ -69,4 +71,3 @@ typedef struct
 	u32 height;
 	u8 *data;
 } image_raw;
-

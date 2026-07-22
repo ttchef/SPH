@@ -1,5 +1,4 @@
 
-#include "vk/image.h"
 #include <vk/swapchain.h>
 #include <vk/context.h>
 
@@ -194,30 +193,30 @@ bool vulkan_swapchain_create(vulkan_context *ctx, vulkan_swapchain *swapchain, u
 	return swapchain_build(ctx, swapchain, w, h, VK_NULL_HANDLE);	
 }
 
-static void zoombie_destroy(vulkan_context *ctx, vulkan_swapchain_zoombie *zoombie)
+static void zoombie_destroy(vulkan_context *ctx, vulkan_swapchain_zombie *zombie)
 {
-	for (u32 i = 0; i < zoombie->image_count; i++)
+	for (u32 i = 0; i < zombie->image_count; i++)
 	{
-		vkDestroyImageView(ctx->device, zoombie->image_views[i], NULL);
-		vkDestroySemaphore(ctx->device, zoombie->finished[i], NULL);
-		vulkan_image_destroy(ctx, zoombie->depth_images[i]);
+		vkDestroyImageView(ctx->device, zombie->image_views[i], NULL);
+		vkDestroySemaphore(ctx->device, zombie->finished[i], NULL);
+		vulkan_image_destroy(ctx, zombie->depth_images[i]);
 	}
 
-	vkDestroySwapchainKHR(ctx->device, zoombie->handle, NULL);
+	vkDestroySwapchainKHR(ctx->device, zombie->handle, NULL);
 
-	assert(zoombie->finished);
-	assert(zoombie->image_views);
-	assert(zoombie->images);
+	assert(zombie->finished);
+	assert(zombie->image_views);
+	assert(zombie->images);
 
-	SDL_free(zoombie->finished);
-	SDL_free(zoombie->image_views);
-	SDL_free(zoombie->images);
+	SDL_free(zombie->finished);
+	SDL_free(zombie->image_views);
+	SDL_free(zombie->images);
 
-	zoombie->finished = NULL;
-	zoombie->image_views = NULL;
-	zoombie->images = NULL;
+	zombie->finished = NULL;
+	zombie->image_views = NULL;
+	zombie->images = NULL;
 	
-	zoombie->valid = false;
+	zombie->valid = false;
 }
 
 void vulkan_swapchain_drain(vulkan_context *ctx, vulkan_swapchain *swapchain, u64 accumulated_frame_index)
@@ -227,20 +226,20 @@ void vulkan_swapchain_drain(vulkan_context *ctx, vulkan_swapchain *swapchain, u6
 
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
 	{
-		vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[i];
-		assert(zoombie);
+		vulkan_swapchain_zombie *zombie = &swapchain->graveyard[i];
+		assert(zombie);
 
-		if (!zoombie->valid)
+		if (!zombie->valid)
 		{
 			continue;
 		}
 
-		if (accumulated_frame_index - zoombie->frame_retired < FRAMES_IN_FLIGHT)
+		if (accumulated_frame_index - zombie->frame_retired < FRAMES_IN_FLIGHT)
 		{
 			continue;
 		}
 
-		zoombie_destroy(ctx, zoombie);
+		zoombie_destroy(ctx, zombie);
 	}
 }
 
@@ -252,10 +251,10 @@ bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain,
 	i32 zoombie_index = -1;
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
 	{
-		vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[i];
-		assert(zoombie);
+		vulkan_swapchain_zombie *zombie = &swapchain->graveyard[i];
+		assert(zombie);
 
-		if (!zoombie->valid)
+		if (!zombie->valid)
 		{
 			zoombie_index = i;
 			break;
@@ -271,18 +270,18 @@ bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain,
 		return swapchain_build(ctx, swapchain, w, h, VK_NULL_HANDLE);
 	}
 
-	vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[zoombie_index];
-	assert(zoombie);
+	vulkan_swapchain_zombie *zombie = &swapchain->graveyard[zoombie_index];
+	assert(zombie);
 
-	zoombie->handle = swapchain->handle;
-	zoombie->image_views = swapchain->image_views;
-	zoombie->depth_images = swapchain->depth_images;
-	zoombie->images = swapchain->images;
-	zoombie->finished = swapchain->finished;
-	zoombie->image_count = swapchain->image_count;
-	zoombie->frame_retired = accumulated_frame_index;
+	zombie->handle = swapchain->handle;
+	zombie->image_views = swapchain->image_views;
+	zombie->depth_images = swapchain->depth_images;
+	zombie->images = swapchain->images;
+	zombie->finished = swapchain->finished;
+	zombie->image_count = swapchain->image_count;
+	zombie->frame_retired = accumulated_frame_index;
 
-	zoombie->valid = true;	
+	zombie->valid = true;	
 
 	swapchain->handle = VK_NULL_HANDLE;
 	swapchain->image_views = NULL;
@@ -292,7 +291,7 @@ bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain,
 
 	SDL_Log("[VULKAN] Swapchain recreated (%ux%u)", w, h);
 
-	return swapchain_build(ctx, swapchain, w, h, zoombie->handle);
+	return swapchain_build(ctx, swapchain, w, h, zombie->handle);
 }
 
 void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain)
@@ -302,15 +301,15 @@ void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain)
 
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
 	{
-		vulkan_swapchain_zoombie *zoombie = &swapchain->graveyard[i];
-		assert(zoombie);
+		vulkan_swapchain_zombie *zombie = &swapchain->graveyard[i];
+		assert(zombie);
 
-		if (!zoombie->valid)
+		if (!zombie->valid)
 		{
 			continue;
 		}
 
-		zoombie_destroy(ctx, zoombie);
+		zoombie_destroy(ctx, zombie);
 	}
 	
 	for (u32 i = 0; i < swapchain->image_count; i++)

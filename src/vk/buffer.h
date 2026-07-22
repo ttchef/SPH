@@ -27,7 +27,9 @@ typedef struct vulkan_buffer
 } vulkan_buffer;
 
 // NOTE: automatically copies data into buffer
-bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, usize size, const void *data, vulkan_buffer *out_buffer);
+bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer);
+
+bool vulkan_buffer_host_visible_create(vulkan_context *ctx, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer);
 
 // NOTE: out_buffer is of type host visible
 bool vulkan_buffer_device_local_get_data(vulkan_context *ctx, vulkan_buffer buffer, vulkan_buffer *out_buffer);

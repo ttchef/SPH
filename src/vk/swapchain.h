@@ -9,7 +9,7 @@
 
 #define SWAPCHAIN_GRAVEYARD_SIZE 4
 
-typedef struct vulkan_swapchain_zoombie
+typedef struct
 {
 	VkSwapchainKHR handle;
 	
@@ -22,9 +22,9 @@ typedef struct vulkan_swapchain_zoombie
 	u64 frame_retired;
 
 	bool valid;
-} vulkan_swapchain_zoombie;
+} vulkan_swapchain_zombie;
 
-typedef struct vulkan_swapchain
+typedef struct
 {
 	VkSwapchainKHR handle;
 	
@@ -39,7 +39,7 @@ typedef struct vulkan_swapchain
 	VkFormat fmt;
 	VkExtent2D extent;
 
-	vulkan_swapchain_zoombie graveyard[SWAPCHAIN_GRAVEYARD_SIZE];
+	vulkan_swapchain_zombie graveyard[SWAPCHAIN_GRAVEYARD_SIZE];
 } vulkan_swapchain;
 
 bool vulkan_swapchain_create(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h);
