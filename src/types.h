@@ -41,7 +41,7 @@ static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 
 #define TO_RADIANS(deg) ((deg) * 3.14159265f / 180.0f)
 
-typedef struct color4
+typedef struct
 {
 	f32 r;
 	f32 g;
@@ -62,3 +62,11 @@ static inline color4 color4gray(f32 v, f32 a)
 #define RED (color4make(1.0, 0.0, 0.0, 1.0))
 #define GREEN (color4make(0.0, 1.0, 0.0, 1.0))
 #define BLUE (color4make(0.0, 0.0, 1.0, 1.0))
+
+typedef struct
+{
+	u32 width;
+	u32 height;
+	u8 *data;
+} image_raw;
+

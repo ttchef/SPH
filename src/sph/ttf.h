@@ -5,7 +5,7 @@
 #include <math/types.h>
 #include <vk/image.h>
 
-typedef struct ttf_pack
+typedef struct
 {
 	u16 *skyline;
 	u16 max_width;
@@ -14,14 +14,14 @@ typedef struct ttf_pack
 	bool is_insitialized;
 } ttf_pack;
 
-typedef struct ttf_glyph
+typedef struct
 {
 	v2u pos;
 	v2u size;
 	f32 advance;	
 } ttf_glyph;
 
-typedef struct ttf_font
+typedef struct
 {
 	ttf_pack pack;
 	ttf_glyph glyphs[100];
