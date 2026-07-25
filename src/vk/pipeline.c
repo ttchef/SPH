@@ -1,4 +1,5 @@
 
+#include "vk/descriptor.h"
 #include <vk/pipeline.h>
 #include <vk/context.h>
 #include <math/types.h>
@@ -72,6 +73,24 @@ void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_
 
 	vulkan_descriptor descriptor;
 	if (!vulkan_descriptor_storage_buffer_create(ctx, buffer, binding, stage, &descriptor))
+	{
+		return;
+	}
+
+	desc->descriptors[desc->descriptor_count] = descriptor;
+	++desc->descriptor_count;
+}
+
+void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage)
+{
+	if (desc->descriptor_count + 1 > ARRAY_COUNT(desc->descriptors))
+	{
+		SDL_Log("[VULKAN] No space left to add descriptor to this pipeline (%u/%zu)", desc->descriptor_count, ARRAY_COUNT(desc->descriptors));
+		return;
+	}
+
+	vulkan_descriptor descriptor;
+	if (!vulkan_descriptor_image_create(ctx, image, sampler, binding, stage, &descriptor))
 	{
 		return;
 	}

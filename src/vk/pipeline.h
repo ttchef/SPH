@@ -76,6 +76,8 @@ void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 verte
 
 void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage);
 
+void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage);
+
 void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages);
 
 void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *vertex, const char *fragment, const char *compute);

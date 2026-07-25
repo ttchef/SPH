@@ -6,12 +6,10 @@
 #include <vk/command.h>
 #include <vk/types.h>
 #include <sph/time.h>
-#include <sph/render.h>
-#include <sph/ui.h>
 #include <sph/camera.h>
 #include <math/types.h>
 
-static const u32 PARTICLE_COUNT = 55024;
+static const u32 PARTICLE_COUNT = 34024;
 
 // NOTE: IMPORTANT!!! Needs to match with GPU implementation
 typedef struct particle
@@ -46,6 +44,8 @@ typedef struct simulation
 	vulkan_pipeline_id update_pipelines[FRAMES_IN_FLIGHT];
 	vulkan_pipeline_id render_pipeline[FRAMES_IN_FLIGHT];
 
+	vulkan_sampler image_sampler;
+
 	u32 sim_buffer;
 	f64 accumulator;
 
@@ -54,6 +54,6 @@ typedef struct simulation
 
 bool simulation_create(vulkan_context *vulkan, simulation *simulation);
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, render *render, ui *ui, simulation *simulation);
+void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, camera camera, simulation *simulation);
 
 void simulation_destroy(vulkan_context *vulkan, simulation *simulation);

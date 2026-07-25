@@ -3,16 +3,14 @@
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
+#include <vulkan/vulkan_core.h>
 
-bool vulkan_descriptor_storage_buffer_create(vulkan_context *ctx, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage, vulkan_descriptor *out_descriptor)
+bool descriptor_create(vulkan_context *ctx, VkDescriptorPoolSize pool_size, u32 binding, VkShaderStageFlagBits stage, vulkan_descriptor *out_descriptor)
 {
 	vulkan_descriptor result = {0};
 
 	VkDescriptorPoolSize pool_sizes[] = {
-		{
-			VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-			1,
-		},
+		pool_size,
 	};
 
 	VkDescriptorPoolCreateInfo pool_info = {
@@ -60,6 +58,25 @@ bool vulkan_descriptor_storage_buffer_create(vulkan_context *ctx, vulkan_buffer 
 		return false;
 	}
 
+	*out_descriptor = result;
+
+	return true;
+}
+
+bool vulkan_descriptor_storage_buffer_create(vulkan_context *ctx, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage, vulkan_descriptor *out_descriptor)
+{
+	vulkan_descriptor result = {0};
+
+	VkDescriptorPoolSize pool_size = {
+		.descriptorCount = 1,
+		.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,	
+	};
+
+	if (!descriptor_create(ctx, pool_size, binding, stage, &result))
+	{
+		return false;
+	}
+	
 	VkDescriptorBufferInfo buffer_info = {
 		.buffer = buffer.handle,
 		.offset = 0,
@@ -73,6 +90,42 @@ bool vulkan_descriptor_storage_buffer_create(vulkan_context *ctx, vulkan_buffer 
 		.dstBinding = binding,
 		.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 		.pBufferInfo = &buffer_info,
+	};
+
+	vkUpdateDescriptorSets(ctx->device, 1, &write, 0, NULL);
+
+	*out_descriptor = result;
+
+	return true;	
+}
+
+bool vulkan_descriptor_image_create(vulkan_context *ctx, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage, vulkan_descriptor *out_descriptor)
+{
+	vulkan_descriptor result = {0};
+
+	VkDescriptorPoolSize pool_size = {
+		.descriptorCount = 1,
+		.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,	
+	};
+
+	if (!descriptor_create(ctx, pool_size, binding, stage, &result))
+	{
+		return false;
+	}
+
+	VkDescriptorImageInfo image_info = {
+		.imageLayout = image.layout,
+		.imageView = image.view,
+		.sampler = sampler.handle,
+	};
+
+	VkWriteDescriptorSet write = {
+		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		.descriptorCount = 1,
+		.dstSet = result.set,
+		.dstBinding = binding,
+		.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		.pImageInfo = &image_info,
 	};
 
 	vkUpdateDescriptorSets(ctx->device, 1, &write, 0, NULL);

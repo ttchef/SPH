@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-typedef struct vulkan_image
+typedef struct
 {
 	VkImage handle;
 	VkImageView view;
@@ -18,6 +18,11 @@ typedef struct vulkan_image
 	VkImageAspectFlags aspect;
 } vulkan_image;
 
+typedef struct
+{
+	VkSampler handle;
+} vulkan_sampler;
+
 bool vulkan_image_create(vulkan_context *ctx, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, vulkan_image *out_image);
 
 void vulkan_image_destroy(vulkan_context *ctx, vulkan_image image);
@@ -27,3 +32,7 @@ bool vulkan_image_transition(vulkan_context *ctx, vulkan_image *image, VkImageLa
                     		 VkPipelineStageFlags dst_stage, VkImageAspectFlags aspect_mask);
 
 bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size, void *data, v2u dimensions, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage);
+
+bool vulkan_sampler_create(vulkan_context *ctx, vulkan_sampler *out_sampler);
+
+void vulkan_sampler_destroy(vulkan_context *ctx, vulkan_sampler *sampler);

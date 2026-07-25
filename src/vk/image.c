@@ -325,3 +325,35 @@ error:
     return false;
 }
 
+bool vulkan_sampler_create(vulkan_context *ctx, vulkan_sampler *out_sampler)
+{
+	vulkan_sampler result = {0};
+
+	VkSamplerCreateInfo info = {
+		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		.minLod = 0.0f,
+		.maxLod = 1.0f,
+		.maxAnisotropy = 1.0f,
+		.minFilter = VK_FILTER_NEAREST,
+		.magFilter = VK_FILTER_NEAREST,
+	};
+
+	if (vkCreateSampler(ctx->device, &info, NULL, &result.handle) != VK_SUCCESS)
+	{
+		SDL_Log("[VULKAN] Failed to create sampler.");
+		return false;
+	}
+
+	*out_sampler = result;
+
+	return true;
+}
+
+void vulkan_sampler_destroy(vulkan_context *ctx, vulkan_sampler *sampler)
+{
+	vkDestroySampler(ctx->device, sampler->handle, NULL);
+}

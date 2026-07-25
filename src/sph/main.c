@@ -4,7 +4,6 @@
 #include <sph/simulation.h>
 #include <sph/camera.h>
 #include <sph/input.h>
-#include <sph/ui.h>
 #include <sph/ttf.h>
 #include <vk/context.h>
 
@@ -21,8 +20,6 @@ typedef struct app_state
     simulation simulation;
     camera camera;
     input input;
-    ui ui;
-    render render;
     window window;
     vulkan_context vulkan;
 } app_state;
@@ -61,15 +58,8 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    if (!render_create(&state->vulkan, &state->render))
-    {
-        SDL_Log("[ENGINE] Failed to initialize render.");
-        return SDL_APP_FAILURE;
-    }
-
     state->camera = camera_create();
     state->input = input_create();
-    state->ui = ui_create(&state->vulkan, state->window.width, state->window.height, "assets/fonts/jet-brains.ttf");
 
     return SDL_APP_CONTINUE; 
 }
@@ -109,7 +99,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     time_update(&state->time);
     camera_update(&state->camera, &state->window, &state->input, state->time.delta);
-    ui_update(&state->ui, state->window.width, state->window.height);
 
     static f32 counter;
     counter += state->time.delta;
@@ -119,7 +108,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         counter = 0.0f;
     }
 
-    simulation_update(vulkan, state->window.width, state->window.height, state->time, state->camera, &state->render, &state->ui, &state->simulation);
+    simulation_update(vulkan, state->window.width, state->window.height, state->time, state->camera, &state->simulation);
 
     vulkan_draw(vulkan, state->window.width, state->window.height);
 
@@ -134,7 +123,6 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     app_state *state = (app_state *)appstate;
     assert(state);
 
-    ui_destroy(&state->vulkan, &state->ui);
     simulation_destroy(&state->vulkan, &state->simulation);
     vulkan_deinit(&state->vulkan);
 }
