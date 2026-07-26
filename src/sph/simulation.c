@@ -1,6 +1,6 @@
 
 #include <sph/simulation.h>
-
+#include <sph/utils.h>
 #include <math/matrix.h>
 
 typedef struct
@@ -99,15 +99,24 @@ bool simulation_create(simulation *simulation)
 
     vulkan_pipeline_desc desc = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
 
-    vulkan_pipeline_desc_set_shaders(&desc, "src/shaders/spv/hello.spv", "src/shaders/spv/hello.spv", NULL);
+    char shader_path[256];
+    if (!path_abs_get(shader_path, sizeof(shader_path), "spv/shader.spv"))
+    {
+        SDL_Log("[ENGINE] Failed to get absolute path of shaders.");
+        return false;
+    }
+    
+    vulkan_pipeline_desc_set_shaders(&desc, shader_path, shader_path, NULL);
     vulkan_pipeline_desc_set_shaders_entries(&desc, "vertexMain", "fragmentMain", NULL);
     vulkan_pipeline_desc_set_push_constant(&desc, sizeof(text_pc), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     simulation->text_pipeline = vulkan_pipeline_create(&simulation->vulkan, &desc);
     assert(simulation->text_pipeline != VULKAN_INVALID_PIPELINE);
 
+    char jet_brains_path[256];
+    path_abs_get(jet_brains_path, sizeof(jet_brains_path), "assets/fonts/jet-brains.ttf");
     usize jet_brains_size;
-    u8   *jet_brains_data = SDL_LoadFile("assets/fonts/jet-brains.ttf", &jet_brains_size);
+    u8   *jet_brains_data = SDL_LoadFile(jet_brains_path, &jet_brains_size);
 
     ttf_create(&simulation->vulkan, jet_brains_size, jet_brains_data, &simulation->jet_brains);
 

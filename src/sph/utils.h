@@ -6,7 +6,7 @@
 #include <SDL3/SDL_filesystem.h>
 
 // NOTE: From the great and mighty cheesecake
-static inline bool get_abs_path(char *buf, usize size, const char *name)
+static inline bool path_abs_get(char *buf, usize size, const char *name)
 {
     assert(buf);
     assert(name);

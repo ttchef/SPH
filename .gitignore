@@ -1,6 +1,6 @@
-main
+build/
+
+# Tool files
 .ignore
-*.json
-*.spv
-src/shaders/spv/
+compile_commands.json
 imgui.ini

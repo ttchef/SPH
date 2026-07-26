@@ -1,12 +1,26 @@
+.PHONY: folders debug release clean run
 
 CC := clang
+SHADERC := slangc
+ASSETS := assets
+
+ifneq ($(filter release,$(MAKECMDGOALS)),)
+BUILD_MODE := release
+MODE_FLAGS := -DNDEBUG -O2
+else
+BUILD_MODE := debug
+MODE_FLAGS := -DDEBUG -O0 -g
+endif
+
+BUILD_DIR := build/$(BUILD_MODE)
+OBJ_DIR := $(BUILD_DIR)/obj
+SPV_DIR := $(BUILD_DIR)/spv
+ASSETS_DIR := $(BUILD_DIR)/assets
+EXE := $(BUILD_DIR)/main
 
 INCLUDE_PATHS := -Isrc
-CFLAGS := -Wall -Wextra -pedantic -std=c11 $(INCLUDE_PATHS)
-GLSLC_FLAGS := --target-env=vulkan1.3
-
-DEBUG_FLAGS := -DDEBUG -O0 -g
-RELEASE_FLAGS := -DNDEBUG -O2 
+DEPFLAGS := -MMD -MP
+CFLAGS := -Wall -Wextra -pedantic -std=c11 $(INCLUDE_PATHS) $(DEPFLAGS) $(MODE_FLAGS)
 
 ifeq ($(OS),Windows_NT)
 LDFLAGS := -lSDL3 -lvulkan-1 -lm
@@ -14,22 +28,50 @@ else
 LDFLAGS := -lSDL3 -lvulkan -lm
 endif
 
-SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c \
-			 src/vk/buffer.c src/sph/simulation.c src/sph/camera.c src/sph/input.c \
-			 src/vk/image.c src/sph/ttf.c src/sph/memory.c src/sph/window.c src/vk/descriptor.c
+rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+
+SRC_FILES := $(call rwildcard,src/,*.c)
+OBJ_FILES := $(patsubst src/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
+
+SHADER_FILES := $(call rwildcard,src/shaders/,*.slang)
+SPV_FILES := $(patsubst src/shaders/%.slang,$(SPV_DIR)/%.spv,$(SHADER_FILES))
 
 all: debug
 
-shaders:
-	mkdir -p src/shaders/spv
-	slangc src/shaders/shader.slang -o src/shaders/spv/hello.spv
+folders:
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(SPV_DIR)
 
-debug: shaders
-	$(CC) $(SRC_FILES) $(CFLAGS) $(DEBUG_FLAGS) -o main $(LDFLAGS)
+$(ASSETS_DIR):
+	@mkdir -p $(ASSETS_DIR)
+	@cp -r $(ASSETS)/. $(ASSETS_DIR)/
+	@echo "Copying assets..."
 
-release: shaders
-	$(CC) $(SRC_FILES) $(CFLAGS) $(RELEASE_FLAGS) -o main $(LDFLAGS)
+debug: folders $(ASSETS_DIR) $(SPV_FILES) $(OBJ_FILES)
+	@$(CC) $(OBJ_FILES) $(CFLAGS) -o $(EXE) $(LDFLAGS)
+	@echo "Finished debug build."
+
+release: folders $(ASSETS_DIR) $(SPV_FILES) $(OBJ_FILES)
+	@$(CC) $(OBJ_FILES) $(CFLAGS) -o $(EXE) $(LDFLAGS)
+	@echo "Finished release build."
+
+run: debug
+	@# Mainly for developing
+	@./$(EXE)
 
 clean:
-	rm -rf src/shaders/spv
-	rm main
+	@rm -rf build
+
+$(OBJ_DIR)/%.o: src/%.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c $< -o $@
+	@echo "Compiled: $<"
+
+$(SPV_DIR)/%.spv: src/shaders/%.slang
+	@mkdir -p $(dir $@)
+	@$(SHADERC) $< -o $@
+	@echo "Shader: $<"
+
+DEP_FILES := $(OBJ_FILES:.o=.d)
+-include $(DEP_FILES)
