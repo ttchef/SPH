@@ -8,22 +8,22 @@
 
 typedef enum vulkan_buffer_type
 {
-	VULKAN_BUFFER_TYPE_HOST_VISIBLE,
-	VULKAN_BUFFER_TYPE_DEVICE_LOCAL,
+    VULKAN_BUFFER_TYPE_HOST_VISIBLE,
+    VULKAN_BUFFER_TYPE_DEVICE_LOCAL,
 } vulkan_buffer_type;
 
 typedef struct vulkan_buffer
 {
-	vulkan_buffer_type type;
-	
-	VkBuffer handle;
-	VkDeviceMemory memory;
-	VkDeviceSize size;
+    vulkan_buffer_type type;
 
-	struct
-	{
-		void *data;
-	} host_visible;
+    VkBuffer       handle;
+    VkDeviceMemory memory;
+    VkDeviceSize   size;
+
+    struct
+    {
+        void *data;
+    } host_visible;
 } vulkan_buffer;
 
 // NOTE: automatically copies data into buffer

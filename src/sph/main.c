@@ -10,15 +10,16 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
 {
     UNUSED(argc);
     UNUSED(argv);
-        
+
     simulation *simulation = SDL_calloc(1, sizeof(*simulation));
     assert(simulation);
 
     *appstate = simulation;
-    
+
     SDL_SetAppMetadata("SPH Simulation", "1.0", NULL);
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO))
+    {
         SDL_Log("[ENGINE] Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
@@ -29,7 +30,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    return SDL_APP_CONTINUE; 
+    return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
@@ -38,12 +39,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     assert(simulation);
 
     simulation_event(simulation, event);
-    
+
     if (event->type == SDL_EVENT_QUIT)
     {
         return SDL_APP_SUCCESS;
     }
-    return SDL_APP_CONTINUE;  
+    return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate)
@@ -59,10 +60,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
     UNUSED(result);
-    
+
     simulation *simulation = appstate;
     assert(simulation);
 
     simulation_destroy(simulation);
 }
-

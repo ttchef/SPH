@@ -1,87 +1,87 @@
 
 #include <vk/context.h>
 
-#include <SDL3/SDL_vulkan.h>
 #include <SDL3/SDL_log.h>
+#include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan_core.h>
 
 #define MAX_EXTENSIONS 16
 
 static bool extensions_add(const char **extensions, u32 *extension_count, const char *extension)
 {
-	assert(extensions);
-	assert(extension_count);
-	assert(extension);
+    assert(extensions);
+    assert(extension_count);
+    assert(extension);
 
-	if (*extension_count + 1 > MAX_EXTENSIONS)
-	{
-		SDL_Log("[VULKAN] Failed to add instance extension: %s (%u/%u).\n", extension, *extension_count, MAX_EXTENSIONS);
-		return false;
-	}
+    if (*extension_count + 1 > MAX_EXTENSIONS)
+    {
+        SDL_Log("[VULKAN] Failed to add instance extension: %s (%u/%u).\n", extension, *extension_count, MAX_EXTENSIONS);
+        return false;
+    }
 
-	extensions[(*extension_count)++] = extension;
+    extensions[(*extension_count)++] = extension;
 
-	return true;
+    return true;
 }
 
 static bool instance_init(vulkan *vulkan)
 {
-	assert(vulkan);
-	
-	VkApplicationInfo app_info = {
-		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		.apiVersion = VK_API_VERSION_1_3, // NOTE: required?
-		.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-		.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-		.pEngineName = "SPH",
-		.pApplicationName = "SPH",		
-	};
+    assert(vulkan);
 
-	u32 sdl_extension_count;
-	const char * const *sdl_extensions = SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count);
-	assert(sdl_extensions);
+    VkApplicationInfo app_info = {
+        .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .apiVersion         = VK_API_VERSION_1_3, // NOTE: required?
+        .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
+        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+        .pEngineName        = "SPH",
+        .pApplicationName   = "SPH",
+    };
 
-	u32 extension_count = 0;
-	const char *extensions[MAX_EXTENSIONS];
+    u32                sdl_extension_count;
+    const char *const *sdl_extensions = SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count);
+    assert(sdl_extensions);
 
-	for (u32 i = 0; i < sdl_extension_count; i++)
-	{
-		extensions_add(extensions, &extension_count, sdl_extensions[i]);
-	}
+    u32         extension_count = 0;
+    const char *extensions[MAX_EXTENSIONS];
+
+    for (u32 i = 0; i < sdl_extension_count; i++)
+    {
+        extensions_add(extensions, &extension_count, sdl_extensions[i]);
+    }
 
 #if defined(DEBUG)
-	extensions_add(extensions, &extension_count, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    extensions_add(extensions, &extension_count, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-	const char *layers[] = {
-		"VK_LAYER_KHRONOS_validation",	
-	};
+    const char *layers[] = {
+        "VK_LAYER_KHRONOS_validation",
+    };
 #endif
 
-	VkInstanceCreateInfo info = {
-		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pApplicationInfo = &app_info,
-		.enabledExtensionCount = extension_count,
-		.ppEnabledExtensionNames = extensions,
+    VkInstanceCreateInfo info = {
+        .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pApplicationInfo        = &app_info,
+        .enabledExtensionCount   = extension_count,
+        .ppEnabledExtensionNames = extensions,
 #if defined(DEBUG)
-		.enabledLayerCount = ARRAY_COUNT(layers),
-		.ppEnabledLayerNames = layers,
-#endif	
-	};
+        .enabledLayerCount   = ARRAY_COUNT(layers),
+        .ppEnabledLayerNames = layers,
+#endif
+    };
 
-	if (vkCreateInstance(&info, NULL, &vulkan->instance) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to create instance.");
-		return false;
-	}
+    if (vkCreateInstance(&info, NULL, &vulkan->instance) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create instance.");
+        return false;
+    }
 
-	return true;
+    return true;
 }
 
 #if defined(DEBUG)
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
-debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-               VkDebugUtilsMessageTypeFlagsEXT message_type,
+debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT      message_severity,
+               VkDebugUtilsMessageTypeFlagsEXT             message_type,
                const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data)
 {
     (void)message_severity;
@@ -95,19 +95,19 @@ debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
 
 static bool debug_messenger_init(vulkan *vulkan)
 {
-	assert(vulkan);
-	
+    assert(vulkan);
+
     VkDebugUtilsMessengerCreateInfoEXT info = {
-        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+        .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+        .messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
         .pfnUserCallback = debug_callback,
     };
 
-    PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT =(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCreateDebugUtilsMessengerEXT");
+    PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCreateDebugUtilsMessengerEXT");
     if (!vkCreateDebugUtilsMessengerEXT)
     {
         SDL_Log("[VULKAN] Failed to load debug utils messenger function pointer.");
@@ -127,311 +127,311 @@ static bool debug_messenger_init(vulkan *vulkan)
 
 static bool surface_init(SDL_Window *window, vulkan *vulkan)
 {
-	assert(window);
-	assert(vulkan);
-	
-	if (!SDL_Vulkan_CreateSurface(window, vulkan->instance, NULL, &vulkan->surface))
-	{
-		SDL_Log("[VULKAN] Failed to create surface.");
-		return false;
-	}
-	return true;
+    assert(window);
+    assert(vulkan);
+
+    if (!SDL_Vulkan_CreateSurface(window, vulkan->instance, NULL, &vulkan->surface))
+    {
+        SDL_Log("[VULKAN] Failed to create surface.");
+        return false;
+    }
+    return true;
 }
 
 static bool physical_device_init(vulkan *vulkan)
 {
-	assert(vulkan);
+    assert(vulkan);
 
-	u32 physcial_device_count;
-	vkEnumeratePhysicalDevices(vulkan->instance, &physcial_device_count, NULL);
+    u32 physcial_device_count;
+    vkEnumeratePhysicalDevices(vulkan->instance, &physcial_device_count, NULL);
 
-	if (physcial_device_count == 0)
-	{
-		SDL_Log("[VULKAN] Didnt find any fitting GPU which supports vulkan.");
-		return false;
-	}
+    if (physcial_device_count == 0)
+    {
+        SDL_Log("[VULKAN] Didnt find any fitting GPU which supports vulkan.");
+        return false;
+    }
 
-	// NOTE: Who has more than 12 GPUs?
-	VkPhysicalDevice devs[12];
-	vkEnumeratePhysicalDevices(vulkan->instance, &physcial_device_count, devs);
+    // NOTE: Who has more than 12 GPUs?
+    VkPhysicalDevice devs[12];
+    vkEnumeratePhysicalDevices(vulkan->instance, &physcial_device_count, devs);
 
-	if (physcial_device_count > ARRAY_COUNT(devs))
-	{
-		SDL_Log("[VULKAN] Warning: You have (%u/%lu) GPUs only the first %lu will be examed.", physcial_device_count, ARRAY_COUNT(devs), ARRAY_COUNT(devs));
-		physcial_device_count = ARRAY_COUNT(devs);
-	}
+    if (physcial_device_count > ARRAY_COUNT(devs))
+    {
+        SDL_Log("[VULKAN] Warning: You have (%u/%lu) GPUs only the first %lu will be examed.", physcial_device_count, ARRAY_COUNT(devs), ARRAY_COUNT(devs));
+        physcial_device_count = ARRAY_COUNT(devs);
+    }
 
-	for (u32 i = 0; i < physcial_device_count; i++)
-	{
-		VkPhysicalDevice dev = devs[i];
+    for (u32 i = 0; i < physcial_device_count; i++)
+    {
+        VkPhysicalDevice dev = devs[i];
 
-		u32 queue_count;
-		vkGetPhysicalDeviceQueueFamilyProperties(dev, &queue_count, NULL);
+        u32 queue_count;
+        vkGetPhysicalDeviceQueueFamilyProperties(dev, &queue_count, NULL);
 
-		VkQueueFamilyProperties props[8];
-		vkGetPhysicalDeviceQueueFamilyProperties(dev, &queue_count, props);
-		queue_count = MIN(queue_count, ARRAY_COUNT(props));
+        VkQueueFamilyProperties props[8];
+        vkGetPhysicalDeviceQueueFamilyProperties(dev, &queue_count, props);
+        queue_count = MIN(queue_count, ARRAY_COUNT(props));
 
-		i32 graphics_index = -1;
-		i32 present_index = -1;
+        i32 graphics_index = -1;
+        i32 present_index  = -1;
 
-		for (u32 j = 0; j < queue_count; j++)
-		{
-			if (props[j].queueFlags & VK_QUEUE_GRAPHICS_BIT && props[j].queueFlags & VK_QUEUE_COMPUTE_BIT)
-			{
-				graphics_index = j;
-			}
+        for (u32 j = 0; j < queue_count; j++)
+        {
+            if (props[j].queueFlags & VK_QUEUE_GRAPHICS_BIT && props[j].queueFlags & VK_QUEUE_COMPUTE_BIT)
+            {
+                graphics_index = j;
+            }
 
-			VkBool32 supported = VK_FALSE;
-			vkGetPhysicalDeviceSurfaceSupportKHR(dev, j, vulkan->surface, &supported);
+            VkBool32 supported = VK_FALSE;
+            vkGetPhysicalDeviceSurfaceSupportKHR(dev, j, vulkan->surface, &supported);
 
-			if (supported)
-			{
-				present_index = j;
-				if (graphics_index != -1)
-				{
-					break;
-				}
-			}
-		}
+            if (supported)
+            {
+                present_index = j;
+                if (graphics_index != -1)
+                {
+                    break;
+                }
+            }
+        }
 
-		if (graphics_index != -1 && present_index != -1)
-		{
-			vulkan->physical_device = dev;
-			vulkan->graphics_queue.index = graphics_index;
-			vulkan->present_queue.index = present_index;
+        if (graphics_index != -1 && present_index != -1)
+        {
+            vulkan->physical_device      = dev;
+            vulkan->graphics_queue.index = graphics_index;
+            vulkan->present_queue.index  = present_index;
 
-			break;
-		}
-		else if (i == physcial_device_count - 1)
-		{
-			SDL_Log("[VULKAN] Failed to find sutable GPU.");
-			return false;
-		}
-	}
+            break;
+        }
+        else if (i == physcial_device_count - 1)
+        {
+            SDL_Log("[VULKAN] Failed to find sutable GPU.");
+            return false;
+        }
+    }
 
-	VkPhysicalDeviceProperties props;
-	vkGetPhysicalDeviceProperties(vulkan->physical_device, &props);
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(vulkan->physical_device, &props);
 
-	SDL_Log("[VULKAN] Picked GPU: %s", props.deviceName);
+    SDL_Log("[VULKAN] Picked GPU: %s", props.deviceName);
 
-	return true;
+    return true;
 }
 
 static bool logical_device_init(vulkan *vulkan)
 {
-	assert(vulkan);
-	
-	VkDeviceQueueCreateInfo queue_infos[2];
+    assert(vulkan);
 
-	float priority = 1.0f;
+    VkDeviceQueueCreateInfo queue_infos[2];
 
-	u32 queue_count = 0;
-	queue_infos[queue_count++] = (VkDeviceQueueCreateInfo){
-		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-		.queueFamilyIndex = vulkan->graphics_queue.index,
-		.queueCount = 1,
-		.pQueuePriorities = &priority,
-	};
+    float priority = 1.0f;
 
-	if (vulkan->graphics_queue.index != vulkan->present_queue.index)
-	{
-		queue_infos[queue_count++] = (VkDeviceQueueCreateInfo){
-			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-			.queueFamilyIndex = vulkan->present_queue.index,
-			.queueCount = 1,
-			.pQueuePriorities = &priority,
-		};
-	}
+    u32 queue_count            = 0;
+    queue_infos[queue_count++] = (VkDeviceQueueCreateInfo){
+        .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = vulkan->graphics_queue.index,
+        .queueCount       = 1,
+        .pQueuePriorities = &priority,
+    };
 
-	const char *device_extensions[] = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-		VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,	
-	};
+    if (vulkan->graphics_queue.index != vulkan->present_queue.index)
+    {
+        queue_infos[queue_count++] = (VkDeviceQueueCreateInfo){
+            .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = vulkan->present_queue.index,
+            .queueCount       = 1,
+            .pQueuePriorities = &priority,
+        };
+    }
 
-	VkPhysicalDeviceFeatures features = {
-		.fillModeNonSolid = VK_TRUE,	
-	};
+    const char *device_extensions[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+    };
 
-	VkPhysicalDeviceDescriptorIndexingFeatures indexing = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-		.descriptorBindingPartiallyBound = VK_TRUE,
-		.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
-		.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
-	};
+    VkPhysicalDeviceFeatures features = {
+        .fillModeNonSolid = VK_TRUE,
+    };
 
-	VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
-		.pNext = &indexing,
-		.descriptorBuffer = VK_TRUE,	
-	};
+    VkPhysicalDeviceDescriptorIndexingFeatures indexing = {
+        .sType                                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+        .descriptorBindingPartiallyBound              = VK_TRUE,
+        .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+        .shaderSampledImageArrayNonUniformIndexing    = VK_TRUE,
+    };
 
-	VkPhysicalDeviceVulkan13Features features13 = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-		.pNext = &descriptor,
-		.shaderDemoteToHelperInvocation = VK_TRUE,
-		.dynamicRendering = VK_TRUE,
-	};
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor = {
+        .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
+        .pNext            = &indexing,
+        .descriptorBuffer = VK_TRUE,
+    };
 
-	VkDeviceCreateInfo info = {
-		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		.pNext = &features13,
-		.pEnabledFeatures = &features,
-		.queueCreateInfoCount = queue_count,
-		.pQueueCreateInfos = queue_infos,
-		.enabledExtensionCount = ARRAY_COUNT(device_extensions),
-		.ppEnabledExtensionNames = device_extensions,
-	};
+    VkPhysicalDeviceVulkan13Features features13 = {
+        .sType                          = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext                          = &descriptor,
+        .shaderDemoteToHelperInvocation = VK_TRUE,
+        .dynamicRendering               = VK_TRUE,
+    };
 
-	if (vkCreateDevice(vulkan->physical_device, &info, NULL, &vulkan->device) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to create logical device.");
-		return false;
-	}
+    VkDeviceCreateInfo info = {
+        .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext                   = &features13,
+        .pEnabledFeatures        = &features,
+        .queueCreateInfoCount    = queue_count,
+        .pQueueCreateInfos       = queue_infos,
+        .enabledExtensionCount   = ARRAY_COUNT(device_extensions),
+        .ppEnabledExtensionNames = device_extensions,
+    };
 
-	vkGetDeviceQueue(vulkan->device, vulkan->graphics_queue.index, 0, &vulkan->graphics_queue.handle);
-	vkGetDeviceQueue(vulkan->device, vulkan->present_queue.index, 0, &vulkan->present_queue.handle);
+    if (vkCreateDevice(vulkan->physical_device, &info, NULL, &vulkan->device) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create logical device.");
+        return false;
+    }
 
-	return true;
+    vkGetDeviceQueue(vulkan->device, vulkan->graphics_queue.index, 0, &vulkan->graphics_queue.handle);
+    vkGetDeviceQueue(vulkan->device, vulkan->present_queue.index, 0, &vulkan->present_queue.handle);
+
+    return true;
 }
 
 bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
 {
-	assert(window);
-	assert(vulkan);
+    assert(window);
+    assert(vulkan);
 
-#define CHECK(x) \
-	if (!x) \
-	{ \
-		return false; \
-	}
+#define CHECK(x)      \
+    if (!x)           \
+    {                 \
+        return false; \
+    }
 
-	CHECK(instance_init(vulkan));
+    CHECK(instance_init(vulkan));
 
 #if defined(DEBUG)
-	CHECK(debug_messenger_init(vulkan));
+    CHECK(debug_messenger_init(vulkan));
 #endif
-	
-	CHECK(surface_init(window, vulkan));
-	CHECK(physical_device_init(vulkan));
-	CHECK(logical_device_init(vulkan));
-	CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
-	CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
-	CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
-	CHECK(vulkan_bindless_create(vulkan, global_ubo_size, &vulkan->bindless));
+
+    CHECK(surface_init(window, vulkan));
+    CHECK(physical_device_init(vulkan));
+    CHECK(logical_device_init(vulkan));
+    CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
+    CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
+    CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
+    CHECK(vulkan_bindless_create(vulkan, global_ubo_size, &vulkan->bindless));
 
 #undef CHECK
 
-	return true;
+    return true;
 }
 
 void vulkan_resize(vulkan *vulkan, u32 w, u32 h)
 {
-	vulkan_swapchain_recreate(vulkan, &vulkan->swapchain, (u32)w, (u32)h, vulkan->command_handler.accumulated_frame_index);
+    vulkan_swapchain_recreate(vulkan, &vulkan->swapchain, (u32)w, (u32)h, vulkan->command_handler.accumulated_frame_index);
 }
 
 void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
 {
-	assert(vulkan);
+    assert(vulkan);
 
-	u32 frame_index = vulkan->command_handler.frame_index;
-	vulkan_frame_data *frame_data = &vulkan->command_handler.frame_data[frame_index];
-	assert(frame_data);
+    u32                frame_index = vulkan->command_handler.frame_index;
+    vulkan_frame_data *frame_data  = &vulkan->command_handler.frame_data[frame_index];
+    assert(frame_data);
 
-	vkWaitForFences(vulkan->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
-	vkResetFences(vulkan->device, 1, &frame_data->in_flight_fence);
+    vkWaitForFences(vulkan->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(vulkan->device, 1, &frame_data->in_flight_fence);
 
-	vulkan_swapchain_drain(vulkan, &vulkan->swapchain, vulkan->command_handler.accumulated_frame_index);
+    vulkan_swapchain_drain(vulkan, &vulkan->swapchain, vulkan->command_handler.accumulated_frame_index);
 
-	VkResult result = vkAcquireNextImageKHR(vulkan->device, vulkan->swapchain.handle, UINT64_MAX, frame_data->image_available, VK_NULL_HANDLE, &vulkan->swapchain.image_index);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR)
-	{
-		vulkan_resize(vulkan, window_width, window_height);
-		return;
-	}
-	else if (result != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to acquire swapchain image.");
-		return;
-	}
+    VkResult result = vkAcquireNextImageKHR(vulkan->device, vulkan->swapchain.handle, UINT64_MAX, frame_data->image_available, VK_NULL_HANDLE, &vulkan->swapchain.image_index);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        vulkan_resize(vulkan, window_width, window_height);
+        return;
+    }
+    else if (result != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to acquire swapchain image.");
+        return;
+    }
 
-	vkResetCommandBuffer(frame_data->command_buffer, 0);
-	vulkan_command_handler_record(vulkan, &vulkan->command_handler);
+    vkResetCommandBuffer(frame_data->command_buffer, 0);
+    vulkan_command_handler_record(vulkan, &vulkan->command_handler);
 
-	VkSemaphore wait_semaphores[] = {
-		frame_data->image_available,	
-	};
+    VkSemaphore wait_semaphores[] = {
+        frame_data->image_available,
+    };
 
-	VkSemaphore signal_semaphores[] = {
-		vulkan->swapchain.finished[vulkan->swapchain.image_index],	
-	};
+    VkSemaphore signal_semaphores[] = {
+        vulkan->swapchain.finished[vulkan->swapchain.image_index],
+    };
 
-	VkPipelineStageFlags wait_stages[] = {
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,	
-	};
+    VkPipelineStageFlags wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    };
 
-	VkSubmitInfo submit_info = {
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &frame_data->command_buffer,
-		.waitSemaphoreCount = ARRAY_COUNT(wait_semaphores),
-		.pWaitSemaphores = wait_semaphores,
-		.pWaitDstStageMask = wait_stages,
-		.signalSemaphoreCount = ARRAY_COUNT(signal_semaphores),
-		.pSignalSemaphores = signal_semaphores,
-	};
+    VkSubmitInfo submit_info = {
+        .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount   = 1,
+        .pCommandBuffers      = &frame_data->command_buffer,
+        .waitSemaphoreCount   = ARRAY_COUNT(wait_semaphores),
+        .pWaitSemaphores      = wait_semaphores,
+        .pWaitDstStageMask    = wait_stages,
+        .signalSemaphoreCount = ARRAY_COUNT(signal_semaphores),
+        .pSignalSemaphores    = signal_semaphores,
+    };
 
-	if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, frame_data->in_flight_fence) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to submit graphics queue.");
-		return;
-	}
+    if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, frame_data->in_flight_fence) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to submit graphics queue.");
+        return;
+    }
 
-	VkPresentInfoKHR present_info = {
-		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-		.swapchainCount = 1,
-		.pSwapchains = &vulkan->swapchain.handle,
-		.pImageIndices = &vulkan->swapchain.image_index,
-		.waitSemaphoreCount = ARRAY_COUNT(signal_semaphores),
-		.pWaitSemaphores = signal_semaphores,
-	};
+    VkPresentInfoKHR present_info = {
+        .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .swapchainCount     = 1,
+        .pSwapchains        = &vulkan->swapchain.handle,
+        .pImageIndices      = &vulkan->swapchain.image_index,
+        .waitSemaphoreCount = ARRAY_COUNT(signal_semaphores),
+        .pWaitSemaphores    = signal_semaphores,
+    };
 
-	if (vkQueuePresentKHR(vulkan->present_queue.handle, &present_info) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to present.");
-		return;
-	}
+    if (vkQueuePresentKHR(vulkan->present_queue.handle, &present_info) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to present.");
+        return;
+    }
 
-	vulkan->command_handler.frame_index = (vulkan->command_handler.frame_index + 1) % FRAMES_IN_FLIGHT;
-	++vulkan->command_handler.accumulated_frame_index;
+    vulkan->command_handler.frame_index = (vulkan->command_handler.frame_index + 1) % FRAMES_IN_FLIGHT;
+    ++vulkan->command_handler.accumulated_frame_index;
 }
 
 void vulkan_destroy(vulkan *vulkan)
 {
-	assert(vulkan);
+    assert(vulkan);
 
-	vkDeviceWaitIdle(vulkan->device);
+    vkDeviceWaitIdle(vulkan->device);
 
-	vulkan_bindless_destroy(vulkan, &vulkan->bindless);
-	vulkan_pipeline_manager_destroy(vulkan, &vulkan->pipeline_manager);
-	vulkan_command_handler_destroy(vulkan, &vulkan->command_handler);
-	vulkan_swapchain_destroy(vulkan, &vulkan->swapchain);
+    vulkan_bindless_destroy(vulkan, &vulkan->bindless);
+    vulkan_pipeline_manager_destroy(vulkan, &vulkan->pipeline_manager);
+    vulkan_command_handler_destroy(vulkan, &vulkan->command_handler);
+    vulkan_swapchain_destroy(vulkan, &vulkan->swapchain);
 
-	vkDestroySurfaceKHR(vulkan->instance, vulkan->surface, NULL);
-	vkDestroyDevice(vulkan->device, NULL);
+    vkDestroySurfaceKHR(vulkan->instance, vulkan->surface, NULL);
+    vkDestroyDevice(vulkan->device, NULL);
 
 #if defined(DEBUG)
-	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vulkan->instance, "vkDestroyDebugUtilsMessengerEXT");
-	if (vkDestroyDebugUtilsMessengerEXT)
-	{
-		vkDestroyDebugUtilsMessengerEXT(vulkan->instance, vulkan->debug_messenger, NULL);
-	}
+    PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vulkan->instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (vkDestroyDebugUtilsMessengerEXT)
+    {
+        vkDestroyDebugUtilsMessengerEXT(vulkan->instance, vulkan->debug_messenger, NULL);
+    }
 #endif
-	
-	vkDestroyInstance(vulkan->instance, NULL);
+
+    vkDestroyInstance(vulkan->instance, NULL);
 }
 
 u32 vulkan_frame_index(vulkan *vulkan)
 {
-	return vulkan->command_handler.frame_index;
+    return vulkan->command_handler.frame_index;
 }

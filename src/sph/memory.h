@@ -5,8 +5,8 @@
 
 typedef struct memory_stream
 {
-	u32 size;
-	u8 *data;
+    u32 size;
+    u8 *data;
 } memory_stream;
 
 memory_stream memory_stream_reader(u32 size, void *data);

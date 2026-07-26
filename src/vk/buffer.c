@@ -6,297 +6,297 @@
 
 static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, u32 size, vulkan_buffer *out_buffer)
 {
-	assert(vulkan);
-	assert(out_buffer);
+    assert(vulkan);
+    assert(out_buffer);
 
-	vulkan_buffer result = {0};
+    vulkan_buffer result = {0};
 
-	result.size = size;
+    result.size = size;
 
-	VkBufferCreateInfo buffer_info = {
-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		.size = size,
-		.usage = usage,	
-	};
+    VkBufferCreateInfo buffer_info = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size  = size,
+        .usage = usage,
+    };
 
-	if (vkCreateBuffer(vulkan->device, &buffer_info, NULL, &result.handle) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to create device local buffer of size: %u", size);
-		return false;
-	}
+    if (vkCreateBuffer(vulkan->device, &buffer_info, NULL, &result.handle) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create device local buffer of size: %u", size);
+        return false;
+    }
 
-	VkMemoryRequirements memory_requirements;
-	vkGetBufferMemoryRequirements(vulkan->device, result.handle, &memory_requirements);
+    VkMemoryRequirements memory_requirements;
+    vkGetBufferMemoryRequirements(vulkan->device, result.handle, &memory_requirements);
 
-	u32 memory_index = vulkan_memory_type_find(vulkan, memory_requirements.memoryTypeBits, memory_properties);
-	if (memory_index == UINT32_MAX)
-	{
-		SDL_Log("[WARNING] Failed to find specific memory.");
-		return false;
-	}
+    u32 memory_index = vulkan_memory_type_find(vulkan, memory_requirements.memoryTypeBits, memory_properties);
+    if (memory_index == UINT32_MAX)
+    {
+        SDL_Log("[WARNING] Failed to find specific memory.");
+        return false;
+    }
 
-	VkMemoryAllocateInfo alloc_info = {
-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-		.allocationSize = memory_requirements.size,
-		.memoryTypeIndex = memory_index,	
-	};
+    VkMemoryAllocateInfo alloc_info = {
+        .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize  = memory_requirements.size,
+        .memoryTypeIndex = memory_index,
+    };
 
-	if (vkAllocateMemory(vulkan->device, &alloc_info, NULL, &result.memory) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to allocate device memory.");
-		return false;
-	}
+    if (vkAllocateMemory(vulkan->device, &alloc_info, NULL, &result.memory) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to allocate device memory.");
+        return false;
+    }
 
-	if (vkBindBufferMemory(vulkan->device, result.handle, result.memory, 0) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to bind memory to buffer.");
-		return false;
-	}
-	
-	*out_buffer = result;
-	
-	return true;
+    if (vkBindBufferMemory(vulkan->device, result.handle, result.memory, 0) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to bind memory to buffer.");
+        return false;
+    }
+
+    *out_buffer = result;
+
+    return true;
 }
 
 bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer)
 {
-	assert(vulkan);
-	assert(out_buffer);
+    assert(vulkan);
+    assert(out_buffer);
 
-	vulkan_buffer result = {0};
-	buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, &result);
+    vulkan_buffer result = {0};
+    buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, &result);
 
-	result.type = VULKAN_BUFFER_TYPE_DEVICE_LOCAL;
+    result.type = VULKAN_BUFFER_TYPE_DEVICE_LOCAL;
 
-	// NOTE: No data to copy into the buffer
-	if (!data)
-	{
-		*out_buffer = result;
-		return true;
-	}
+    // NOTE: No data to copy into the buffer
+    if (!data)
+    {
+        *out_buffer = result;
+        return true;
+    }
 
-	vulkan_buffer staging = {0};
-	if (!buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &staging))
-	{
-		return false;
-	}
+    vulkan_buffer staging = {0};
+    if (!buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &staging))
+    {
+        return false;
+    }
 
-	void *mapped;
-	vkMapMemory(vulkan->device, staging.memory, 0, size, 0, &mapped);
-	SDL_memcpy(mapped, data, size);
-	vkUnmapMemory(vulkan->device, staging.memory);
+    void *mapped;
+    vkMapMemory(vulkan->device, staging.memory, 0, size, 0, &mapped);
+    SDL_memcpy(mapped, data, size);
+    vkUnmapMemory(vulkan->device, staging.memory);
 
-	VkCommandPool command_pool;
-	VkCommandBuffer command_buffer;
+    VkCommandPool   command_pool;
+    VkCommandBuffer command_buffer;
 
-	VkCommandPoolCreateInfo pool_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-		.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-		.queueFamilyIndex = vulkan->graphics_queue.index,	
-	};
+    VkCommandPoolCreateInfo pool_info = {
+        .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+        .queueFamilyIndex = vulkan->graphics_queue.index,
+    };
 
-	if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to create command pool.");
-		vulkan_buffer_destroy(vulkan, &staging);
-		return false;
-	}
+    if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create command pool.");
+        vulkan_buffer_destroy(vulkan, &staging);
+        return false;
+    }
 
-	VkCommandBufferAllocateInfo alloc_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.commandPool = command_pool,
-		.commandBufferCount = 1,
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-	};
+    VkCommandBufferAllocateInfo alloc_info = {
+        .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool        = command_pool,
+        .commandBufferCount = 1,
+        .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    };
 
-	if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &command_buffer) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &command_buffer) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	VkCommandBufferBeginInfo begin_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,	
-	};
+    VkCommandBufferBeginInfo begin_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
 
-	if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	VkBufferCopy region = {
-		.size = size,	
-	};
+    VkBufferCopy region = {
+        .size = size,
+    };
 
-	vkCmdCopyBuffer(command_buffer, staging.handle, result.handle, 1, &region);
+    vkCmdCopyBuffer(command_buffer, staging.handle, result.handle, 1, &region);
 
-	if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	VkSubmitInfo submit_info = {
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &command_buffer,	
-	};
+    VkSubmitInfo submit_info = {
+        .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers    = &command_buffer,
+    };
 
-	if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	if (vkQueueWaitIdle(vulkan->graphics_queue.handle))
-	{
-		goto error;
-	}
+    if (vkQueueWaitIdle(vulkan->graphics_queue.handle))
+    {
+        goto error;
+    }
 
-	*out_buffer = result;
+    *out_buffer = result;
 
-	vkDestroyCommandPool(vulkan->device, command_pool, NULL);
-	vulkan_buffer_destroy(vulkan, &staging);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
+    vulkan_buffer_destroy(vulkan, &staging);
 
-	return true;
+    return true;
 
 error:
-	vkDestroyCommandPool(vulkan->device, command_pool, NULL);
-	vulkan_buffer_destroy(vulkan, &staging);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
+    vulkan_buffer_destroy(vulkan, &staging);
 
-	SDL_Log("[VULKAN] Error occured while creating device local buffer.");
-	
-	return false;
+    SDL_Log("[VULKAN] Error occured while creating device local buffer.");
+
+    return false;
 }
 
 bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer)
 {
-	vulkan_buffer result = {0};
+    vulkan_buffer result = {0};
 
-	result.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
+    result.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
 
-	if (!buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &result))
-	{
-		return false;
-	}
+    if (!buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &result))
+    {
+        return false;
+    }
 
-	if (vkMapMemory(vulkan->device, result.memory, 0, result.size, 0, &result.host_visible.data) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to map host visible buffer memory.");
-		return false;
-	}
+    if (vkMapMemory(vulkan->device, result.memory, 0, result.size, 0, &result.host_visible.data) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to map host visible buffer memory.");
+        return false;
+    }
 
-	*out_buffer = result;
+    *out_buffer = result;
 
-	if (data)
-	{
-		SDL_memcpy(out_buffer->host_visible.data, data, size);
-	}
+    if (data)
+    {
+        SDL_memcpy(out_buffer->host_visible.data, data, size);
+    }
 
-	return true;
+    return true;
 }
 
 bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, vulkan_buffer *out_buffer)
 {
-	vkDeviceWaitIdle(vulkan->device);
-	
-	vulkan_buffer staging = {0};
-	buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, buffer.size, &staging);
+    vkDeviceWaitIdle(vulkan->device);
 
-	staging.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
+    vulkan_buffer staging = {0};
+    buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, buffer.size, &staging);
 
-	VkCommandPool command_pool;
-	VkCommandBuffer command_buffer;
+    staging.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
 
-	VkCommandPoolCreateInfo pool_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-		.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-		.queueFamilyIndex = vulkan->graphics_queue.index,	
-	};
+    VkCommandPool   command_pool;
+    VkCommandBuffer command_buffer;
 
-	if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
-	{
-		SDL_Log("[VULKAN] Failed to create command pool.");
-		vulkan_buffer_destroy(vulkan, &staging);
-		return false;
-	}
+    VkCommandPoolCreateInfo pool_info = {
+        .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+        .queueFamilyIndex = vulkan->graphics_queue.index,
+    };
 
-	VkCommandBufferAllocateInfo alloc_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.commandPool = command_pool,
-		.commandBufferCount = 1,
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-	};
+    if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create command pool.");
+        vulkan_buffer_destroy(vulkan, &staging);
+        return false;
+    }
 
-	if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &command_buffer) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    VkCommandBufferAllocateInfo alloc_info = {
+        .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool        = command_pool,
+        .commandBufferCount = 1,
+        .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    };
 
-	VkCommandBufferBeginInfo begin_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,	
-	};
+    if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &command_buffer) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    VkCommandBufferBeginInfo begin_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
 
-	VkBufferCopy region = {
-		.size = buffer.size,	
-	};
+    if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	vkCmdCopyBuffer(command_buffer, buffer.handle, staging.handle, 1, &region);
+    VkBufferCopy region = {
+        .size = buffer.size,
+    };
 
-	if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    vkCmdCopyBuffer(command_buffer, buffer.handle, staging.handle, 1, &region);
 
-	VkSubmitInfo submit_info = {
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &command_buffer,	
-	};
+    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
-	{
-		goto error;
-	}
+    VkSubmitInfo submit_info = {
+        .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers    = &command_buffer,
+    };
 
-	if (vkQueueWaitIdle(vulkan->graphics_queue.handle))
-	{
-		goto error;
-	}
+    if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
+    {
+        goto error;
+    }
 
-	vkDestroyCommandPool(vulkan->device, command_pool, NULL);
+    if (vkQueueWaitIdle(vulkan->graphics_queue.handle))
+    {
+        goto error;
+    }
 
-	vkMapMemory(vulkan->device, staging.memory, 0, buffer.size, 0, &staging.host_visible.data);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
 
-	*out_buffer = staging;
+    vkMapMemory(vulkan->device, staging.memory, 0, buffer.size, 0, &staging.host_visible.data);
 
-	return true;
+    *out_buffer = staging;
+
+    return true;
 
 error:
-	vkDestroyCommandPool(vulkan->device, command_pool, NULL);
-	vulkan_buffer_destroy(vulkan, &staging);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
+    vulkan_buffer_destroy(vulkan, &staging);
 
-	SDL_Log("[VULKAN] Error occured while getting device local data.");
-	
-	return false;
+    SDL_Log("[VULKAN] Error occured while getting device local data.");
+
+    return false;
 }
 
 void vulkan_buffer_destroy(vulkan *vulkan, vulkan_buffer *buffer)
 {
-	assert(vulkan);
-	assert(buffer);
+    assert(vulkan);
+    assert(buffer);
 
-	vkDeviceWaitIdle(vulkan->device);
+    vkDeviceWaitIdle(vulkan->device);
 
-	if (buffer->type == VULKAN_BUFFER_TYPE_HOST_VISIBLE && buffer->host_visible.data)
-	{
-		vkUnmapMemory(vulkan->device, buffer->memory);
-	}
+    if (buffer->type == VULKAN_BUFFER_TYPE_HOST_VISIBLE && buffer->host_visible.data)
+    {
+        vkUnmapMemory(vulkan->device, buffer->memory);
+    }
 
-	vkDestroyBuffer(vulkan->device, buffer->handle, NULL);
-	vkFreeMemory(vulkan->device, buffer->memory, NULL);
+    vkDestroyBuffer(vulkan->device, buffer->handle, NULL);
+    vkFreeMemory(vulkan->device, buffer->memory, NULL);
 }

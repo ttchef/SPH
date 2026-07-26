@@ -2,40 +2,40 @@
 #pragma once
 
 #include <types.h>
-#include <vk/types.h>
-#include <vk/swapchain.h>
-#include <vk/pipeline.h>
 #include <vk/command.h>
 #include <vk/descriptor.h>
+#include <vk/pipeline.h>
+#include <vk/swapchain.h>
+#include <vk/types.h>
 
-#include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
+#include <vulkan/vulkan.h>
 
 typedef struct
 {
-	VkQueue handle;
-	u32 index;
+    VkQueue handle;
+    u32     index;
 } vulkan_queue;
 
 struct vulkan
 {
 #if defined(DEBUG)
-	VkDebugUtilsMessengerEXT debug_messenger;
+    VkDebugUtilsMessengerEXT debug_messenger;
 #endif
-	
-	VkInstance instance;
-	VkSurfaceKHR surface;
-	VkPhysicalDevice physical_device;
 
-	vulkan_queue graphics_queue;
-	vulkan_queue present_queue;
+    VkInstance       instance;
+    VkSurfaceKHR     surface;
+    VkPhysicalDevice physical_device;
 
-	VkDevice device;
+    vulkan_queue graphics_queue;
+    vulkan_queue present_queue;
 
-	vulkan_swapchain swapchain;
-	vulkan_command_handler command_handler;
-	vulkan_pipeline_manager pipeline_manager;
-	vulkan_bindless bindless;
+    VkDevice device;
+
+    vulkan_swapchain        swapchain;
+    vulkan_command_handler  command_handler;
+    vulkan_pipeline_manager pipeline_manager;
+    vulkan_bindless         bindless;
 };
 
 bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size);

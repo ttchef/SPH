@@ -2,9 +2,9 @@
 #pragma once
 
 #include <types.h>
-#include <vk/types.h>
-#include <vk/pipeline.h>
 #include <vk/buffer.h>
+#include <vk/pipeline.h>
+#include <vk/types.h>
 
 #include <math/types.h>
 
@@ -12,29 +12,29 @@
 
 typedef struct
 {
-	VkSemaphore image_available;
-	VkFence in_flight_fence;
-	VkCommandBuffer command_buffer;
+    VkSemaphore     image_available;
+    VkFence         in_flight_fence;
+    VkCommandBuffer command_buffer;
 } vulkan_frame_data;
 
 typedef struct
 {
-	void *base;
-	u32 size;
+    void *base;
+    u32   size;
 
-	void *at;
-	u32 available;
+    void *at;
+    u32   available;
 } vulkan_command_queue;
 
 typedef struct
 {
-	VkCommandPool command_pool;
-	vulkan_frame_data frame_data[FRAMES_IN_FLIGHT];
+    VkCommandPool     command_pool;
+    vulkan_frame_data frame_data[FRAMES_IN_FLIGHT];
 
-	u32 frame_index;
-	u64 accumulated_frame_index;
+    u32 frame_index;
+    u64 accumulated_frame_index;
 
-	vulkan_command_queue render_commands;
+    vulkan_command_queue render_commands;
 } vulkan_command_handler;
 
 //

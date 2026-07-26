@@ -1,12 +1,13 @@
 
 #pragma once
 
-#include <types.h>
 #include <math/types.h>
 #include <sph/input.h>
 #include <sph/window.h>
+#include <types.h>
 
-typedef struct camera {
+typedef struct camera
+{
     f32 speed;
     f32 sensitivity;
 
