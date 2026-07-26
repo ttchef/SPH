@@ -1,9 +1,9 @@
 
 struct GlobalUBO
 {
-	float4x4 view;
-	float4x4 perspective;
-	float4x4 orthographic;	
+    float4x4 view;
+    float4x4 perspective;
+    float4x4 orthographic;
 };
 
 [[vk::binding(0, 0)]]
@@ -17,8 +17,11 @@ SamplerState samplers[256];
 
 struct PushConstant
 {
-	uint texture;
-	uint sampler;	
+    float4x4 model;
+    uint     texture;
+    uint     sampler;
+    float2   rect_pos;
+    float2   rect_size;
 };
 
 [[vk::push_constant]]
@@ -26,56 +29,43 @@ PushConstant pc;
 
 struct VSOutput
 {
-	float4 position : SV_Position;
-	float2 uv;
-	float3 color;	
+    float4 position : SV_Position;
+    float2 uv;
 };
 
 [shader("vertex")]
-VSOutput vertexMain(uint index : SV_VulkanVertexID)
+VSOutput vertexMain(uint index: SV_VulkanVertexID)
 {
-	VSOutput output;
+    VSOutput output;
 
-	float2 vertices[6] = {
-		float2(-35.0, -35.0),	
-		float2(-35.0, 35.0),	
-		float2(35.0, 35.0),	
+    float2 vertices[6] = {
+        float2(-0.5, -0.5),
+        float2(-0.5, 0.5),
+        float2(0.5, 0.5),
 
-		float2(-35.0, -35.0),	
-		float2(35.0, -35.0),	
-		float2(35.0, 35.0),	
-	};
+        float2(-0.5, -0.5),
+        float2(0.5, -0.5),
+        float2(0.5, 0.5),
+    };
 
-	float2 uv[6] = {
-		float2(0.0, 1.0),
-		float2(0.0, 0.0),
-		float2(1.0, 0.0),
+    float2 uv[6] = {
+        float2(pc.rect_pos.x, pc.rect_pos.y),
+        float2(pc.rect_pos.x, pc.rect_size.y),
+        float2(pc.rect_size.x, pc.rect_size.y),
 
-		float2(0.0, 1.0),
-		float2(1.0, 1.0),
-		float2(1.0, 0.0),	
-	};
+        float2(pc.rect_pos.x, pc.rect_pos.y),
+        float2(pc.rect_size.x, pc.rect_pos.y),
+        float2(pc.rect_size.x, pc.rect_size.y),
+    };
+    
+    output.position = mul(ubo.orthographic, mul(pc.model, float4(vertices[index], 0.0, 1.0)));
+    output.uv       = uv[index];
 
-	float3 colors[6] = {
-		float3(1.0, 0.0, 0.0),	
-		float3(0.0, 1.0, 0.0),	
-		float3(0.0, 0.0, 1.0),	
-		float3(1.0, 0.0, 0.0),	
-		float3(0.0, 1.0, 0.0),	
-		float3(0.0, 0.0, 1.0),	
-	};
-
-	float4x4 view_proj = mul(ubo.perspective, ubo.view);
-
-	output.position = mul(view_proj, float4(vertices[index], 0.0, 1.0));
-	output.uv = uv[index];
-	output.color = colors[index];
-
-	return output;
+    return output;
 }
 
 [shader("fragment")]
 float4 fragmentMain(VSOutput input)
 {
-	return textures[pc.texture].Sample(samplers[pc.sampler], input.uv);
+    return textures[pc.texture].Sample(samplers[pc.sampler], input.uv);
 }

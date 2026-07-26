@@ -1267,12 +1267,13 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
         .data   = SDL_calloc(atlas_width * atlas_height, sizeof(u32)),
     };
 
+    out_font->ascent = (f32)hhea.ascent * (64.0f / (f32)head.units_per_em);
     out_font->pack = pack_create(atlas_width, atlas_height);
 
     table *glyf_table = table_find(&directory, TAG_GLYF);
     assert(glyf_table);
 
-    for (u8 c = 'A'; c <= 'Z'; c++)
+    for (u8 c = '!'; c <= '~'; c++)
     {
         u16 glyph_index = cmap_lookup(&cmap, c);
         u16 glyph_advance;
@@ -1315,36 +1316,38 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
         f32       new_width    = glyph_height_px * aspect_ratio;
         image_raw glyph_data   = glyph_rasterize(&glyf, (u32)new_width, (u32)glyph_height_px);
 
-        f32 advance = (f32)glyph_advance * scale;
-
         ttf_glyph glyph = {
-            .size.x  = (u32)new_width,
-            .size.y  = (u32)glyph_height_px,
-            .advance = advance,
+            .size_px.x  = (u32)new_width,
+            .size_px.y  = (u32)glyph_height_px,
+            .advance = (f32)glyph_advance * scale,
+            .bearing_y = glyf.y_max * scale,
         };
 
-        if (!pack_add(&out_font->pack, glyph.size, &glyph.pos))
+        v2u glyph_pos;
+        if (!pack_add(&out_font->pack, glyph.size_px, &glyph_pos))
         {
             SDL_Log("[TTF] Failed to pack: %c.", c);
             continue;
         }
+        glyph.uv_min = v2make((f32)glyph_pos.x / (f32)atlas_raw.width, (f32)glyph_pos.y / (f32)atlas_raw.height);
+        glyph.uv_max = v2make((f32)(glyph.size_px.x + glyph_pos.x) / (f32)atlas_raw.width, (f32)(glyph.size_px.y + glyph_pos.y) / (f32)atlas_raw.height);
 
         // NOTE: Write into atlas
         u32 *atlas_pixels = (u32 *)atlas_raw.data;
         u32 *glyph_pixels = (u32 *)glyph_data.data;
 
-        for (u32 y = 0; y < glyph.size.y; y++)
+        for (u32 y = 0; y < glyph.size_px.y; y++)
         {
-            for (u32 x = 0; x < glyph.size.x; x++)
+            for (u32 x = 0; x < glyph.size_px.x; x++)
             {
-                u32 atlas_x = glyph.pos.x + x;
-                u32 atlas_y = glyph.pos.y + y;
+                u32 atlas_x = glyph_pos.x + x;
+                u32 atlas_y = glyph_pos.y + y;
 
                 atlas_pixels[atlas_y * atlas_width + atlas_x] = glyph_pixels[y * glyph_data.width + x];
             }
         }
 
-        out_font->glyphs[c - 'A'] = glyph;
+        out_font->glyphs[c - '!'] = glyph;
     }
 
     // NOTE: turn into vulkan image

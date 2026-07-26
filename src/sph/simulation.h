@@ -15,7 +15,7 @@ typedef struct
 	time time;
 	vulkan vulkan;
 
-	vulkan_pipeline_id pipeline;
+	vulkan_pipeline_id text_pipeline;
 
 	vulkan_sampler linear_sampler;
 

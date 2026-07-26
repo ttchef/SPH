@@ -109,7 +109,7 @@ static inline m4 m4perspective(f32 fov_radians, f32 aspect_ratio, f32 near_plane
     
     m4 result = (m4){ .m = {
         1.0f / (aspect_ratio * half_tan_fov), 0.0f, 0.0f, 0.0f,
-        0.0f, -1.0f / half_tan_fov, 0.0f, 0.0f, // Note: Negative Y scales for Vulkan clip space
+        0.0f, -1.0f / half_tan_fov, 0.0f, 0.0f, // NOTE: Negative Y scales for Vulkan clip space
         0.0f, 0.0f, -far_plane / (far_plane - near_plane), -1.0f,
         0.0f, 0.0f, -(far_plane * near_plane) / (far_plane - near_plane), 0.0f
     }};

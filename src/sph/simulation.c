@@ -12,16 +12,66 @@ typedef struct
 
 typedef struct
 {
+    m4                      model;
     vulkan_bindless_image   image;
     vulkan_bindless_sampler sampler;
-} pipeline_pc;
+    v2                      uv_min;
+    v2                      uv_max;
+} text_pc;
 
-/*
 static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scale)
 {
     vulkan *vulkan = &simulation->vulkan;
-};
-*/
+
+    vulkan_command_bind_pipeline(vulkan, simulation->text_pipeline);
+
+    ttf_font *font = &simulation->jet_brains;
+
+    text_pc pc = {
+        .image   = font->atlas.descriptor,
+        .sampler = simulation->linear_sampler.descriptor,
+    };
+
+    for (u32 i = 0; i < SDL_strlen(text); i++)
+    {
+        char c = text[i];
+
+        if (c == ' ')
+        {
+            pos.x += font->glyphs[0].advance * scale;
+            continue;
+        }
+        if (c < '!' || c > '~')
+        {
+            continue;
+        }
+
+        // TODO: Get rid of the funky index
+        ttf_glyph *glyph = &font->glyphs[c - '!'];
+
+        const f32 margin = 0.001f;
+        pc.uv_min = v2make(glyph->uv_min.x + margin, glyph->uv_min.y + margin);
+        pc.uv_max = v2make(glyph->uv_max.x - margin, glyph->uv_max.y - margin);
+
+        f32 baseline_y = pos.y + font->ascent * scale;
+
+        f32 w = (f32)glyph->size_px.x * scale;
+        f32 h = (f32)glyph->size_px.y * scale;
+
+        v2 top_left = v2make(pos.x, baseline_y - glyph->bearing_y * scale);
+        v2 center   = v2make(top_left.x + w * 0.5f, top_left.y + h * 0.5f);
+
+        m4 scale_m   = m4scale(w, h, 1.0f);
+        m4 translate = m4translate(center.x, center.y, 0.0f);
+
+        pc.model = m4mul(translate, scale_m);
+
+        vulkan_command_push_constants(vulkan, sizeof(text_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, simulation->text_pipeline);
+        vulkan_command_draw(vulkan, 6);
+
+        pos.x += glyph->advance * scale;
+    }
+}
 
 bool simulation_create(simulation *simulation)
 {
@@ -44,10 +94,10 @@ bool simulation_create(simulation *simulation)
 
     vulkan_pipeline_desc_set_shaders(&desc, "src/shaders/spv/hello.spv", "src/shaders/spv/hello.spv", NULL);
     vulkan_pipeline_desc_set_shaders_entries(&desc, "vertexMain", "fragmentMain", NULL);
-    vulkan_pipeline_desc_set_push_constant(&desc, sizeof(pipeline_pc), VK_SHADER_STAGE_FRAGMENT_BIT);
+    vulkan_pipeline_desc_set_push_constant(&desc, sizeof(text_pc), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    simulation->pipeline = vulkan_pipeline_create(&simulation->vulkan, &desc);
-    assert(simulation->pipeline != VULKAN_INVALID_PIPELINE);
+    simulation->text_pipeline = vulkan_pipeline_create(&simulation->vulkan, &desc);
+    assert(simulation->text_pipeline != VULKAN_INVALID_PIPELINE);
 
     usize jet_brains_size;
     u8   *jet_brains_data = SDL_LoadFile("assets/fonts/jet-brains.ttf", &jet_brains_size);
@@ -94,15 +144,7 @@ void simulation_update(simulation *simulation)
     vulkan_command_begin_rendering(vulkan);
     vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
 
-    vulkan_command_bind_pipeline(vulkan, simulation->pipeline);
-
-    pipeline_pc pc = {
-        .image   = simulation->jet_brains.atlas.descriptor,
-        .sampler = simulation->linear_sampler.descriptor,
-    };
-
-    vulkan_command_push_constants(vulkan, sizeof(pipeline_pc), &pc, VK_SHADER_STAGE_FRAGMENT_BIT, simulation->pipeline);
-    vulkan_command_draw(vulkan, 6);
+    draw_text(simulation, "Hello World", v2make(0, 0), 1.0f);
 
     vulkan_command_end_rendering(vulkan);
 
