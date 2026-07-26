@@ -10,6 +10,7 @@ typedef struct time
     u64 last;
 
     f64 delta;
+    f64 smooth_delta;
     // NOTE: Never gets resetted
     f64 accumulated;
 } time;
@@ -31,6 +32,7 @@ static inline void time_update(time *time)
     const u64 freq = SDL_GetPerformanceFrequency();
 
     time->delta = (f64)(now - time->last) / (f64)freq;
+    time->smooth_delta = 0.9f * time->smooth_delta + 0.1f * time->delta;
     time->last  = now;
 
     time->accumulated += time->delta;

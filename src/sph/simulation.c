@@ -25,8 +25,20 @@ typedef struct
     m4 model;  
 } cube_lines_pc;
 
-static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scale)
+static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *format, ...)
 {
+    va_list args;
+    va_start(args, format);
+    
+    static char buffer[4096];
+    i32 written = SDL_vsnprintf(buffer, sizeof(buffer), format, args);
+    if (written < 0 || written > (i32)sizeof(buffer))
+    {
+        SDL_Log("[ENGINE] Draw string format error.");
+        va_end(args);
+        return;
+    }
+    
     vulkan *vulkan = &simulation->vulkan;
 
     vulkan_command_bind_pipeline(vulkan, simulation->text_pipeline);
@@ -41,9 +53,9 @@ static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scal
     const f32 line_height = font->ascent - font->descent + font->line_gap;
     v2        write       = v2make(pos.x, pos.y + font->ascent * scale);
 
-    for (u32 i = 0; i < SDL_strlen(text); i++)
+    for (i32 i = 0; i < written; i++)
     {
-        char c = text[i];
+        char c = buffer[i];
 
         if (c == ' ')
         {
@@ -84,6 +96,8 @@ static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scal
 
         write.x += glyph->advance * scale;
     }
+
+    va_end(args);
 }
 
 static void draw_screen_quad(simulation *simulation, v2 pos, v2 scale, vulkan_image *image, vulkan_sampler *sampler)
@@ -248,7 +262,8 @@ void simulation_update(simulation *simulation)
     draw_cube_lines(simulation, v3make(0, 0, 0), v3make(300, 300, 300));
     draw_screen_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5), v2make(200, 200), &simulation->test_texture, &simulation->linear_sampler);
     draw_screen_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), &simulation->test_texture, &simulation->linear_sampler);
-    draw_text(simulation, "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz", v2make(0, 0), 0.9f);
+    draw_screen_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), &simulation->test_texture, &simulation->linear_sampler);
+    draw_text(simulation, v2make(0, 0), 0.5f, "Frametime: %.4fms", simulation->time.smooth_delta * 1000.0f);
 
     vulkan_command_end_rendering(vulkan);
 
