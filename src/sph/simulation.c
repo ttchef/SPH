@@ -32,6 +32,9 @@ static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scal
         .sampler = simulation->linear_sampler.descriptor,
     };
 
+    const f32 line_height = font->ascent - font->descent + font->line_gap;
+    v2        write       = v2make(pos.x, pos.y + font->ascent * scale);
+
     for (u32 i = 0; i < SDL_strlen(text); i++)
     {
         char c = text[i];
@@ -39,6 +42,12 @@ static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scal
         if (c == ' ')
         {
             pos.x += font->glyphs[0].advance * scale;
+            continue;
+        }
+        if (c == '\n')
+        {
+            write.x = pos.x;
+            write.y += line_height * scale;
             continue;
         }
         if (c < '!' || c > '~')
@@ -50,15 +59,13 @@ static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scal
         ttf_glyph *glyph = &font->glyphs[c - '!'];
 
         const f32 margin = 0.001f;
-        pc.uv_min = v2make(glyph->uv_min.x + margin, glyph->uv_min.y + margin);
-        pc.uv_max = v2make(glyph->uv_max.x - margin, glyph->uv_max.y - margin);
-
-        f32 baseline_y = pos.y + font->ascent * scale;
+        pc.uv_min        = v2make(glyph->uv_min.x + margin, glyph->uv_min.y + margin);
+        pc.uv_max        = v2make(glyph->uv_max.x - margin, glyph->uv_max.y - margin);
 
         f32 w = (f32)glyph->size_px.x * scale;
         f32 h = (f32)glyph->size_px.y * scale;
 
-        v2 top_left = v2make(pos.x, baseline_y - glyph->bearing_y * scale);
+        v2 top_left = v2make(write.x + glyph->bearing.x * scale, write.y - glyph->bearing.y * scale);
         v2 center   = v2make(top_left.x + w * 0.5f, top_left.y + h * 0.5f);
 
         m4 scale_m   = m4scale(w, h, 1.0f);
@@ -69,7 +76,7 @@ static void draw_text(simulation *simulation, const char *text, v2 pos, f32 scal
         vulkan_command_push_constants(vulkan, sizeof(text_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, simulation->text_pipeline);
         vulkan_command_draw(vulkan, 6);
 
-        pos.x += glyph->advance * scale;
+        write.x += glyph->advance * scale;
     }
 }
 
@@ -144,7 +151,7 @@ void simulation_update(simulation *simulation)
     vulkan_command_begin_rendering(vulkan);
     vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
 
-    draw_text(simulation, "Hello World", v2make(0, 0), 1.0f);
+    draw_text(simulation, "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz", v2make(0, 0), 0.9f);
 
     vulkan_command_end_rendering(vulkan);
 

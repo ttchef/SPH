@@ -1267,7 +1267,11 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
         .data   = SDL_calloc(atlas_width * atlas_height, sizeof(u32)),
     };
 
-    out_font->ascent = (f32)hhea.ascent * (64.0f / (f32)head.units_per_em);
+    const f32 base_scale = (64.0f / (f32)head.units_per_em);
+    out_font->ascent = (f32)hhea.ascent * base_scale;
+    out_font->descent = (f32)hhea.descent * base_scale;
+    out_font->line_gap = (f32)hhea.line_gap * base_scale;
+    
     out_font->pack = pack_create(atlas_width, atlas_height);
 
     table *glyf_table = table_find(&directory, TAG_GLYF);
@@ -1320,7 +1324,8 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
             .size_px.x  = (u32)new_width,
             .size_px.y  = (u32)glyph_height_px,
             .advance = (f32)glyph_advance * scale,
-            .bearing_y = glyf.y_max * scale,
+            .bearing.x = glyf.x_min * scale,
+            .bearing.y = glyf.y_max * scale,
         };
 
         v2u glyph_pos;

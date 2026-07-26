@@ -18,9 +18,9 @@ typedef struct
 {
     v2 uv_min;
     v2 uv_max;
+    v2 bearing;
     v2u size_px;
     f32 advance;
-    f32 bearing_y;
 } ttf_glyph;
 
 typedef struct
@@ -29,6 +29,8 @@ typedef struct
     ttf_glyph    glyphs[100];
     vulkan_image atlas;
     f32 ascent;
+    f32 descent;
+    f32 line_gap;
 } ttf_font;
 
 bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font);
