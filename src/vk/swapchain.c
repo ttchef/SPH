@@ -5,16 +5,13 @@
 #include <SDL3/SDL_log.h> 
 #include <vulkan/vulkan_core.h>
 
-static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h, VkSwapchainKHR old_handle)
-{
-	assert(ctx);
-	assert(swapchain);
-	
+static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h, VkSwapchainKHR old_handle)
+{	
 	VkSurfaceCapabilitiesKHR caps;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx->physical_device, ctx->surface, &caps);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vulkan->physical_device, vulkan->surface, &caps);
 
 	u32 format_count;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(ctx->physical_device, ctx->surface, &format_count, NULL);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(vulkan->physical_device, vulkan->surface, &format_count, NULL);
 
 	if (format_count == 0)
 	{
@@ -23,7 +20,7 @@ static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u3
 	}
 
 	VkSurfaceFormatKHR formats[format_count];	
-	vkGetPhysicalDeviceSurfaceFormatsKHR(ctx->physical_device, ctx->surface, &format_count, formats);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(vulkan->physical_device, vulkan->surface, &format_count, formats);
 
 	VkSurfaceFormatKHR fmt = formats[0];
 	for (u32 i = 0; i < format_count; i++)
@@ -36,7 +33,7 @@ static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u3
 	}
 
 	u32 present_mode_count;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(ctx->physical_device, ctx->surface, &present_mode_count, NULL);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(vulkan->physical_device, vulkan->surface, &present_mode_count, NULL);
 
 	if (present_mode_count == 0)
 	{
@@ -45,7 +42,7 @@ static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u3
 	}
 
 	VkPresentModeKHR present_modes[present_mode_count];
-	vkGetPhysicalDeviceSurfacePresentModesKHR(ctx->physical_device, ctx->surface, &present_mode_count, present_modes);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(vulkan->physical_device, vulkan->surface, &present_mode_count, present_modes);
 
 	VkPresentModeKHR present_mode = present_modes[0];
 	for (u32 i = 0; i < present_mode_count; i++)
@@ -74,7 +71,7 @@ static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u3
 	VkSwapchainCreateInfoKHR info = {
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 		.oldSwapchain = old_handle,
-		.surface = ctx->surface,
+		.surface = vulkan->surface,
 		.clipped = VK_TRUE,
 		.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 		.imageArrayLayers = 1,
@@ -87,7 +84,7 @@ static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u3
 		.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
 	};
 
-	if (vkCreateSwapchainKHR(ctx->device, &info, NULL, &swapchain->handle) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(vulkan->device, &info, NULL, &swapchain->handle) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create swapchain.");
 		return false;
@@ -96,12 +93,12 @@ static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u3
 	swapchain->extent = extent;
 	swapchain->fmt = fmt.format;
 
-	vkGetSwapchainImagesKHR(ctx->device, swapchain->handle, &swapchain->image_count, NULL);
+	vkGetSwapchainImagesKHR(vulkan->device, swapchain->handle, &swapchain->image_count, NULL);
 
 	swapchain->images = SDL_calloc(swapchain->image_count, sizeof(VkImage));
 	assert(swapchain->images);
 
-	vkGetSwapchainImagesKHR(ctx->device, swapchain->handle, &swapchain->image_count, swapchain->images);
+	vkGetSwapchainImagesKHR(vulkan->device, swapchain->handle, &swapchain->image_count, swapchain->images);
 
 	swapchain->image_views = SDL_calloc(swapchain->image_count, sizeof(VkImageView));
 	assert(swapchain->image_views);
@@ -131,20 +128,20 @@ static bool swapchain_build(vulkan_context *ctx, vulkan_swapchain *swapchain, u3
 			},
 		};
 
-		if (vkCreateImageView(ctx->device, &view_info, NULL, &swapchain->image_views[i]) != VK_SUCCESS)
+		if (vkCreateImageView(vulkan->device, &view_info, NULL, &swapchain->image_views[i]) != VK_SUCCESS)
 		{
 			SDL_Log("[VULKAN] Failed to create image view: %u.", i);
 			goto error;			
 		}
 
-		if (!vulkan_image_create(ctx, v2umake(extent.width, extent.height), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, &swapchain->depth_images[i]))
+		if (!vulkan_image_create(vulkan, v2umake(extent.width, extent.height), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, &swapchain->depth_images[i]))
 		{
 			goto error;
 		}
 
-		vulkan_image_transition(ctx, &swapchain->depth_images[i], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+		vulkan_image_transition(vulkan, &swapchain->depth_images[i], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 	
-		if (vkCreateSemaphore(ctx->device, &semaphore_info, NULL, &swapchain->finished[i]) != VK_SUCCESS)
+		if (vkCreateSemaphore(vulkan->device, &semaphore_info, NULL, &swapchain->finished[i]) != VK_SUCCESS)
 		{
 			SDL_Log("[VULKAN] Failed to create swapchain semaphore: %u.", i);
 			goto error;
@@ -185,24 +182,24 @@ error:
 	return false;
 }
 
-bool vulkan_swapchain_create(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h)
+bool vulkan_swapchain_create(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(swapchain);
 
-	return swapchain_build(ctx, swapchain, w, h, VK_NULL_HANDLE);	
+	return swapchain_build(vulkan, swapchain, w, h, VK_NULL_HANDLE);	
 }
 
-static void zoombie_destroy(vulkan_context *ctx, vulkan_swapchain_zombie *zombie)
+static void zoombie_destroy(vulkan *vulkan, vulkan_swapchain_zombie *zombie)
 {
 	for (u32 i = 0; i < zombie->image_count; i++)
 	{
-		vkDestroyImageView(ctx->device, zombie->image_views[i], NULL);
-		vkDestroySemaphore(ctx->device, zombie->finished[i], NULL);
-		vulkan_image_destroy(ctx, zombie->depth_images[i]);
+		vkDestroyImageView(vulkan->device, zombie->image_views[i], NULL);
+		vkDestroySemaphore(vulkan->device, zombie->finished[i], NULL);
+		vulkan_image_destroy(vulkan, zombie->depth_images[i]);
 	}
 
-	vkDestroySwapchainKHR(ctx->device, zombie->handle, NULL);
+	vkDestroySwapchainKHR(vulkan->device, zombie->handle, NULL);
 
 	assert(zombie->finished);
 	assert(zombie->image_views);
@@ -219,9 +216,9 @@ static void zoombie_destroy(vulkan_context *ctx, vulkan_swapchain_zombie *zombie
 	zombie->valid = false;
 }
 
-void vulkan_swapchain_drain(vulkan_context *ctx, vulkan_swapchain *swapchain, u64 accumulated_frame_index)
+void vulkan_swapchain_drain(vulkan *vulkan, vulkan_swapchain *swapchain, u64 accumulated_frame_index)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(swapchain);
 
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
@@ -239,13 +236,13 @@ void vulkan_swapchain_drain(vulkan_context *ctx, vulkan_swapchain *swapchain, u6
 			continue;
 		}
 
-		zoombie_destroy(ctx, zombie);
+		zoombie_destroy(vulkan, zombie);
 	}
 }
 
-bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index)
+bool vulkan_swapchain_recreate(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(swapchain);
 
 	i32 zoombie_index = -1;
@@ -265,9 +262,9 @@ bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain,
 	{
 		SDL_Log("[VULKAN] Swapchain graveyard is full.");
 		
-		vulkan_swapchain_destroy(ctx, swapchain);
+		vulkan_swapchain_destroy(vulkan, swapchain);
 
-		return swapchain_build(ctx, swapchain, w, h, VK_NULL_HANDLE);
+		return swapchain_build(vulkan, swapchain, w, h, VK_NULL_HANDLE);
 	}
 
 	vulkan_swapchain_zombie *zombie = &swapchain->graveyard[zoombie_index];
@@ -291,12 +288,12 @@ bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain,
 
 	SDL_Log("[VULKAN] Swapchain recreated (%ux%u)", w, h);
 
-	return swapchain_build(ctx, swapchain, w, h, zombie->handle);
+	return swapchain_build(vulkan, swapchain, w, h, zombie->handle);
 }
 
-void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain)
+void vulkan_swapchain_destroy(vulkan *vulkan, vulkan_swapchain *swapchain)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(swapchain);
 
 	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
@@ -309,17 +306,17 @@ void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain)
 			continue;
 		}
 
-		zoombie_destroy(ctx, zombie);
+		zoombie_destroy(vulkan, zombie);
 	}
 	
 	for (u32 i = 0; i < swapchain->image_count; i++)
 	{
-		vkDestroyImageView(ctx->device, swapchain->image_views[i], NULL);
-		vkDestroySemaphore(ctx->device, swapchain->finished[i], NULL);
-		vulkan_image_destroy(ctx, swapchain->depth_images[i]);
+		vkDestroyImageView(vulkan->device, swapchain->image_views[i], NULL);
+		vkDestroySemaphore(vulkan->device, swapchain->finished[i], NULL);
+		vulkan_image_destroy(vulkan, swapchain->depth_images[i]);
 	}
 
-	vkDestroySwapchainKHR(ctx->device, swapchain->handle, NULL);
+	vkDestroySwapchainKHR(vulkan->device, swapchain->handle, NULL);
 
 	assert(swapchain->finished);
 	assert(swapchain->image_views);

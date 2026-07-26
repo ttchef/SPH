@@ -8,10 +8,10 @@
 #include <SDL3/SDL_log.h>
 
 // NOTE: returns UINT32_MAX if not found
-static inline u32 vulkan_memory_type_find(vulkan_context *ctx, u32 type_filter, VkMemoryPropertyFlags memory_properties)
+static inline u32 vulkan_memory_type_find(vulkan *vulkan, u32 type_filter, VkMemoryPropertyFlags memory_properties)
 {
 	VkPhysicalDeviceMemoryProperties device_properties;
-	vkGetPhysicalDeviceMemoryProperties(ctx->physical_device, &device_properties);
+	vkGetPhysicalDeviceMemoryProperties(vulkan->physical_device, &device_properties);
 
 	for (u32 i = 0; i < device_properties.memoryTypeCount; i++)
 	{

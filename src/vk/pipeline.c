@@ -1,5 +1,4 @@
 
-#include "vk/descriptor.h"
 #include <vk/pipeline.h>
 #include <vk/context.h>
 #include <math/types.h>
@@ -7,7 +6,7 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-typedef bool (*pipeline_create_func)(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline);
+typedef bool (*pipeline_create_func)(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline);
 
 //
 // NOTE: Pipeline builder
@@ -63,7 +62,7 @@ void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 verte
 	SDL_memcpy(desc->vertex_attributes, attribues, attribute_count * sizeof(VkVertexInputAttributeDescription));
 }
 
-void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage)
+void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage)
 {
 	if (desc->descriptor_count + 1 > ARRAY_COUNT(desc->descriptors))
 	{
@@ -72,7 +71,7 @@ void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_
 	}
 
 	vulkan_descriptor descriptor;
-	if (!vulkan_descriptor_storage_buffer_create(ctx, buffer, binding, stage, &descriptor))
+	if (!vulkan_descriptor_storage_buffer_create(vulkan, buffer, binding, stage, &descriptor))
 	{
 		return;
 	}
@@ -81,7 +80,7 @@ void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_
 	++desc->descriptor_count;
 }
 
-void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage)
+void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage)
 {
 	if (desc->descriptor_count + 1 > ARRAY_COUNT(desc->descriptors))
 	{
@@ -90,7 +89,7 @@ void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan_co
 	}
 
 	vulkan_descriptor descriptor;
-	if (!vulkan_descriptor_image_create(ctx, image, sampler, binding, stage, &descriptor))
+	if (!vulkan_descriptor_image_create(vulkan, image, sampler, binding, stage, &descriptor))
 	{
 		return;
 	}
@@ -159,9 +158,9 @@ void vulkan_pipeline_desc_set_depth(vulkan_pipeline_desc *desc, VkBool32 depth_t
 }
 
 // TODO: Replace with relative to executable path or embed shader
-static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path)
+static VkShaderModule shader_module_create(vulkan *vulkan, const char *path)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(path);
 
 	usize size;
@@ -179,7 +178,7 @@ static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path
 	};
 
 	VkShaderModule result = {0};
-	if (vkCreateShaderModule(ctx->device, &info, NULL, &result) != VK_SUCCESS)
+	if (vkCreateShaderModule(vulkan->device, &info, NULL, &result) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create shader module: %s.", path);
 		SDL_free(data);
@@ -192,7 +191,7 @@ static VkShaderModule shader_module_create(vulkan_context *ctx, const char *path
 	return result;
 }
 
-static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
+static bool pipeline_layout_create(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
 	VkPushConstantRange push_constant = {
 		.offset = 0,
@@ -222,7 +221,7 @@ static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *de
 		.setLayoutCount = desc->descriptor_count,
 	};
 
-	if (vkCreatePipelineLayout(ctx->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(vulkan->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
 		return false;
@@ -235,13 +234,13 @@ static bool pipeline_layout_create(vulkan_context *ctx, vulkan_pipeline_desc *de
 	return true;	
 }
 
-static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
+static bool graphics_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(out_pipeline);
 
-	VkShaderModule vertex_module = shader_module_create(ctx, desc->vertex_path);
-	VkShaderModule fragment_module = shader_module_create(ctx, desc->fragment_path);
+	VkShaderModule vertex_module = shader_module_create(vulkan, desc->vertex_path);
+	VkShaderModule fragment_module = shader_module_create(vulkan, desc->fragment_path);
 
 	VkSpecializationMapEntry entry = {
 		.constantID = 1,
@@ -276,7 +275,7 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 	VkPipelineRenderingCreateInfo rendering = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = 1,
-		.pColorAttachmentFormats = &ctx->swapchain.fmt,
+		.pColorAttachmentFormats = &vulkan->swapchain.fmt,
 		.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
 		.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
 	};
@@ -369,24 +368,24 @@ static bool graphics_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *
 		.layout = out_pipeline->layout,
 	};
 
-	if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &info, NULL, &out_pipeline->handle) != VK_SUCCESS)
+	if (vkCreateGraphicsPipelines(vulkan->device, VK_NULL_HANDLE, 1, &info, NULL, &out_pipeline->handle) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create graphics pipeline.");
-		vkDestroyShaderModule(ctx->device, vertex_module, NULL);
-		vkDestroyShaderModule(ctx->device, fragment_module, NULL);
+		vkDestroyShaderModule(vulkan->device, vertex_module, NULL);
+		vkDestroyShaderModule(vulkan->device, fragment_module, NULL);
 		return false;
 	}
 
-	vkDestroyShaderModule(ctx->device, vertex_module, NULL);
-	vkDestroyShaderModule(ctx->device, fragment_module, NULL);
+	vkDestroyShaderModule(vulkan->device, vertex_module, NULL);
+	vkDestroyShaderModule(vulkan->device, fragment_module, NULL);
 
 	return true;
 }
 
-static bool compute_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
+static bool compute_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
 	// TODO: Not hardcode shader
-	VkShaderModule shader_module = shader_module_create(ctx, desc->compute_path);
+	VkShaderModule shader_module = shader_module_create(vulkan, desc->compute_path);
 
 	VkSpecializationMapEntry entry = {
 		.constantID = 1,
@@ -415,30 +414,30 @@ static bool compute_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *d
 		.stage = stage,
 	};
 
-	if (vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &info, NULL, &out_pipeline->handle) != VK_SUCCESS)
+	if (vkCreateComputePipelines(vulkan->device, VK_NULL_HANDLE, 1, &info, NULL, &out_pipeline->handle) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create compute pipeline.");
-		vkDestroyShaderModule(ctx->device, shader_module, NULL);
+		vkDestroyShaderModule(vulkan->device, shader_module, NULL);
 
 		return false;
 	}
 	
-	vkDestroyShaderModule(ctx->device, shader_module, NULL);
+	vkDestroyShaderModule(vulkan->device, shader_module, NULL);
 
 	return true;
 }
 
-static void pipeline_destroy(vulkan_context *ctx, vulkan_pipeline *pipeline)
+static void pipeline_destroy(vulkan *vulkan, vulkan_pipeline *pipeline)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(pipeline);
 
-	vkDestroyPipelineLayout(ctx->device, pipeline->layout, NULL);
-	vkDestroyPipeline(ctx->device, pipeline->handle, NULL);
+	vkDestroyPipelineLayout(vulkan->device, pipeline->layout, NULL);
+	vkDestroyPipeline(vulkan->device, pipeline->handle, NULL);
 
 	for (u32 i = 0; i < pipeline->descriptor_count; i++)
 	{
-		vulkan_descriptor_destroy(ctx, &pipeline->descriptors[i]);
+		vulkan_descriptor_destroy(vulkan, &pipeline->descriptors[i]);
 	}
 }
 
@@ -451,23 +450,23 @@ bool vulkan_pipeline_manager_create(vulkan_pipeline_manager *manager)
 	return true;
 }
 
-void vulkan_pipeline_manager_destroy(vulkan_context *ctx, vulkan_pipeline_manager *manager)
+void vulkan_pipeline_manager_destroy(vulkan *vulkan, vulkan_pipeline_manager *manager)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(manager);
 
 	for (u32 i = 0; i < manager->count; i++)
 	{
-		pipeline_destroy(ctx, &manager->pipelines[i]);
+		pipeline_destroy(vulkan, &manager->pipelines[i]);
 	}
 }
 
-vulkan_pipeline_id vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc)
+vulkan_pipeline_id vulkan_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(desc);
 
-	vulkan_pipeline_manager *manager = &ctx->pipeline_manager;
+	vulkan_pipeline_manager *manager = &vulkan->pipeline_manager;
 
 	if (manager->count + 1 > ARRAY_COUNT(manager->pipelines))
 	{
@@ -475,13 +474,13 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_d
 		return INVALID_PIPELINE;
 	}
 
-	if (!pipeline_layout_create(ctx, desc, &manager->pipelines[manager->count]))
+	if (!pipeline_layout_create(vulkan, desc, &manager->pipelines[manager->count]))
 	{
 		return INVALID_PIPELINE;
 	}
 
 	pipeline_create_func pipeline_create = desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? graphics_pipeline_create : compute_pipeline_create;
-	if (!pipeline_create(ctx, desc, &manager->pipelines[manager->count]))
+	if (!pipeline_create(vulkan, desc, &manager->pipelines[manager->count]))
 	{
 		return INVALID_PIPELINE;
 	}
@@ -491,12 +490,12 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_d
 	return manager->count;
 }
 
-vulkan_pipeline *vulkan_pipeline_get(vulkan_context *ctx, vulkan_pipeline_id id)
+vulkan_pipeline *vulkan_pipeline_get(vulkan *vulkan, vulkan_pipeline_id id)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(id != INVALID_PIPELINE);
 
-	vulkan_pipeline_manager *manager = &ctx->pipeline_manager;
+	vulkan_pipeline_manager *manager = &vulkan->pipeline_manager;
 	
 	vulkan_pipeline *result = &manager->pipelines[id - 1];
 	assert(result);

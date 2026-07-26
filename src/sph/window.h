@@ -5,12 +5,7 @@
 
 #include <SDL3/SDL.h>
 
-//
-// NOTE: This file is mainly to make the window struct visible
-//       for other files 
-// 
-
-typedef struct window
+typedef struct
 {
     SDL_Window *handle;
 
@@ -18,3 +13,9 @@ typedef struct window
     u32 width;
     u32 height;
 } window;
+
+bool window_create(window *window, u32 width, u32 height);
+
+void window_resize(window *window);
+
+void window_destroy(window *window);

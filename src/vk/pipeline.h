@@ -74,9 +74,9 @@ vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type);
 
 void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 vertex_stride, VkVertexInputAttributeDescription *attribues, u32 attribute_count);
 
-void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage);
+void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage);
 
-void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan_context *ctx, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage);
+void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage);
 
 void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages);
 
@@ -97,7 +97,7 @@ void vulkan_pipeline_desc_set_depth(vulkan_pipeline_desc *desc, VkBool32 depth_t
 
 bool vulkan_pipeline_manager_create(vulkan_pipeline_manager *manager);
 
-void vulkan_pipeline_manager_destroy(vulkan_context *ctx, vulkan_pipeline_manager *manager);
-vulkan_pipeline_id vulkan_pipeline_create(vulkan_context *ctx, vulkan_pipeline_desc *desc);
+void vulkan_pipeline_manager_destroy(vulkan *vulkan, vulkan_pipeline_manager *manager);
+vulkan_pipeline_id vulkan_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc);
 
-vulkan_pipeline *vulkan_pipeline_get(vulkan_context *ctx, vulkan_pipeline_id id);
+vulkan_pipeline *vulkan_pipeline_get(vulkan *vulkan, vulkan_pipeline_id id);

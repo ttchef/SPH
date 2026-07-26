@@ -10,14 +10,14 @@
 
 #include <vulkan/vulkan_core.h>
 
-typedef struct vulkan_frame_data
+typedef struct
 {
 	VkSemaphore image_available;
 	VkFence in_flight_fence;
 	VkCommandBuffer command_buffer;
 } vulkan_frame_data;
 
-typedef struct vulkan_command_queue
+typedef struct
 {
 	void *base;
 	u32 size;
@@ -26,7 +26,7 @@ typedef struct vulkan_command_queue
 	u32 available;
 } vulkan_command_queue;
 
-typedef struct vulkan_command_handler
+typedef struct
 {
 	VkCommandPool command_pool;
 	vulkan_frame_data frame_data[FRAMES_IN_FLIGHT];
@@ -41,28 +41,28 @@ typedef struct vulkan_command_handler
 // NOTE: Render commands
 //
 
-bool vulkan_command_barrier(vulkan_context *ctx, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access);
+bool vulkan_command_barrier(vulkan *vulkan, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access);
 
-bool vulkan_command_begin_rendering(vulkan_context *ctx);
+bool vulkan_command_begin_rendering(vulkan *vulkan);
 
-bool vulkan_command_end_rendering(vulkan_context *ctx);
+bool vulkan_command_end_rendering(vulkan *vulkan);
 
-bool vulkan_command_bind_pipeline(vulkan_context *ctx, vulkan_pipeline_id id);
+bool vulkan_command_bind_pipeline(vulkan *vulkan, vulkan_pipeline_id id);
 
-bool vulkan_command_bind_vertex_buffer(vulkan_context *ctx, vulkan_buffer buffer, vulkan_pipeline_id pipeline);
+bool vulkan_command_bind_vertex_buffer(vulkan *vulkan, vulkan_buffer buffer, vulkan_pipeline_id pipeline);
 
-bool vulkan_command_push_constants(vulkan_context *ctx, u32 size, void *data, VkShaderStageFlags stage, vulkan_pipeline_id pipeline);
+bool vulkan_command_push_constants(vulkan *vulkan, u32 size, void *data, VkShaderStageFlags stage, vulkan_pipeline_id pipeline);
 
-bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count);
+bool vulkan_command_draw(vulkan *vulkan, u32 vertex_count);
 
-bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 size_z);
+bool vulkan_command_dispatch(vulkan *vulkan, u32 size_x, u32 size_y, u32 size_z);
 
-bool vulkan_command_set_viewport(vulkan_context *ctx, u32 x, u32 y, u32 width, u32 height);
+bool vulkan_command_set_viewport(vulkan *vulkan, u32 x, u32 y, u32 width, u32 height);
 
 // ----------
 
-bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *handler);
+bool vulkan_command_handler_create(vulkan *vulkan, vulkan_command_handler *handler);
 
-bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *handler);
+bool vulkan_command_handler_record(vulkan *vulkan, vulkan_command_handler *handler);
 
-void vulkan_command_handler_destroy(vulkan_context *ctx, vulkan_command_handler *handler);
+void vulkan_command_handler_destroy(vulkan *vulkan, vulkan_command_handler *handler);

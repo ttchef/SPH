@@ -95,11 +95,11 @@ typedef struct
 	u32 height;
 } command_set_viewport;
 
-static bool command_add(vulkan_context *ctx, void *data, u32 size)
+static bool command_add(vulkan *vulkan, void *data, u32 size)
 {
-	assert(ctx);
+	assert(vulkan);
 	
-	vulkan_command_queue *queue = &ctx->command_handler.render_commands;
+	vulkan_command_queue *queue = &vulkan->command_handler.render_commands;
 
 	if (size > queue->available)
 	{
@@ -114,7 +114,7 @@ static bool command_add(vulkan_context *ctx, void *data, u32 size)
 	return true;
 }
 
-bool vulkan_command_barrier(vulkan_context *ctx, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access)
+bool vulkan_command_barrier(vulkan *vulkan, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access)
 {
 	command_header header = {
 		.type = COMMAND_BARRIER,
@@ -129,10 +129,10 @@ bool vulkan_command_barrier(vulkan_context *ctx, VkPipelineStageFlags src_stage,
 		.dst_access = dst_access,	
 	};
 
-	return command_add(ctx, &barrier, header.size);
+	return command_add(vulkan, &barrier, header.size);
 }
 
-bool vulkan_command_begin_rendering(vulkan_context *ctx)
+bool vulkan_command_begin_rendering(vulkan *vulkan)
 {
 	command_header header = {
 		.type = COMMAND_BEGIN_RENDERING,
@@ -143,10 +143,10 @@ bool vulkan_command_begin_rendering(vulkan_context *ctx)
 		.header = header,	
 	};
 
-	return command_add(ctx, &begin_rendering, header.size);
+	return command_add(vulkan, &begin_rendering, header.size);
 }
 
-bool vulkan_command_end_rendering(vulkan_context *ctx)
+bool vulkan_command_end_rendering(vulkan *vulkan)
 {
 	command_header header = {
 		.type = COMMAND_END_RENDERING,
@@ -157,10 +157,10 @@ bool vulkan_command_end_rendering(vulkan_context *ctx)
 		.header = header,	
 	};
 
-	return command_add(ctx, &end_rendering, header.size);
+	return command_add(vulkan, &end_rendering, header.size);
 }
 
-bool vulkan_command_bind_pipeline(vulkan_context *ctx, vulkan_pipeline_id id)
+bool vulkan_command_bind_pipeline(vulkan *vulkan, vulkan_pipeline_id id)
 {
 	assert(id != INVALID_PIPELINE);
 
@@ -174,12 +174,12 @@ bool vulkan_command_bind_pipeline(vulkan_context *ctx, vulkan_pipeline_id id)
 		.id = id,
 	};
 
-	return command_add(ctx, &bind_pipeline, header.size);
+	return command_add(vulkan, &bind_pipeline, header.size);
 }
 
-bool vulkan_command_bind_vertex_buffer(vulkan_context *ctx, vulkan_buffer buffer, vulkan_pipeline_id pipeline)
+bool vulkan_command_bind_vertex_buffer(vulkan *vulkan, vulkan_buffer buffer, vulkan_pipeline_id pipeline)
 {
-	assert(ctx);
+	assert(vulkan);
 
 	command_header header = {
 		.type = COMMAND_BIND_VERTEX_BUFFER,
@@ -192,12 +192,12 @@ bool vulkan_command_bind_vertex_buffer(vulkan_context *ctx, vulkan_buffer buffer
 		.pipeline = pipeline,
 	};
 
-	return command_add(ctx, &bind_vertex_buffer, header.size);
+	return command_add(vulkan, &bind_vertex_buffer, header.size);
 }
 
-bool vulkan_command_push_constants(vulkan_context *ctx, u32 size, void *data, VkShaderStageFlags stage, vulkan_pipeline_id pipeline)
+bool vulkan_command_push_constants(vulkan *vulkan, u32 size, void *data, VkShaderStageFlags stage, vulkan_pipeline_id pipeline)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(data);
 
 	command_header header = {
@@ -212,7 +212,7 @@ bool vulkan_command_push_constants(vulkan_context *ctx, u32 size, void *data, Vk
 		.pipeline = pipeline,
 	};
 
-	vulkan_command_queue *queue = &ctx->command_handler.render_commands;
+	vulkan_command_queue *queue = &vulkan->command_handler.render_commands;
 	if (header.size > queue->available)
 	{
 		SDL_Log("[VULKAN] Not enough space for render command.");
@@ -228,9 +228,9 @@ bool vulkan_command_push_constants(vulkan_context *ctx, u32 size, void *data, Vk
 	return true;
 }
 
-bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count)
+bool vulkan_command_draw(vulkan *vulkan, u32 vertex_count)
 {
-	assert(ctx);
+	assert(vulkan);
 
 	command_header header = {
 		.type = COMMAND_DRAW,
@@ -242,12 +242,12 @@ bool vulkan_command_draw(vulkan_context *ctx, u32 vertex_count)
 		.vertex_count = vertex_count,
 	};
 
-	return command_add(ctx, &draw, header.size);
+	return command_add(vulkan, &draw, header.size);
 }
 
-bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 size_z)
+bool vulkan_command_dispatch(vulkan *vulkan, u32 size_x, u32 size_y, u32 size_z)
 {
-	assert(ctx);
+	assert(vulkan);
 
 	command_header header = {
 		.type = COMMAND_DISPATCH,
@@ -261,10 +261,10 @@ bool vulkan_command_dispatch(vulkan_context *ctx, u32 size_x, u32 size_y, u32 si
 		.size_z = size_z,
 	};
 
-	return command_add(ctx, &dispatch, header.size);
+	return command_add(vulkan, &dispatch, header.size);
 }
 
-bool vulkan_command_set_viewport(vulkan_context *ctx, u32 x, u32 y, u32 width, u32 height)
+bool vulkan_command_set_viewport(vulkan *vulkan, u32 x, u32 y, u32 width, u32 height)
 {
 	command_header header = {
 		.type = COMMAND_SET_VIEWPORT,
@@ -279,12 +279,12 @@ bool vulkan_command_set_viewport(vulkan_context *ctx, u32 x, u32 y, u32 width, u
 		.height = height,	
 	};
 
-	return command_add(ctx, &set_viewport, header.size);
+	return command_add(vulkan, &set_viewport, header.size);
 }
 
-bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *handler)
+bool vulkan_command_handler_create(vulkan *vulkan, vulkan_command_handler *handler)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(handler);
 
 	handler->frame_index = 0;
@@ -293,10 +293,10 @@ bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *
 	VkCommandPoolCreateInfo pool_info = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = ctx->graphics_queue.index,
+		.queueFamilyIndex = vulkan->graphics_queue.index,
 	};
 
-	if (vkCreateCommandPool(ctx->device, &pool_info, NULL, &handler->command_pool) != VK_SUCCESS)
+	if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &handler->command_pool) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create commnad pool.");
 		return false;
@@ -320,19 +320,19 @@ bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *
 			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,	
 		};
 
-		if (vkAllocateCommandBuffers(ctx->device, &alloc_info, &handler->frame_data[i].command_buffer) != VK_SUCCESS)
+		if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &handler->frame_data[i].command_buffer) != VK_SUCCESS)
 		{
 			SDL_Log("[VULKAN] Failed to allocate command buffer.");
 			return false;			
 		}
 
-		if (vkCreateSemaphore(ctx->device, &semaphore_info, NULL, &handler->frame_data[i].image_available) != VK_SUCCESS)
+		if (vkCreateSemaphore(vulkan->device, &semaphore_info, NULL, &handler->frame_data[i].image_available) != VK_SUCCESS)
 		{
 			SDL_Log("[VULKAN] Failed to create image finished semaphore.");
 			return false;
 		}
 
-		if (vkCreateFence(ctx->device, &fence_info, NULL, &handler->frame_data[i].in_flight_fence) != VK_SUCCESS)
+		if (vkCreateFence(vulkan->device, &fence_info, NULL, &handler->frame_data[i].in_flight_fence) != VK_SUCCESS)
 		{
 			return false;
 		}
@@ -347,11 +347,11 @@ bool vulkan_command_handler_create(vulkan_context *ctx, vulkan_command_handler *
 	return true;
 }
 
-static void render_queue(vulkan_context *ctx)
+static void render_queue(vulkan *vulkan)
 {
-	assert(ctx);
+	assert(vulkan);
 
-	vulkan_command_handler *handler = &ctx->command_handler;
+	vulkan_command_handler *handler = &vulkan->command_handler;
 	vulkan_command_queue *queue = &handler->render_commands;
 
 	void *at = queue->base;
@@ -386,7 +386,7 @@ static void render_queue(vulkan_context *ctx)
 
 		    VkRenderingAttachmentInfo color_attachment_info = {
 		        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		        .imageView = ctx->swapchain.image_views[ctx->swapchain.image_index],
+		        .imageView = vulkan->swapchain.image_views[vulkan->swapchain.image_index],
 		        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -395,7 +395,7 @@ static void render_queue(vulkan_context *ctx)
 
 		    VkRenderingAttachmentInfo depth_attachment_info ={
 		    	.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		    	.imageView = ctx->swapchain.depth_images[ctx->swapchain.image_index].view,
+		    	.imageView = vulkan->swapchain.depth_images[vulkan->swapchain.image_index].view,
 		    	.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 		    	.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		    	.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -412,7 +412,7 @@ static void render_queue(vulkan_context *ctx)
 		    	.pDepthAttachment = &depth_attachment_info,
 		    	.renderArea =
 		    	{
-		    		.extent = ctx->swapchain.extent,
+		    		.extent = vulkan->swapchain.extent,
 		    		.offset = (VkOffset2D){0, 0},
 		    	},	
 		    };
@@ -427,7 +427,7 @@ static void render_queue(vulkan_context *ctx)
 		{
 			command_bind_pipeline *bind_pipeline = at;
 
-			vulkan_pipeline *pipeline = vulkan_pipeline_get(ctx, bind_pipeline->id);
+			vulkan_pipeline *pipeline = vulkan_pipeline_get(vulkan, bind_pipeline->id);
 			assert(pipeline);
 
 			VkPipelineBindPoint bind_point = pipeline->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
@@ -449,7 +449,7 @@ static void render_queue(vulkan_context *ctx)
 		{
 			command_push_constants *push_constants = at;
 
-			vulkan_pipeline *pipeline = vulkan_pipeline_get(ctx, push_constants->pipeline);
+			vulkan_pipeline *pipeline = vulkan_pipeline_get(vulkan, push_constants->pipeline);
 			assert(pipeline);
 
 			void *data = (u8 *)at + sizeof(command_push_constants);
@@ -497,9 +497,9 @@ static void render_queue(vulkan_context *ctx)
 }
 
 // TODO: not hardcode vertex buffer
-bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *handler)
+bool vulkan_command_handler_record(vulkan *vulkan, vulkan_command_handler *handler)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(handler);
 
 	vulkan_frame_data *frame_data = &handler->frame_data[handler->frame_index];
@@ -521,7 +521,7 @@ bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *
         .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image = ctx->swapchain.images[ctx->swapchain.image_index],
+        .image = vulkan->swapchain.images[vulkan->swapchain.image_index],
         .subresourceRange =
             {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -536,18 +536,18 @@ bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *
                          NULL, 0, NULL, 1, &memory_barrier);
 
     VkRect2D scissor = {
-    	.extent = ctx->swapchain.extent,
+    	.extent = vulkan->swapchain.extent,
     	.offset = (VkOffset2D){0, 0},	
     };
     vkCmdSetScissor(frame_data->command_buffer, 0, 1, &scissor);
 
-    render_queue(ctx);
+    render_queue(vulkan);
 
     memory_barrier = (VkImageMemoryBarrier){
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        .image = ctx->swapchain.images[ctx->swapchain.image_index],
+        .image = vulkan->swapchain.images[vulkan->swapchain.image_index],
         .subresourceRange =
             {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -570,19 +570,19 @@ bool vulkan_command_handler_record(vulkan_context *ctx, vulkan_command_handler *
 	return true;	
 }
 
-void vulkan_command_handler_destroy(vulkan_context *ctx, vulkan_command_handler *handler)
+void vulkan_command_handler_destroy(vulkan *vulkan, vulkan_command_handler *handler)
 {
-	assert(ctx);
+	assert(vulkan);
 	assert(handler);
 
-	SDL_free(ctx->command_handler.render_commands.base);
+	SDL_free(vulkan->command_handler.render_commands.base);
 
-	vkDestroyCommandPool(ctx->device, handler->command_pool, NULL);
+	vkDestroyCommandPool(vulkan->device, handler->command_pool, NULL);
 
 	for (u32 i = 0; i < FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroySemaphore(ctx->device, handler->frame_data[i].image_available, NULL);
-		vkDestroyFence(ctx->device, handler->frame_data[i].in_flight_fence, NULL);
+		vkDestroySemaphore(vulkan->device, handler->frame_data[i].image_available, NULL);
+		vkDestroyFence(vulkan->device, handler->frame_data[i].in_flight_fence, NULL);
 	}
 }
 

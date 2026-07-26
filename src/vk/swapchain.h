@@ -42,10 +42,10 @@ typedef struct
 	vulkan_swapchain_zombie graveyard[SWAPCHAIN_GRAVEYARD_SIZE];
 } vulkan_swapchain;
 
-bool vulkan_swapchain_create(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h);
+bool vulkan_swapchain_create(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h);
 
-void vulkan_swapchain_drain(vulkan_context *ctx, vulkan_swapchain *swapchain, u64 accumulated_frame_index);
+void vulkan_swapchain_drain(vulkan *vulkan, vulkan_swapchain *swapchain, u64 accumulated_frame_index);
 
-bool vulkan_swapchain_recreate(vulkan_context *ctx, vulkan_swapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index);
+bool vulkan_swapchain_recreate(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index);
 
-void vulkan_swapchain_destroy(vulkan_context *ctx, vulkan_swapchain *swapchain);
+void vulkan_swapchain_destroy(vulkan *vulkan, vulkan_swapchain *swapchain);

@@ -10,13 +10,13 @@
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
 
-typedef struct vulkan_queue
+typedef struct
 {
 	VkQueue handle;
 	u32 index;
 } vulkan_queue;
 
-struct vulkan_context
+struct vulkan
 {
 #if defined(DEBUG)
 	VkDebugUtilsMessengerEXT debug_messenger;
@@ -36,13 +36,13 @@ struct vulkan_context
 	vulkan_pipeline_manager pipeline_manager;
 };
 
-bool vulkan_init(SDL_Window *window, vulkan_context *ctx);
+bool vulkan_create(SDL_Window *window, vulkan *vulkan);
 
-void vulkan_resize(vulkan_context *ctx, u32 w, u32 h);
+void vulkan_resize(vulkan *vulkan, u32 w, u32 h);
 
-void vulkan_draw(vulkan_context *ctx, u32 window_width, u32 window_height);
+void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height);
 
-void vulkan_deinit(vulkan_context *ctx);
+void vulkan_destroy(vulkan *vulkan);
 
 // NOTE: Returns the current frame index
-u32 vulkan_frame_index(vulkan_context *ctx);
+u32 vulkan_frame_index(vulkan *vulkan);

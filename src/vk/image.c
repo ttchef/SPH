@@ -7,7 +7,7 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-bool vulkan_image_create(vulkan_context *ctx, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, vulkan_image *out_image)
+bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, vulkan_image *out_image)
 {
 	vulkan_image result = {0};
 	
@@ -27,28 +27,28 @@ bool vulkan_image_create(vulkan_context *ctx, v2u dimensions, VkFormat format, V
 		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 	};
 
-	if (vkCreateImage(ctx->device, &image_info, NULL, &result.handle) != VK_SUCCESS)
+	if (vkCreateImage(vulkan->device, &image_info, NULL, &result.handle) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create image.");
 		return false;
 	}
 
 	VkMemoryRequirements memory_requirements;
-	vkGetImageMemoryRequirements(ctx->device, result.handle, &memory_requirements);
+	vkGetImageMemoryRequirements(vulkan->device, result.handle, &memory_requirements);
 
 	VkMemoryAllocateInfo alloc_info = {
 		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 		.allocationSize = memory_requirements.size,
-		.memoryTypeIndex = vulkan_memory_type_find(ctx, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),	
+		.memoryTypeIndex = vulkan_memory_type_find(vulkan, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),	
 	};
 
-	if (vkAllocateMemory(ctx->device, &alloc_info, NULL, &result.memory) != VK_SUCCESS)
+	if (vkAllocateMemory(vulkan->device, &alloc_info, NULL, &result.memory) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to allocate image memory.");
 		return false;
 	}
 
-	if (vkBindImageMemory(ctx->device, result.handle, result.memory, 0) != VK_SUCCESS)
+	if (vkBindImageMemory(vulkan->device, result.handle, result.memory, 0) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to bind image memory.");
 		return false;
@@ -64,7 +64,7 @@ bool vulkan_image_create(vulkan_context *ctx, v2u dimensions, VkFormat format, V
 		.subresourceRange.levelCount = 1,	
 	};
 
-	if (vkCreateImageView(ctx->device, &view_info, NULL, &result.view) != VK_SUCCESS)
+	if (vkCreateImageView(vulkan->device, &view_info, NULL, &result.view) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create image view.");
 		return false;
@@ -79,14 +79,14 @@ bool vulkan_image_create(vulkan_context *ctx, v2u dimensions, VkFormat format, V
 	return true;
 }
 
-void vulkan_image_destroy(vulkan_context *ctx, vulkan_image image)
+void vulkan_image_destroy(vulkan *vulkan, vulkan_image image)
 {
-	vkDestroyImageView(ctx->device, image.view, NULL);
-	vkDestroyImage(ctx->device, image.handle, NULL);
-	vkFreeMemory(ctx->device, image.memory, NULL);
+	vkDestroyImageView(vulkan->device, image.view, NULL);
+	vkDestroyImage(vulkan->device, image.handle, NULL);
+	vkFreeMemory(vulkan->device, image.memory, NULL);
 }
 
-bool vulkan_image_transition(vulkan_context *ctx, vulkan_image *image,
+bool vulkan_image_transition(vulkan *vulkan, vulkan_image *image,
                          VkImageLayout old_layout, VkImageLayout new_layout,
                          VkAccessFlags src_access, VkAccessFlags dst_access,
                          VkPipelineStageFlags src_stage,
@@ -99,10 +99,10 @@ bool vulkan_image_transition(vulkan_context *ctx, vulkan_image *image,
     VkCommandPoolCreateInfo pool_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        .queueFamilyIndex = ctx->graphics_queue.index,
+        .queueFamilyIndex = vulkan->graphics_queue.index,
     };
 
-    if (vkCreateCommandPool(ctx->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
+    if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to create command pool to transition image.");
         return false;
@@ -115,7 +115,7 @@ bool vulkan_image_transition(vulkan_context *ctx, vulkan_image *image,
         .commandPool = command_pool,
     };
 
-    if (vkAllocateCommandBuffers(ctx->device, &alloc_info, &command_buffer) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &command_buffer) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to allocate command buffer to transition image.");
         goto error;
@@ -162,19 +162,19 @@ bool vulkan_image_transition(vulkan_context *ctx, vulkan_image *image,
         .pCommandBuffers = &command_buffer,
     };
 
-    if (vkQueueSubmit(ctx->graphics_queue.handle, 1, &sub_info, VK_NULL_HANDLE) != VK_SUCCESS)
+    if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &sub_info, VK_NULL_HANDLE) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to submit command buffer to transition image.");
         goto error;
     }
 
-    if (vkQueueWaitIdle(ctx->graphics_queue.handle) != VK_SUCCESS)
+    if (vkQueueWaitIdle(vulkan->graphics_queue.handle) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to wait for queue to transition image.");
         goto error;
     }
 
-    vkDestroyCommandPool(ctx->device, command_pool, NULL);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
 
 	image->access = dst_access;
 	image->layout = new_layout;
@@ -184,14 +184,14 @@ bool vulkan_image_transition(vulkan_context *ctx, vulkan_image *image,
 
 error:
 
-    vkDestroyCommandPool(ctx->device, command_pool, NULL);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
     return false;
 }
 
-bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size, void *data, v2u dimensions, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage)
+bool vulkan_image_data_upload(vulkan *vulkan, vulkan_image *image, u32 size, void *data, v2u dimensions, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage)
 {
 	vulkan_buffer staging;
-	if (!vulkan_buffer_host_visible_create(ctx, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, data, &staging))
+	if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, data, &staging))
 	{
 		SDL_Log("[VULKAN] Failed to create staging buffer when uploading data to image.");
 		return false;
@@ -203,10 +203,10 @@ bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size
     VkCommandPoolCreateInfo pool_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        .queueFamilyIndex = ctx->graphics_queue.index,
+        .queueFamilyIndex = vulkan->graphics_queue.index,
     };
 
-    if (vkCreateCommandPool(ctx->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
+    if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to create command pool to transition image.");
         return false;
@@ -219,7 +219,7 @@ bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size
         .commandPool = command_pool,
     };
 
-    if (vkAllocateCommandBuffers(ctx->device, &alloc_info, &command_buffer) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &command_buffer) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to allocate command buffer to transition image.");
         goto error;
@@ -299,20 +299,20 @@ bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size
         .pCommandBuffers = &command_buffer,
     };
 
-    if (vkQueueSubmit(ctx->graphics_queue.handle, 1, &sub_info, VK_NULL_HANDLE) != VK_SUCCESS)
+    if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &sub_info, VK_NULL_HANDLE) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to submit command buffer to transition image.");
         goto error;
     }
 
-    if (vkQueueWaitIdle(ctx->graphics_queue.handle) != VK_SUCCESS)
+    if (vkQueueWaitIdle(vulkan->graphics_queue.handle) != VK_SUCCESS)
     {
     	SDL_Log("[VULKAN] Failed to wait for queue to transition image.");
         goto error;
     }
 
-    vkDestroyCommandPool(ctx->device, command_pool, NULL);
-    vulkan_buffer_destroy(ctx, &staging);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
+    vulkan_buffer_destroy(vulkan, &staging);
 
 	image->layout = layout;
 	image->access = access;
@@ -320,12 +320,12 @@ bool vulkan_image_data_upload(vulkan_context *ctx, vulkan_image *image, u32 size
 	return true;
 
 error:
-    vkDestroyCommandPool(ctx->device, command_pool, NULL);
-    vulkan_buffer_destroy(ctx, &staging);
+    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
+    vulkan_buffer_destroy(vulkan, &staging);
     return false;
 }
 
-bool vulkan_sampler_create(vulkan_context *ctx, vulkan_sampler *out_sampler)
+bool vulkan_sampler_create(vulkan *vulkan, vulkan_sampler *out_sampler)
 {
 	vulkan_sampler result = {0};
 
@@ -342,7 +342,7 @@ bool vulkan_sampler_create(vulkan_context *ctx, vulkan_sampler *out_sampler)
 		.magFilter = VK_FILTER_NEAREST,
 	};
 
-	if (vkCreateSampler(ctx->device, &info, NULL, &result.handle) != VK_SUCCESS)
+	if (vkCreateSampler(vulkan->device, &info, NULL, &result.handle) != VK_SUCCESS)
 	{
 		SDL_Log("[VULKAN] Failed to create sampler.");
 		return false;
@@ -353,7 +353,7 @@ bool vulkan_sampler_create(vulkan_context *ctx, vulkan_sampler *out_sampler)
 	return true;
 }
 
-void vulkan_sampler_destroy(vulkan_context *ctx, vulkan_sampler *sampler)
+void vulkan_sampler_destroy(vulkan *vulkan, vulkan_sampler *sampler)
 {
-	vkDestroySampler(ctx->device, sampler->handle, NULL);
+	vkDestroySampler(vulkan->device, sampler->handle, NULL);
 }

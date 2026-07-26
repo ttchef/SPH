@@ -28,6 +28,6 @@ typedef struct
 	vulkan_image atlas;
 } ttf_font;
 
-bool ttf_create(vulkan_context *vulkan, u32 size, void *data, ttf_font *out_font);
+bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font);
 
-void ttf_destroy(vulkan_context *vulkan, ttf_font *font);
+void ttf_destroy(vulkan *vulkan, ttf_font *font);

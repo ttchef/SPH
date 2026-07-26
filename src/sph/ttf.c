@@ -1,6 +1,4 @@
 
-#include "vk/image.h"
-#include "vk/types.h"
 #include <types.h>
 #include <sph/ttf.h>
 #include <sph/memory.h>
@@ -8,7 +6,6 @@
 
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_endian.h>
-#include <vulkan/vulkan_core.h>
 
 //
 // NOTE: TTF Spec: https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6cmap.html
@@ -1205,7 +1202,7 @@ static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
 	return result;	
 }
 
-bool ttf_create(vulkan_context *vulkan, u32 size, void *data, ttf_font *out_font)
+bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
 {	
 	directory directory;
 	if (!directory_parse(size, data, &directory))
@@ -1382,7 +1379,7 @@ bool ttf_create(vulkan_context *vulkan, u32 size, void *data, ttf_font *out_font
 	return true;	
 }
 
-void ttf_destroy(vulkan_context *vulkan, ttf_font *font)
+void ttf_destroy(vulkan *vulkan, ttf_font *font)
 {
 	pack_destroy(&font->pack);
 	vulkan_image_destroy(vulkan, font->atlas);
