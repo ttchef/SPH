@@ -1,0 +1,13 @@
+
+BasedOnStyle: LLVM
+BreakBeforeBraces: Allman
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 0
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
+AllowShortFunctionsOnASingleLine: All
+PenaltyBreakBeforeFirstCallParameter: 1000000
+BinPackParameters: true
+AllowAllParametersOfDeclarationOnNextLine: false

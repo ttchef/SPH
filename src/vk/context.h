@@ -2,47 +2,49 @@
 #pragma once
 
 #include <types.h>
-#include <vk/types.h>
-#include <vk/swapchain.h>
-#include <vk/pipeline.h>
 #include <vk/command.h>
+#include <vk/descriptor.h>
+#include <vk/pipeline.h>
+#include <vk/swapchain.h>
+#include <vk/types.h>
 
-#include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
+#include <vulkan/vulkan.h>
 
-typedef struct vulkan_queue
+typedef struct
 {
-	VkQueue handle;
-	u32 index;
+    VkQueue handle;
+    u32     index;
 } vulkan_queue;
 
-struct vulkan_context
+struct vulkan
 {
 #if defined(DEBUG)
-	VkDebugUtilsMessengerEXT debug_messenger;
+    VkDebugUtilsMessengerEXT debug_messenger;
 #endif
-	
-	VkInstance instance;
-	VkSurfaceKHR surface;
-	VkPhysicalDevice physical_device;
 
-	vulkan_queue graphics_queue;
-	vulkan_queue present_queue;
+    VkInstance       instance;
+    VkSurfaceKHR     surface;
+    VkPhysicalDevice physical_device;
 
-	VkDevice device;
+    vulkan_queue graphics_queue;
+    vulkan_queue present_queue;
 
-	vulkan_swapchain swapchain;
-	vulkan_command_handler command_handler;
-	vulkan_pipeline_manager pipeline_manager;
+    VkDevice device;
+
+    vulkan_swapchain        swapchain;
+    vulkan_command_handler  command_handler;
+    vulkan_pipeline_manager pipeline_manager;
+    vulkan_bindless         bindless;
 };
 
-bool vulkan_init(SDL_Window *window, vulkan_context *ctx);
+bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size);
 
-void vulkan_resize(vulkan_context *ctx, u32 w, u32 h);
+void vulkan_resize(vulkan *vulkan, u32 w, u32 h);
 
-void vulkan_draw(vulkan_context *ctx, u32 window_width, u32 window_height);
+void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height);
 
-void vulkan_deinit(vulkan_context *ctx);
+void vulkan_destroy(vulkan *vulkan);
 
 // NOTE: Returns the current frame index
-u32 vulkan_frame_index(vulkan_context *ctx);
+u32 vulkan_frame_index(vulkan *vulkan);

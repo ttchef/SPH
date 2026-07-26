@@ -1,53 +1,31 @@
 
 #include <types.h>
-
-#include <vk/buffer.h>
-#include <vk/pipeline.h>
-#include <vk/command.h>
-#include <vk/types.h>
+#include <sph/window.h>
+#include <sph/camera.h>
+#include <sph/input.h>
 #include <sph/time.h>
-#include <math/types.h>
+#include <sph/ttf.h>
+#include <vk/context.h>
 
-static const u32 PARTICLE_COUNT = 120024;
-
-// NOTE: IMPORTANT!!! Needs to match with GPU implementation
-typedef struct particle
+typedef struct
 {
-	v2 pos;
-	v2 vel;
-	f32 mass;
-	f32 density;
-} particle;
+	window window;
+	input input;
+	camera camera;
+	time time;
+	vulkan vulkan;
 
-// NOTE: IMPORTANT!!! Needs to match with GPU implementation
-typedef struct spatial_lookup_entry
-{
-	u32 particle_index;
-	u32 cell_key;
-} spatial_lookup_entry;
+	vulkan_pipeline_id text_pipeline;
 
-typedef struct simulation
-{
-	vulkan_buffer particles[FRAMES_IN_FLIGHT];
-	vulkan_buffer spatial_lookup[FRAMES_IN_FLIGHT];
-	vulkan_buffer start_indices[FRAMES_IN_FLIGHT];
-	vulkan_buffer histograms[FRAMES_IN_FLIGHT];
+	vulkan_sampler linear_sampler;
 
-	vulkan_pipeline_id spatial_lookup_pipelines[FRAMES_IN_FLIGHT];
-	vulkan_pipeline_id radixsort_histogram_pipelines[FRAMES_IN_FLIGHT];
-	vulkan_pipeline_id radixsort_pipelines[FRAMES_IN_FLIGHT];
-	vulkan_pipeline_id start_indices_pipelines[FRAMES_IN_FLIGHT];
-	vulkan_pipeline_id density_pipelines[FRAMES_IN_FLIGHT];
-	vulkan_pipeline_id update_pipelines[FRAMES_IN_FLIGHT];
-
-	vulkan_pipeline_id render_pipeline;
-
-	u32 sim_buffer;
-	f64 accumulator;
+	ttf_font jet_brains;
 } simulation;
 
-bool simulation_create(vulkan_context *vulkan, u32 window_width, u32 window_height, simulation *simulation);
+bool simulation_create(simulation *simulation);
 
-void simulation_update(vulkan_context *vulkan, u32 window_width, u32 window_height, time time, simulation *simulation);
+void simulation_event(simulation *simulation, SDL_Event *event);
 
-void simulation_destroy(vulkan_context *vulkan, simulation *simulation);
+void simulation_update(simulation *simulation);
+
+void simulation_destroy(simulation *simulation);

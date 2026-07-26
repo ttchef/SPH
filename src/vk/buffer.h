@@ -8,28 +8,30 @@
 
 typedef enum vulkan_buffer_type
 {
-	VULKAN_BUFFER_TYPE_HOST_VISIBLE,
-	VULKAN_BUFFER_TYPE_DEVICE_LOCAL,
+    VULKAN_BUFFER_TYPE_HOST_VISIBLE,
+    VULKAN_BUFFER_TYPE_DEVICE_LOCAL,
 } vulkan_buffer_type;
 
 typedef struct vulkan_buffer
 {
-	vulkan_buffer_type type;
-	
-	VkBuffer handle;
-	VkDeviceMemory memory;
-	VkDeviceSize size;
+    vulkan_buffer_type type;
 
-	struct
-	{
-		void *data;
-	} host_visible;
+    VkBuffer       handle;
+    VkDeviceMemory memory;
+    VkDeviceSize   size;
+
+    struct
+    {
+        void *data;
+    } host_visible;
 } vulkan_buffer;
 
 // NOTE: automatically copies data into buffer
-bool vulkan_buffer_device_local_create(vulkan_context *ctx, VkBufferUsageFlags usage, usize size, const void *data, vulkan_buffer *out_buffer);
+bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer);
+
+bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer);
 
 // NOTE: out_buffer is of type host visible
-bool vulkan_buffer_device_local_get_data(vulkan_context *ctx, vulkan_buffer buffer, vulkan_buffer *out_buffer);
+bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, vulkan_buffer *out_buffer);
 
-void vulkan_buffer_destroy(vulkan_context *ctx, vulkan_buffer *buffer);
+void vulkan_buffer_destroy(vulkan *vulkan, vulkan_buffer *buffer);
