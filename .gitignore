@@ -3,3 +3,4 @@ main
 *.json
 *.spv
 src/shaders/spv/
+imgui.ini

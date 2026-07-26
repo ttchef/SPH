@@ -924,6 +924,7 @@ static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
 
 static bool glyf_compound_parse(memory_stream *stream, glyf *out_glyf)
 {
+	UNUSED(stream);
 	out_glyf->type = GLYF_TYPE_COMPOUND;
 	return true;
 }
@@ -947,6 +948,11 @@ static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph
 
 	u32 start = loca->offsets[glyph_index];
 	u32 end = loca->offsets[glyph_index + 1];
+
+	if (end + table->offset > size)
+	{
+		return false;
+	}
 
 	if (end < start)
 	{

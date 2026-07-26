@@ -11,7 +11,7 @@
 #define VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES 8
 
 typedef u32 vulkan_pipeline_id;
-#define INVALID_PIPELINE 0 
+#define VULKAN_INVALID_PIPELINE 0 
 
 typedef enum vulkan_pipeline_type
 {
@@ -35,9 +35,6 @@ typedef struct vulkan_pipeline_desc
 	VkVertexInputAttributeDescription vertex_attributes[VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES];
 	u32 vertex_attribute_count;
 
-	vulkan_descriptor descriptors[12];
-	u32 descriptor_count;
-
 	u32 push_constant_size;
 	VkShaderStageFlags push_constants_stages;
 
@@ -58,10 +55,7 @@ typedef struct vulkan_pipeline
 	vulkan_pipeline_type type;
 
 	VkPipeline handle;
-	VkPipelineLayout layout;
-	
-	vulkan_descriptor descriptors[18];
-	u32 descriptor_count;	
+	VkPipelineLayout layout;	
 } vulkan_pipeline;
 
 typedef struct vulkan_pipeline_manager
@@ -77,10 +71,6 @@ typedef struct vulkan_pipeline_manager
 vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type);
 
 void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 vertex_stride, VkVertexInputAttributeDescription *attribues, u32 attribute_count);
-
-void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage);
-
-void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage);
 
 void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages);
 

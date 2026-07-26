@@ -22,11 +22,11 @@ bool simulation_create(simulation *simulation)
 
 	vulkan_pipeline_desc desc = vulkan_pipeline_default(VULKAN_PIPELINE_TYPE_GRAPHICS);
 
-	vulkan_pipeline_desc_set_shaders(&desc, "hello.vert.spv", "hello.frag.spv", NULL);
-	// vulkan_pipeline_desc_set_shaders_entries(&desc, "vertexMain", "fragmentMain", NULL);
+	vulkan_pipeline_desc_set_shaders(&desc, "src/shaders/spv/hello.spv", "src/shaders/spv/hello.spv", NULL);
+	vulkan_pipeline_desc_set_shaders_entries(&desc, "vertexMain", "fragmentMain", NULL);
 	
 	simulation->pipeline = vulkan_pipeline_create(&simulation->vulkan, &desc);
-	assert(simulation->pipeline != INVALID_PIPELINE);
+	assert(simulation->pipeline != VULKAN_INVALID_PIPELINE);
 	
 	return true;
 }

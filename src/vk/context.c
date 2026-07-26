@@ -245,15 +245,29 @@ static bool logical_device_init(vulkan *vulkan)
 	}
 
 	const char *device_extensions[] = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,	
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,	
 	};
 
 	VkPhysicalDeviceFeatures features = {
 		.fillModeNonSolid = VK_TRUE,	
 	};
 
+	VkPhysicalDeviceDescriptorIndexingFeatures indexing = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+		.descriptorBindingPartiallyBound = VK_TRUE,
+		.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,	
+	};
+
+	VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
+		.pNext = &indexing,
+		.descriptorBuffer = VK_TRUE,	
+	};
+
 	VkPhysicalDeviceVulkan13Features features13 = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+		.pNext = &descriptor,
 		.shaderDemoteToHelperInvocation = VK_TRUE,
 		.dynamicRendering = VK_TRUE,
 	};
@@ -303,6 +317,7 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan)
 	CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
 	CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
 	CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
+	CHECK(vulkan_bindless_create(vulkan, &vulkan->bindless));
 
 #undef CHECK
 
@@ -396,6 +411,7 @@ void vulkan_destroy(vulkan *vulkan)
 
 	vkDeviceWaitIdle(vulkan->device);
 
+	vulkan_bindless_destroy(vulkan, &vulkan->bindless);
 	vulkan_pipeline_manager_destroy(vulkan, &vulkan->pipeline_manager);
 	vulkan_command_handler_destroy(vulkan, &vulkan->command_handler);
 	vulkan_swapchain_destroy(vulkan, &vulkan->swapchain);

@@ -6,6 +6,7 @@
 #include <vk/swapchain.h>
 #include <vk/pipeline.h>
 #include <vk/command.h>
+#include <vk/descriptor.h>
 
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_video.h>
@@ -34,6 +35,7 @@ struct vulkan
 	vulkan_swapchain swapchain;
 	vulkan_command_handler command_handler;
 	vulkan_pipeline_manager pipeline_manager;
+	vulkan_bindless bindless;
 };
 
 bool vulkan_create(SDL_Window *window, vulkan *vulkan);

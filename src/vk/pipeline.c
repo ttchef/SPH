@@ -62,42 +62,6 @@ void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 verte
 	SDL_memcpy(desc->vertex_attributes, attribues, attribute_count * sizeof(VkVertexInputAttributeDescription));
 }
 
-void vulkan_pipeline_desc_add_storage_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_buffer buffer, u32 binding, VkShaderStageFlags stage)
-{
-	if (desc->descriptor_count + 1 > ARRAY_COUNT(desc->descriptors))
-	{
-		SDL_Log("[VULKAN] No space left to add descriptor to this pipeline (%u/%zu)", desc->descriptor_count, ARRAY_COUNT(desc->descriptors));
-		return;
-	}
-
-	vulkan_descriptor descriptor;
-	if (!vulkan_descriptor_storage_buffer_create(vulkan, buffer, binding, stage, &descriptor))
-	{
-		return;
-	}
-
-	desc->descriptors[desc->descriptor_count] = descriptor;
-	++desc->descriptor_count;
-}
-
-void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan *vulkan, vulkan_image image, vulkan_sampler sampler, u32 binding, VkShaderStageFlags stage)
-{
-	if (desc->descriptor_count + 1 > ARRAY_COUNT(desc->descriptors))
-	{
-		SDL_Log("[VULKAN] No space left to add descriptor to this pipeline (%u/%zu)", desc->descriptor_count, ARRAY_COUNT(desc->descriptors));
-		return;
-	}
-
-	vulkan_descriptor descriptor;
-	if (!vulkan_descriptor_image_create(vulkan, image, sampler, binding, stage, &descriptor))
-	{
-		return;
-	}
-
-	desc->descriptors[desc->descriptor_count] = descriptor;
-	++desc->descriptor_count;
-}
-
 void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages)
 {
 	desc->push_constant_size = size;
@@ -206,26 +170,12 @@ static bool pipeline_layout_create(vulkan *vulkan, vulkan_pipeline_desc *desc, v
 		.stageFlags = desc->push_constants_stages,	
 	};
 
-	VkDescriptorSetLayout *descriptor_layouts = NULL;
-
-	VkDescriptorSetLayout layouts[ARRAY_COUNT(desc->descriptors)];
-
-	if (desc->descriptor_count > 0)
-	{
-		assert(desc->descriptor_count <= ARRAY_COUNT(desc->descriptors));
-		for (u32 i = 0; i < desc->descriptor_count; i++)
-		{
-			layouts[i] = desc->descriptors[i].layout;
-		}
-		descriptor_layouts = layouts;
-	}
-
 	VkPipelineLayoutCreateInfo layout_info = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.pPushConstantRanges = desc->push_constant_size == 0 ? NULL : &push_constant,
 		.pushConstantRangeCount = desc->push_constant_size == 0 ? 0 : 1,
-		.pSetLayouts = descriptor_layouts,
-		.setLayoutCount = desc->descriptor_count,
+		.pSetLayouts = NULL,
+		.setLayoutCount = 0,
 	};
 
 	if (vkCreatePipelineLayout(vulkan->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)
@@ -233,10 +183,6 @@ static bool pipeline_layout_create(vulkan *vulkan, vulkan_pipeline_desc *desc, v
 		SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
 		return false;
 	}
-
-	SDL_memcpy(out_pipeline->descriptors, desc->descriptors, desc->descriptor_count * sizeof(vulkan_descriptor));
-	out_pipeline->descriptor_count = desc->descriptor_count;
-	out_pipeline->type = desc->type;
 
 	return true;	
 }
@@ -441,11 +387,6 @@ static void pipeline_destroy(vulkan *vulkan, vulkan_pipeline *pipeline)
 
 	vkDestroyPipelineLayout(vulkan->device, pipeline->layout, NULL);
 	vkDestroyPipeline(vulkan->device, pipeline->handle, NULL);
-
-	for (u32 i = 0; i < pipeline->descriptor_count; i++)
-	{
-		vulkan_descriptor_destroy(vulkan, &pipeline->descriptors[i]);
-	}
 }
 
 bool vulkan_pipeline_manager_create(vulkan_pipeline_manager *manager)
@@ -478,18 +419,18 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *
 	if (manager->count + 1 > ARRAY_COUNT(manager->pipelines))
 	{
 		SDL_Log("[VULKAN] Failed to create pipeline no space left (%u/%zu)", manager->count, ARRAY_COUNT(manager->pipelines));
-		return INVALID_PIPELINE;
+		return VULKAN_INVALID_PIPELINE;
 	}
 
 	if (!pipeline_layout_create(vulkan, desc, &manager->pipelines[manager->count]))
 	{
-		return INVALID_PIPELINE;
+		return VULKAN_INVALID_PIPELINE;
 	}
 
 	pipeline_create_func pipeline_create = desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? graphics_pipeline_create : compute_pipeline_create;
 	if (!pipeline_create(vulkan, desc, &manager->pipelines[manager->count]))
 	{
-		return INVALID_PIPELINE;
+		return VULKAN_INVALID_PIPELINE;
 	}
 
 	manager->count++;
@@ -500,7 +441,7 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *
 vulkan_pipeline *vulkan_pipeline_get(vulkan *vulkan, vulkan_pipeline_id id)
 {
 	assert(vulkan);
-	assert(id != INVALID_PIPELINE);
+	assert(id != VULKAN_INVALID_PIPELINE);
 
 	vulkan_pipeline_manager *manager = &vulkan->pipeline_manager;
 	

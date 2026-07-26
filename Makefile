@@ -15,15 +15,14 @@ LDFLAGS := -lSDL3 -lvulkan -lm
 endif
 
 SRC_FILES := src/sph/main.c src/vk/context.c src/vk/swapchain.c src/vk/pipeline.c src/vk/command.c \
-			 src/vk/buffer.c src/vk/descriptor.c src/sph/simulation.c src/sph/camera.c src/sph/input.c \
-			 src/vk/image.c src/sph/ttf.c src/sph/memory.c src/sph/window.c
+			 src/vk/buffer.c src/sph/simulation.c src/sph/camera.c src/sph/input.c \
+			 src/vk/image.c src/sph/ttf.c src/sph/memory.c src/sph/window.c src/vk/descriptor.c
 
 all: debug
 
 shaders:
 	mkdir -p src/shaders/spv
-	slangc -entry vertexMain src/shaders/shader.slang -o hello.vert.spv
-	slangc -entry fragmentMain src/shaders/shader.slang -o hello.frag.spv
+	slangc src/shaders/shader.slang -o src/shaders/spv/hello.spv
 
 debug: shaders
 	$(CC) $(SRC_FILES) $(CFLAGS) $(DEBUG_FLAGS) -o main $(LDFLAGS)
