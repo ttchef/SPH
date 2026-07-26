@@ -8,8 +8,6 @@
 
 #include <vulkan/vulkan_core.h>
 
-#define VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES 8
-
 typedef u32 vulkan_pipeline_id;
 #define VULKAN_INVALID_PIPELINE 0 
 
@@ -32,16 +30,11 @@ typedef struct vulkan_pipeline_desc
 	const char *compute_entry;
 
 	VkVertexInputBindingDescription vertex_binding;
-	VkVertexInputAttributeDescription vertex_attributes[VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES];
+	VkVertexInputAttributeDescription vertex_attributes[8];
 	u32 vertex_attribute_count;
 
 	u32 push_constant_size;
 	VkShaderStageFlags push_constants_stages;
-
-	bool has_specialization_constant;
-	void *specialization_constant_data;
-	u32 specialization_constant_size;
-	VkShaderStageFlags specialitation_shader_stage;
 
 	VkPolygonMode polygon_mode;
 	VkPrimitiveTopology topology;

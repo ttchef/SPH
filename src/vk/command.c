@@ -89,10 +89,10 @@ typedef struct
 typedef struct
 {
     command_header header;
-    u32            x;
-    u32            y;
-    u32            width;
-    u32            height;
+    f32            x;
+    f32            y;
+    f32            width;
+    f32            height;
 } command_set_viewport;
 
 static bool command_add(vulkan *vulkan, void *data, u32 size)
@@ -264,7 +264,7 @@ bool vulkan_command_dispatch(vulkan *vulkan, u32 size_x, u32 size_y, u32 size_z)
     return command_add(vulkan, &dispatch, header.size);
 }
 
-bool vulkan_command_set_viewport(vulkan *vulkan, u32 x, u32 y, u32 width, u32 height)
+bool vulkan_command_set_viewport(vulkan *vulkan, f32 x, f32 y, f32 width, f32 height)
 {
     command_header header = {
         .type = COMMAND_SET_VIEWPORT,
@@ -435,6 +435,9 @@ static void render_queue(vulkan *vulkan)
 
             VkPipelineBindPoint bind_point = pipeline->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
             vkCmdBindPipeline(frame_data->command_buffer, bind_point, pipeline->handle);
+
+            // NOTE: Bind the bindless descriptor set
+            vkCmdBindDescriptorSets(frame_data->command_buffer, bind_point, pipeline->layout, 0, 1, &vulkan->bindless.set, 0, NULL);
         }
         break;
         case COMMAND_BIND_VERTEX_BUFFER:

@@ -1,26 +1,20 @@
 
-static float2 vertices[6] = {
-	float2(-1.0, -1.0),	
-	float2(-1.0, 1.0),	
-	float2(1.0, 1.0),	
+Texture2D<float4> textures[256];
+SamplerState samplers[256];
 
-	float2(-1.0, -1.0),	
-	float2(1.0, -1.0),	
-	float2(1.0, 1.0),	
+struct PushConstant
+{
+	uint texture;
+	uint sampler;	
 };
 
-static float3 colors[6] = {
-	float3(1.0, 0.0, 0.0),	
-	float3(0.0, 1.0, 0.0),	
-	float3(0.0, 0.0, 1.0),	
-	float3(1.0, 0.0, 0.0),	
-	float3(0.0, 1.0, 0.0),	
-	float3(0.0, 0.0, 1.0),	
-};
+[[vk::push_constant]]
+PushConstant pc;
 
 struct VSOutput
 {
 	float4 position : SV_Position;
+	float2 uv;
 	float3 color;	
 };
 
@@ -29,7 +23,37 @@ VSOutput vertexMain(uint index : SV_VulkanVertexID)
 {
 	VSOutput output;
 
+	float2 vertices[6] = {
+		float2(-1.0, -1.0),	
+		float2(-1.0, 1.0),	
+		float2(1.0, 1.0),	
+
+		float2(-1.0, -1.0),	
+		float2(1.0, -1.0),	
+		float2(1.0, 1.0),	
+	};
+
+	float2 uv[6] = {
+		float2(0.0, 1.0),
+		float2(0.0, 0.0),
+		float2(1.0, 0.0),
+
+		float2(0.0, 1.0),
+		float2(1.0, 1.0),
+		float2(1.0, 0.0),	
+	};
+
+	float3 colors[6] = {
+		float3(1.0, 0.0, 0.0),	
+		float3(0.0, 1.0, 0.0),	
+		float3(0.0, 0.0, 1.0),	
+		float3(1.0, 0.0, 0.0),	
+		float3(0.0, 1.0, 0.0),	
+		float3(0.0, 0.0, 1.0),	
+	};
+
 	output.position = float4(vertices[index], 0.0, 1.0);
+	output.uv = uv[index];
 	output.color = colors[index];
 
 	return output;
@@ -38,5 +62,5 @@ VSOutput vertexMain(uint index : SV_VulkanVertexID)
 [shader("fragment")]
 float4 fragmentMain(VSOutput input)
 {
-	return float4(input.color, 1.0);
+	return textures[pc.texture].Sample(samplers[pc.sampler], input.uv);
 }

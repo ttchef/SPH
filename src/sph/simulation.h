@@ -4,7 +4,9 @@
 #include <sph/camera.h>
 #include <sph/input.h>
 #include <sph/time.h>
+#include <sph/ttf.h>
 #include <vk/context.h>
+
 
 typedef struct
 {
@@ -18,6 +20,8 @@ typedef struct
 
 	vulkan_image texture;
 	vulkan_sampler sampler;
+
+	ttf_font jet_brains;
 } simulation;
 
 bool simulation_create(simulation *simulation);

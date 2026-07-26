@@ -980,7 +980,6 @@ static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph
 	}
 	else if (out_glyf->number_of_contours > 0)
 	{
-		SDL_Log("[TTF] Simple glyph.");
 		return glyf_simple_parse(&stream, out_glyf);
 	}
 	else
@@ -1276,9 +1275,6 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
 	for (u8 c = 'A'; c <= 'Z'; c++)
 	{
 		u16 glyph_index = cmap_lookup(&cmap, c);
-
-		SDL_Log("[TTF] Index %c: %u", c, glyph_index);
-
 		u16 glyph_advance;
 		i16 glyph_left_bearing;
 
@@ -1333,8 +1329,6 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
 			continue;	
 		}
 
-		SDL_Log("%u: (%u:%u)", c, glyph.pos.x, glyph.pos.y);
-
 		// NOTE: Write into atlas
 		u32 *atlas_pixels = (u32 *)atlas_raw.data;
 		u32 *glyph_pixels = (u32 *)glyph_data.data;
@@ -1354,7 +1348,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
 	}
 		
 	// NOTE: turn into vulkan image
-	if (!vulkan_image_create(vulkan, v2umake(atlas_raw.width, atlas_raw.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, true, &out_font->atlas))
+	if (!vulkan_image_create(vulkan, v2umake(atlas_raw.width, atlas_raw.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, false, &out_font->atlas))
 	{
 		SDL_Log("[TTF] Failed to create vulkan image.");
 		return false;

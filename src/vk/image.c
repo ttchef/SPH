@@ -344,8 +344,8 @@ bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, vulkan_sample
 		.minLod = 0.0f,
 		.maxLod = 1.0f,
 		.maxAnisotropy = 1.0f,
-		.minFilter = VK_FILTER_NEAREST,
-		.magFilter = VK_FILTER_NEAREST,
+		.minFilter = VK_FILTER_LINEAR,
+		.magFilter = VK_FILTER_LINEAR,
 	};
 
 	if (vkCreateSampler(vulkan->device, &info, NULL, &result.handle) != VK_SUCCESS)

@@ -97,13 +97,13 @@ bool vulkan_bindless_create(vulkan *vulkan, vulkan_bindless *out_bindless)
 	result.free_image_count = VULKAN_MAX_SAMPLED_IMAGE_COUNT - 1;
 	for (vulkan_bindless_image i = 0; i < result.free_image_count; i++)
 	{
-		result.free_images[i] = result.free_image_count - 1 - i;
+		result.free_images[i] = result.free_image_count - i;
 	}
 
 	result.free_sampler_count = VULKAN_MAX_SAMPLER_COUNT - 1;
 	for (vulkan_bindless_sampler i = 0; i < result.free_sampler_count; i++)
 	{
-		result.free_samplers[i] = result.free_sampler_count - 1 - i;
+		result.free_samplers[i] = result.free_sampler_count - i;
 	}
 
 	*out_bindless = result;
@@ -140,7 +140,7 @@ void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vul
 		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 		.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 		.dstArrayElement = image->descriptor,
-		.descriptorCount = VULKAN_MAX_SAMPLED_IMAGE_COUNT,
+		.descriptorCount = 1,
 		.dstBinding = SAMPELD_IMAGE_BINDING,
 		.dstSet = bindless->set,
 		.pImageInfo = &image_info,
@@ -177,7 +177,7 @@ void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_bindless *bindless, v
 		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 		.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 		.dstArrayElement = sampler->descriptor,
-		.descriptorCount = VULKAN_MAX_SAMPLER_COUNT,
+		.descriptorCount = 1,
 		.dstBinding = SAMPLER_BINDING,
 		.dstSet = bindless->set,
 		.pImageInfo = &sampler_info,

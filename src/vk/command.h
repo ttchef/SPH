@@ -57,7 +57,7 @@ bool vulkan_command_draw(vulkan *vulkan, u32 vertex_count);
 
 bool vulkan_command_dispatch(vulkan *vulkan, u32 size_x, u32 size_y, u32 size_z);
 
-bool vulkan_command_set_viewport(vulkan *vulkan, u32 x, u32 y, u32 width, u32 height);
+bool vulkan_command_set_viewport(vulkan *vulkan, f32 x, f32 y, f32 width, f32 height);
 
 // ----------
 
