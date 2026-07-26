@@ -256,7 +256,8 @@ static bool logical_device_init(vulkan *vulkan)
 	VkPhysicalDeviceDescriptorIndexingFeatures indexing = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
 		.descriptorBindingPartiallyBound = VK_TRUE,
-		.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,	
+		.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+		.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
 	};
 
 	VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor = {

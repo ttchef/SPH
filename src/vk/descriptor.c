@@ -1,12 +1,12 @@
 
-#include "types.h"
 #include <vk/descriptor.h>
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-#define MAX_COMBINED_IMAGE_SAMPLER_COUNT 256
+#define SAMPELD_IMAGE_BINDING 0
+#define SAMPLER_BINDING 1
 
 bool vulkan_bindless_create(vulkan *vulkan, vulkan_bindless *out_bindless)
 {
@@ -14,8 +14,12 @@ bool vulkan_bindless_create(vulkan *vulkan, vulkan_bindless *out_bindless)
 
 	VkDescriptorPoolSize sizes[] = {
 		{
-			.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = MAX_COMBINED_IMAGE_SAMPLER_COUNT,
+			.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			.descriptorCount = VULKAN_MAX_SAMPLED_IMAGE_COUNT,
+		},
+		{
+			.type = VK_DESCRIPTOR_TYPE_SAMPLER,
+			.descriptorCount = VULKAN_MAX_SAMPLER_COUNT,
 		}	
 	};
 	
@@ -34,10 +38,17 @@ bool vulkan_bindless_create(vulkan *vulkan, vulkan_bindless *out_bindless)
 	}
 
 	VkDescriptorSetLayoutBinding bindings[] = {
-		(VkDescriptorSetLayoutBinding){
-			.binding = 0,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = MAX_COMBINED_IMAGE_SAMPLER_COUNT,
+		{
+			.binding = SAMPELD_IMAGE_BINDING,
+			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			.descriptorCount = VULKAN_MAX_SAMPLED_IMAGE_COUNT,
+			// TODO: Is is only fragment??
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+		},
+		{
+			.binding = SAMPLER_BINDING,
+			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+			.descriptorCount = VULKAN_MAX_SAMPLER_COUNT,
 			// TODO: Is is only fragment??
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 		}	
@@ -45,9 +56,10 @@ bool vulkan_bindless_create(vulkan *vulkan, vulkan_bindless *out_bindless)
 
 	VkDescriptorBindingFlags flags[] = {
 		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,	
+		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,	
 	};
 
-	assert(ARRAY_COUNT(flags) == ARRAY_COUNT(bindings));
+	static_assert(ARRAY_COUNT(flags) == ARRAY_COUNT(bindings), "binding and flags are not the same lenght.");
 
 	VkDescriptorSetLayoutBindingFlagsCreateInfo flags_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
@@ -82,6 +94,18 @@ bool vulkan_bindless_create(vulkan *vulkan, vulkan_bindless *out_bindless)
 		return false;
 	}
 
+	result.free_image_count = VULKAN_MAX_SAMPLED_IMAGE_COUNT - 1;
+	for (vulkan_bindless_image i = 0; i < result.free_image_count; i++)
+	{
+		result.free_images[i] = result.free_image_count - 1 - i;
+	}
+
+	result.free_sampler_count = VULKAN_MAX_SAMPLER_COUNT - 1;
+	for (vulkan_bindless_sampler i = 0; i < result.free_sampler_count; i++)
+	{
+		result.free_samplers[i] = result.free_sampler_count - 1 - i;
+	}
+
 	*out_bindless = result;
 	
 	return true;
@@ -89,6 +113,80 @@ bool vulkan_bindless_create(vulkan *vulkan, vulkan_bindless *out_bindless)
 
 void vulkan_bindless_destroy(vulkan *vulkan, vulkan_bindless *bindless)
 {
-	vkDestroyDescriptorPool(vulkan->device, bindless->pool, NULL);
 	vkDestroyDescriptorSetLayout(vulkan->device, bindless->layout, NULL);
+	vkDestroyDescriptorPool(vulkan->device, bindless->pool, NULL);
+}
+
+void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_image *image)
+{
+	if (image->descriptor == VULKAN_INVALID_BINDING)
+	{
+		if (bindless->free_image_count == 0)
+		{
+			SDL_Log("[VULKAN] No free sampled images left to allocate.");
+		}
+
+		image->descriptor = bindless->free_images[--bindless->free_image_count];
+		assert(image->descriptor != VULKAN_INVALID_BINDING);		
+	}
+
+	// NOTE: if image is passed in write it to set
+	VkDescriptorImageInfo image_info = {
+		.imageLayout = image->layout,
+		.imageView = image->view,	
+	};
+
+	VkWriteDescriptorSet write = {
+		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+		.dstArrayElement = image->descriptor,
+		.descriptorCount = VULKAN_MAX_SAMPLED_IMAGE_COUNT,
+		.dstBinding = SAMPELD_IMAGE_BINDING,
+		.dstSet = bindless->set,
+		.pImageInfo = &image_info,
+	};
+
+	vkUpdateDescriptorSets(vulkan->device, 1, &write, 0, NULL);
+}
+
+void vulkan_bindless_image_release(vulkan_bindless *bindless, vulkan_bindless_image handle)
+{
+	bindless->free_images[bindless->free_image_count++] = handle;
+}
+
+void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_sampler *sampler)
+{
+	if (sampler->descriptor == VULKAN_INVALID_BINDING)
+	{
+		if (bindless->free_sampler_count == 0)
+		{
+			SDL_Log("[VULKAN] No free samplers left to allocate.");
+			return;
+		}
+
+		sampler->descriptor = bindless->free_samplers[--bindless->free_sampler_count];
+		assert(sampler->descriptor != VULKAN_INVALID_BINDING);	
+	}
+
+	// NOTE: if image is passed in write it to set
+	VkDescriptorImageInfo sampler_info = {
+		.sampler = sampler->handle,	
+	};
+
+	VkWriteDescriptorSet write = {
+		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+		.dstArrayElement = sampler->descriptor,
+		.descriptorCount = VULKAN_MAX_SAMPLER_COUNT,
+		.dstBinding = SAMPLER_BINDING,
+		.dstSet = bindless->set,
+		.pImageInfo = &sampler_info,
+	};
+
+	vkUpdateDescriptorSets(vulkan->device, 1, &write, 0, NULL);
+}
+
+void vulkan_bindless_sampler_release(vulkan_bindless *bindless, vulkan_bindless_sampler handle)
+{
+	bindless->free_samplers[bindless->free_sampler_count++] = handle;
 }

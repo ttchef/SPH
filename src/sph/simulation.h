@@ -15,6 +15,9 @@ typedef struct
 	vulkan vulkan;
 
 	vulkan_pipeline_id pipeline;
+
+	vulkan_image texture;
+	vulkan_sampler sampler;
 } simulation;
 
 bool simulation_create(simulation *simulation);
