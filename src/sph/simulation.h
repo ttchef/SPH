@@ -13,6 +13,8 @@ typedef struct
 	camera camera;
 	time time;
 	vulkan vulkan;
+
+	vulkan_pipeline_id pipeline;
 } simulation;
 
 bool simulation_create(simulation *simulation);

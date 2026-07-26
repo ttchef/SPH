@@ -280,7 +280,7 @@ static bool logical_device_init(vulkan *vulkan)
 	return true;
 }
 
-bool vulkan_init(SDL_Window *window, vulkan *vulkan)
+bool vulkan_create(SDL_Window *window, vulkan *vulkan)
 {
 	assert(window);
 	assert(vulkan);
@@ -390,7 +390,7 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
 	++vulkan->command_handler.accumulated_frame_index;
 }
 
-void vulkan_deinit(vulkan *vulkan)
+void vulkan_destroy(vulkan *vulkan)
 {
 	assert(vulkan);
 

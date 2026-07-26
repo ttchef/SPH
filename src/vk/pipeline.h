@@ -27,6 +27,10 @@ typedef struct vulkan_pipeline_desc
 	const char *fragment_path;
 	const char *compute_path;
 
+	const char *vertex_entry;
+	const char *fragment_entry;
+	const char *compute_entry;
+
 	VkVertexInputBindingDescription vertex_binding;
 	VkVertexInputAttributeDescription vertex_attributes[VULKAN_PIPELINE_DESC_MAX_VERTEX_ATTRIBUTES];
 	u32 vertex_attribute_count;
@@ -81,6 +85,8 @@ void vulkan_pipeline_desc_add_image_buffer(vulkan_pipeline_desc *desc, vulkan *v
 void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages);
 
 void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *vertex, const char *fragment, const char *compute);
+
+void vulkan_pipeline_desc_set_shaders_entries(vulkan_pipeline_desc *desc, const char *vertex_entry, const char *fragment_entry, const char *compute_entry);
 
 void vulkan_pipeline_desc_set_specialization_constant(vulkan_pipeline_desc *desc, u32 size, void *data, VkShaderStageFlags stage);
 

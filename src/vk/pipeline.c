@@ -124,6 +124,13 @@ void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *ve
 	desc->compute_path = compute;
 }
 
+void vulkan_pipeline_desc_set_shaders_entries(vulkan_pipeline_desc *desc, const char *vertex_entry, const char *fragment_entry, const char *compute_entry)
+{
+	desc->vertex_entry = vertex_entry;
+	desc->fragment_entry = fragment_entry;
+	desc->compute_entry = compute_entry;
+}
+
 void vulkan_pipeline_desc_set_specialization_constant(vulkan_pipeline_desc *desc, u32 size, void *data, VkShaderStageFlags stage)
 {
 	if (desc->type == VULKAN_PIPELINE_TYPE_COMPUTE)
@@ -260,14 +267,14 @@ static bool graphics_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc,
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_VERTEX_BIT,
 			.module = vertex_module,
-			.pName = "main",
+			.pName = desc->vertex_entry == NULL ? "main" : desc->vertex_entry,
 			.pSpecializationInfo = (desc->has_specialization_constant && desc->specialitation_shader_stage == VK_SHADER_STAGE_VERTEX_BIT) ? &specialization : NULL,
 		},
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
 			.module = fragment_module,
-			.pName = "main",
+			.pName = desc->fragment_entry == NULL ? "main" : desc->fragment_entry,
 			.pSpecializationInfo = (desc->has_specialization_constant && desc->specialitation_shader_stage == VK_SHADER_STAGE_FRAGMENT_BIT) ? &specialization : NULL,
 		},
 	};
@@ -404,7 +411,7 @@ static bool compute_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc, 
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
 			.module = shader_module,
-			.pName = "main",
+			.pName = desc->compute_entry == NULL ? "main" : desc->compute_entry,
 			.pSpecializationInfo = (desc->has_specialization_constant && desc->specialitation_shader_stage == VK_SHADER_STAGE_COMPUTE_BIT) ? &specialization : NULL,
 	};
 

@@ -22,20 +22,8 @@ all: debug
 
 shaders:
 	mkdir -p src/shaders/spv
-	glslc src/shaders/particle.vert -fshader-stage=vert $(GLSLC_FLAGS) -o src/shaders/spv/particle.vert.spv
-	glslc src/shaders/particle.frag -fshader-stage=frag $(GLSLC_FLAGS) -o src/shaders/spv/particle.frag.spv
-	glslc src/shaders/cube.vert -fshader-stage=vert $(GLSLC_FLAGS) -o src/shaders/spv/cube.vert.spv
-	glslc src/shaders/cube.frag -fshader-stage=frag $(GLSLC_FLAGS) -o src/shaders/spv/cube.frag.spv
-	glslc src/shaders/cube_line.vert -fshader-stage=vert $(GLSLC_FLAGS) -o src/shaders/spv/cube_line.vert.spv
-	glslc src/shaders/cube_line.frag -fshader-stage=frag $(GLSLC_FLAGS) -o src/shaders/spv/cube_line.frag.spv
-	glslc src/shaders/quad.vert -fshader-stage=vert $(GLSLC_FLAGS) -o src/shaders/spv/quad.vert.spv
-	glslc src/shaders/quad.frag -fshader-stage=frag $(GLSLC_FLAGS) -o src/shaders/spv/quad.frag.spv
-	glslc src/shaders/update.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/update.comp.spv
-	glslc src/shaders/density.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/density.comp.spv
-	glslc src/shaders/spatial_lookup.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/spatial_lookup.comp.spv
-	glslc src/shaders/radixsort_histograms.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/radixsort_histograms.comp.spv
-	glslc src/shaders/radixsort.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/radixsort.comp.spv
-	glslc src/shaders/start_indices.comp -fshader-stage=comp $(GLSLC_FLAGS) -o src/shaders/spv/start_indices.comp.spv
+	slangc -entry vertexMain src/shaders/shader.slang -o hello.vert.spv
+	slangc -entry fragmentMain src/shaders/shader.slang -o hello.frag.spv
 
 debug: shaders
 	$(CC) $(SRC_FILES) $(CFLAGS) $(DEBUG_FLAGS) -o main $(LDFLAGS)
