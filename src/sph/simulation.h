@@ -16,9 +16,12 @@ typedef struct
 	vulkan vulkan;
 
 	vulkan_pipeline_id text_pipeline;
+	vulkan_pipeline_id screen_quad_pipeline;
+	vulkan_pipeline_id cube_lines_pipeline;
 
 	vulkan_sampler linear_sampler;
 
+	vulkan_image test_texture;
 	ttf_font jet_brains;
 } simulation;
 
