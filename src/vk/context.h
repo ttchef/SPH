@@ -38,7 +38,7 @@ struct vulkan
 	vulkan_bindless bindless;
 };
 
-bool vulkan_create(SDL_Window *window, vulkan *vulkan);
+bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size);
 
 void vulkan_resize(vulkan *vulkan, u32 w, u32 h);
 

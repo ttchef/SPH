@@ -1,5 +1,18 @@
 
+struct GlobalUBO
+{
+	float4x4 view;
+	float4x4 perspective;
+	float4x4 orthographic;	
+};
+
+[[vk::binding(0, 0)]]
+ConstantBuffer<GlobalUBO> ubo;
+
+[[vk::binding(1, 0)]]
 Texture2D<float4> textures[256];
+
+[[vk::binding(2, 0)]]
 SamplerState samplers[256];
 
 struct PushConstant
@@ -24,13 +37,13 @@ VSOutput vertexMain(uint index : SV_VulkanVertexID)
 	VSOutput output;
 
 	float2 vertices[6] = {
-		float2(-1.0, -1.0),	
-		float2(-1.0, 1.0),	
-		float2(1.0, 1.0),	
+		float2(-35.0, -35.0),	
+		float2(-35.0, 35.0),	
+		float2(35.0, 35.0),	
 
-		float2(-1.0, -1.0),	
-		float2(1.0, -1.0),	
-		float2(1.0, 1.0),	
+		float2(-35.0, -35.0),	
+		float2(35.0, -35.0),	
+		float2(35.0, 35.0),	
 	};
 
 	float2 uv[6] = {
@@ -52,7 +65,9 @@ VSOutput vertexMain(uint index : SV_VulkanVertexID)
 		float3(0.0, 0.0, 1.0),	
 	};
 
-	output.position = float4(vertices[index], 0.0, 1.0);
+	float4x4 view_proj = mul(ubo.perspective, ubo.view);
+
+	output.position = mul(view_proj, float4(vertices[index], 0.0, 1.0));
 	output.uv = uv[index];
 	output.color = colors[index];
 

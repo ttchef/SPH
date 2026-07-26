@@ -7,7 +7,6 @@
 #include <sph/ttf.h>
 #include <vk/context.h>
 
-
 typedef struct
 {
 	window window;
@@ -18,8 +17,7 @@ typedef struct
 
 	vulkan_pipeline_id pipeline;
 
-	vulkan_image texture;
-	vulkan_sampler sampler;
+	vulkan_sampler linear_sampler;
 
 	ttf_font jet_brains;
 } simulation;

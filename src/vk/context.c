@@ -295,7 +295,7 @@ static bool logical_device_init(vulkan *vulkan)
 	return true;
 }
 
-bool vulkan_create(SDL_Window *window, vulkan *vulkan)
+bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
 {
 	assert(window);
 	assert(vulkan);
@@ -318,7 +318,7 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan)
 	CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
 	CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
 	CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
-	CHECK(vulkan_bindless_create(vulkan, &vulkan->bindless));
+	CHECK(vulkan_bindless_create(vulkan, global_ubo_size, &vulkan->bindless));
 
 #undef CHECK
 
