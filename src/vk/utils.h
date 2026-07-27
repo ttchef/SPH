@@ -27,3 +27,33 @@ static inline u32 vulkan_memory_type_find(vulkan *vulkan, u32 type_filter, VkMem
     SDL_Log("[VULKAN] Warning: Couldnt find fitting memory type.");
     return UINT32_MAX;
 }
+
+//
+// NOTE: Debug
+//
+
+#if defined(DEBUG)
+static void vulkan_object_name_set(vulkan *vulkan, VkObjectType type, u64 handle, const char *format, ...)
+{
+    if (!vulkan->debug.vkSetDebugUtilsObjectNameEXT || handle == 0)
+    {
+        return;
+    }
+
+    static char name_buffer[256];
+    va_list     args;
+    va_start(args, format);
+    SDL_vsnprintf(name_buffer, sizeof(name_buffer), format, args);
+    va_end(args);
+
+    VkDebugUtilsObjectNameInfoEXT info = {
+        .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+        .objectType   = type,
+        .objectHandle = handle,
+        .pObjectName  = name_buffer,
+    };
+    vulkan->debug.vkSetDebugUtilsObjectNameEXT(vulkan->device, &info);
+}
+#else
+#define vulkan_object_name_set(...) (void)0
+#endif

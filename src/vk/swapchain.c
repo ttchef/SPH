@@ -134,7 +134,7 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
 			goto error;			
 		}
 
-		if (!vulkan_image_create(vulkan, v2umake(extent.width, extent.height), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, false, &swapchain->depth_images[i]))
+		if (!vulkan_image_create(vulkan, v2umake(extent.width, extent.height), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, false, "depth", &swapchain->depth_images[i]))
 		{
 			goto error;
 		}

@@ -1207,7 +1207,7 @@ static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
     return result;
 }
 
-bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
+bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font *out_font)
 {
     directory directory;
     if (!directory_parse(size, data, &directory))
@@ -1356,7 +1356,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font)
     }
 
     // NOTE: turn into vulkan image
-    if (!vulkan_image_create(vulkan, v2umake(atlas_raw.width, atlas_raw.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, false, &out_font->atlas))
+    if (!vulkan_image_create(vulkan, v2umake(atlas_raw.width, atlas_raw.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, false, name, &out_font->atlas))
     {
         SDL_Log("[TTF] Failed to create vulkan image.");
         return false;

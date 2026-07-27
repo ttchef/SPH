@@ -310,6 +310,10 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
 
 #if defined(DEBUG)
     CHECK(debug_messenger_init(vulkan));
+
+    vulkan->debug.vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vulkan->instance, "vkSetDebugUtilsObjectNameEXT");
+    vulkan->debug.vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdBeginDebugUtilsLabelEXT");
+    vulkan->debug.vkCmdEndDebugUtilsLabelEXT = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdEndDebugUtilsLabelEXT");
 #endif
 
     CHECK(surface_init(window, vulkan));

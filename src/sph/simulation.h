@@ -5,6 +5,7 @@
 #include <sph/input.h>
 #include <sph/time.h>
 #include <sph/ttf.h>
+#include <sph/pipelines.h>
 #include <vk/context.h>
 
 typedef struct
@@ -15,12 +16,9 @@ typedef struct
 	time time;
 	vulkan vulkan;
 
-	vulkan_pipeline_id text_pipeline;
-	vulkan_pipeline_id screen_quad_pipeline;
-	vulkan_pipeline_id cube_lines_pipeline;
+	vulkan_pipeline_id pipelines[PIPELINE_COUNT];
 
 	vulkan_sampler linear_sampler;
-
 	vulkan_image test_texture;
 	ttf_font jet_brains;
 } simulation;

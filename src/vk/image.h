@@ -18,7 +18,7 @@ typedef struct
 	VkImageAspectFlags aspect;
 
 	// NOTE: VULKAN_INVALID_BINDING by default
-	vulkan_bindless_image descriptor;
+	vulkan_bindless_image descriptor;	
 } vulkan_image;
 
 typedef struct
@@ -28,7 +28,7 @@ typedef struct
 	vulkan_bindless_sampler descriptor;
 } vulkan_sampler;
 
-bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, bool create_descriptor, vulkan_image *out_image);
+bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, bool create_descriptor, const char *name, vulkan_image *out_image);
 
 void vulkan_image_destroy(vulkan *vulkan, vulkan_image image);
 
@@ -36,6 +36,6 @@ bool vulkan_image_transition(vulkan *vulkan, vulkan_image *image, VkImageLayout 
 
 bool vulkan_image_data_upload(vulkan *vulkan, vulkan_image *image, u32 size, void *data, v2u dimensions, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage, bool update_descriptor);
 
-bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, vulkan_sampler *out_sampler);
+bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, const char *name, vulkan_sampler *out_sampler);
 
 void vulkan_sampler_destroy(vulkan *vulkan, vulkan_sampler *sampler);

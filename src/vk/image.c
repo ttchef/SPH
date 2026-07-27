@@ -1,5 +1,4 @@
 
-#include "vk/descriptor.h"
 #include <vk/image.h>
 #include <vk/context.h>
 #include <vk/buffer.h>
@@ -8,8 +7,11 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, bool create_descriptor, vulkan_image *out_image)
+bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, bool create_descriptor, const char *name, vulkan_image *out_image)
 {
+    // NOTE: For release
+    UNUSED(name);
+
 	vulkan_image result = {0};
 	
 	VkImageCreateInfo image_info = {
@@ -79,6 +81,9 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
 	{
 		vulkan_bindless_image_aquire(vulkan, &vulkan->bindless, &result);
 	}
+
+	vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE_VIEW, (u64)result.view, "image_view:%s", name);
+	vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE, (u64)result.handle, "image:%s", name);
 
 	*out_image = result;
 	
@@ -192,7 +197,7 @@ error:
 bool vulkan_image_data_upload(vulkan *vulkan, vulkan_image *image, u32 size, void *data, v2u dimensions, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage, bool update_descriptor)
 {
 	vulkan_buffer staging;
-	if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, data, &staging))
+	if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, data, "staging", &staging))
 	{
 		SDL_Log("[VULKAN] Failed to create staging buffer when uploading data to image.");
 		return false;
@@ -331,8 +336,11 @@ error:
     return false;
 }
 
-bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, vulkan_sampler *out_sampler)
+bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, const char *name, vulkan_sampler *out_sampler)
 {
+    // NOTE: For release
+    UNUSED(name);
+
 	vulkan_sampler result = {0};
 
 	VkSamplerCreateInfo info = {
@@ -358,6 +366,8 @@ bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, vulkan_sample
 	{
 		vulkan_bindless_sampler_aquire(vulkan, &vulkan->bindless, &result);
 	}
+
+	vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_SAMPLER, (u64)result.handle, "sampler:%s", name);
 
 	*out_sampler = result;
 

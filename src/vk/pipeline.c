@@ -2,116 +2,12 @@
 #include <math/types.h>
 #include <vk/context.h>
 #include <vk/pipeline.h>
+#include <vk/utils.h>
 
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
 typedef bool (*pipeline_create_func)(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline);
-
-//
-// NOTE: Pipeline builder
-//
-
-vulkan_pipeline_desc vulkan_pipeline_default(vulkan_pipeline_type type)
-{
-    vulkan_pipeline_desc result = {0};
-
-    switch (type)
-    {
-    case VULKAN_PIPELINE_TYPE_GRAPHICS:
-    {
-        result.type         = VULKAN_PIPELINE_TYPE_GRAPHICS;
-        result.polygon_mode = VK_POLYGON_MODE_FILL;
-        result.topology     = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        result.depth_test   = VK_TRUE;
-        result.depth_write  = VK_TRUE;
-    }
-    break;
-
-    case VULKAN_PIPELINE_TYPE_COMPUTE:
-    {
-        result.type = VULKAN_PIPELINE_TYPE_COMPUTE;
-    }
-    break;
-
-    default:
-    {
-        SDL_Log("[VULKAN] Warning: Pipeline description of unkwon type: %d", type);
-    }
-    }
-
-    return result;
-}
-
-void vulkan_pipeline_desc_set_vertex_input(vulkan_pipeline_desc *desc, u32 vertex_stride, VkVertexInputAttributeDescription *attribues, u32 attribute_count)
-{
-    assert(desc);
-    assert(attribues);
-
-    assert(desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS);
-
-    VkVertexInputBindingDescription binding = {
-        .binding   = 0,
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-        .stride    = vertex_stride,
-    };
-
-    desc->vertex_binding = binding;
-
-    assert(attribute_count <= ARRAY_COUNT(desc->vertex_attributes));
-
-    desc->vertex_attribute_count = attribute_count;
-    SDL_memcpy(desc->vertex_attributes, attribues, attribute_count * sizeof(VkVertexInputAttributeDescription));
-}
-
-void vulkan_pipeline_desc_set_push_constant(vulkan_pipeline_desc *desc, u32 size, VkShaderStageFlags stages)
-{
-    desc->push_constant_size    = size;
-    desc->push_constants_stages = stages;
-}
-
-void vulkan_pipeline_desc_set_shaders(vulkan_pipeline_desc *desc, const char *vertex, const char *fragment, const char *compute)
-{
-    if (desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS)
-    {
-        assert(compute == NULL);
-        assert(vertex);
-        assert(fragment);
-    }
-    else if (desc->type == VULKAN_PIPELINE_TYPE_COMPUTE)
-    {
-        assert(vertex == NULL);
-        assert(fragment == NULL);
-        assert(compute);
-    }
-
-    desc->vertex_path   = vertex;
-    desc->fragment_path = fragment;
-    desc->compute_path  = compute;
-}
-
-void vulkan_pipeline_desc_set_shaders_entries(vulkan_pipeline_desc *desc, const char *vertex_entry, const char *fragment_entry, const char *compute_entry)
-{
-    desc->vertex_entry   = vertex_entry;
-    desc->fragment_entry = fragment_entry;
-    desc->compute_entry  = compute_entry;
-}
-
-void vulkan_pipeline_desc_set_polygon_mode(vulkan_pipeline_desc *desc, VkPolygonMode polygon_mode)
-{
-    desc->polygon_mode = polygon_mode;
-}
-
-void vulkan_pipeline_desc_set_topology(vulkan_pipeline_desc *desc, VkPrimitiveTopology topology)
-{
-    desc->topology = topology;
-}
-
-void vulkan_pipeline_desc_set_depth(vulkan_pipeline_desc *desc, VkBool32 depth_test, VkBool32 depth_write)
-{
-    desc->depth_test  = depth_test;
-    desc->depth_write = depth_write;
-}
 
 // TODO: Replace with relative to executable path or embed shader
 static VkShaderModule shader_module_create(vulkan *vulkan, const char *path)
@@ -207,8 +103,8 @@ static bool graphics_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc,
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .vertexBindingDescriptionCount   = desc->vertex_attribute_count == 0 ? 0 : 1,
         .pVertexBindingDescriptions      = desc->vertex_attribute_count == 0 ? NULL : &desc->vertex_binding,
-        .vertexAttributeDescriptionCount = desc->vertex_attribute_count == 0 ? 0 : desc->vertex_attribute_count,
-        .pVertexAttributeDescriptions    = desc->vertex_attribute_count == 0 ? NULL : desc->vertex_attributes,
+        .vertexAttributeDescriptionCount = desc->vertex_attribute_count,
+        .pVertexAttributeDescriptions    = desc->vertex_attributes,
     };
 
     VkPipelineInputAssemblyStateCreateInfo assembly_input = {
@@ -378,16 +274,21 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *
         return VULKAN_INVALID_PIPELINE;
     }
 
-    if (!pipeline_layout_create(vulkan, desc, &manager->pipelines[manager->count]))
+    vulkan_pipeline *pipeline = &manager->pipelines[manager->count];
+    if (!pipeline_layout_create(vulkan, desc, pipeline))
     {
         return VULKAN_INVALID_PIPELINE;
     }
 
-    pipeline_create_func pipeline_create = desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? graphics_pipeline_create : compute_pipeline_create;
-    if (!pipeline_create(vulkan, desc, &manager->pipelines[manager->count]))
+    pipeline_create_func pipeline_create = desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? graphics_pipeline_create : compute_pipeline_create;    
+    if (!pipeline_create(vulkan, desc, pipeline))
     {
+        vkDestroyPipelineLayout(vulkan->device, pipeline->layout, NULL);
         return VULKAN_INVALID_PIPELINE;
     }
+
+    vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (u64)pipeline->layout, "pipeline_layout:%s", desc->name);
+    vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_PIPELINE, (u64)pipeline->handle, "pipeline:%s", desc->name);
 
     manager->count++;
 
@@ -397,12 +298,11 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *
 vulkan_pipeline *vulkan_pipeline_get(vulkan *vulkan, vulkan_pipeline_id id)
 {
     assert(vulkan);
-    assert(id != VULKAN_INVALID_PIPELINE);
 
     vulkan_pipeline_manager *manager = &vulkan->pipeline_manager;
+    assert(id != VULKAN_INVALID_PIPELINE && id <= manager->count);
 
     vulkan_pipeline *result = &manager->pipelines[id - 1];
-    assert(result);
 
     return result;
 }

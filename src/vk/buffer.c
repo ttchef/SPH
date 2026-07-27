@@ -4,10 +4,13 @@
 #include <vk/utils.h>
 #include <vulkan/vulkan_core.h>
 
-static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, u32 size, vulkan_buffer *out_buffer)
+static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, u32 size, const char *name, vulkan_buffer *out_buffer)
 {
     assert(vulkan);
     assert(out_buffer);
+
+    // NOTE: For release
+    UNUSED(name);
 
     vulkan_buffer result = {0};
 
@@ -53,18 +56,21 @@ static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryProp
         return false;
     }
 
+    vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_DEVICE_MEMORY, (u64)result.memory, "memory:%s", name);
+    vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_BUFFER, (u64)result.handle, "buffer:%s", name);
+
     *out_buffer = result;
 
     return true;
 }
 
-bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer)
+bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, const char *name, vulkan_buffer *out_buffer)
 {
     assert(vulkan);
     assert(out_buffer);
 
     vulkan_buffer result = {0};
-    buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, &result);
+    buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, name, &result);
 
     result.type = VULKAN_BUFFER_TYPE_DEVICE_LOCAL;
 
@@ -76,7 +82,7 @@ bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage,
     }
 
     vulkan_buffer staging = {0};
-    if (!buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &staging))
+    if (!buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, "staging", &staging))
     {
         return false;
     }
@@ -167,13 +173,13 @@ error:
     return false;
 }
 
-bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, vulkan_buffer *out_buffer)
+bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, const char *name, vulkan_buffer *out_buffer)
 {
     vulkan_buffer result = {0};
 
     result.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
 
-    if (!buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, &result))
+    if (!buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, name, &result))
     {
         return false;
     }
@@ -194,12 +200,12 @@ bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage,
     return true;
 }
 
-bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, vulkan_buffer *out_buffer)
+bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, const char *name, vulkan_buffer *out_buffer)
 {
     vkDeviceWaitIdle(vulkan->device);
 
     vulkan_buffer staging = {0};
-    buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, buffer.size, &staging);
+    buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, buffer.size, name, &staging);
 
     staging.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
 

@@ -33,6 +33,7 @@ typedef struct
     f32 line_gap;
 } ttf_font;
 
-bool ttf_create(vulkan *vulkan, u32 size, void *data, ttf_font *out_font);
+bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font *out_font);
 
 void ttf_destroy(vulkan *vulkan, ttf_font *font);
+

@@ -59,6 +59,16 @@ bool vulkan_command_dispatch(vulkan *vulkan, u32 size_x, u32 size_y, u32 size_z)
 
 bool vulkan_command_set_viewport(vulkan *vulkan, f32 x, f32 y, f32 width, f32 height);
 
+#if defined(DEBUG)
+bool vulkan_command_label_begin(vulkan *vulkan, const char *name, color4 color);
+
+bool vulkan_command_label_end(vulkan *vulkan);
+#else
+#define vulkan_command_label_begin(...) (void)0
+
+#define vulkan_command_label_end(...) (void)0
+#endif
+
 // ----------
 
 bool vulkan_command_handler_create(vulkan *vulkan, vulkan_command_handler *handler);

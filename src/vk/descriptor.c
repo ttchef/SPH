@@ -120,7 +120,7 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
     }
 
     // NOTE: Ubo
-    if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ubo_size, NULL, &result.ubo))
+    if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ubo_size, NULL, "global_ubo", &result.ubo))
     {
         SDL_Log("[VULKAN] Failed to create descriptor ubo.");
         return false;
