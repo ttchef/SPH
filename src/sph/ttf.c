@@ -1154,51 +1154,70 @@ static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
     u32           segment_count;
     line_segment *segments = glyph_segments_generate(glyf, &segment_count);
 
+    const u32 sample_count  = 4;
+    const f32 sample_step   = 1.0f / (f32)sample_count;
+    const u32 total_samples = sample_count * sample_count;
+
     for (u32 y = 0; y < height; y++)
     {
         for (u32 x = 0; x < width; x++)
         {
-            // NOTE: Used to determent if pixel is inside or outside the shape
-            i32 intersect_count = 0;
+            u32 inside_samples = 0;
 
-            u32 flipped_y    = height - y;
-            f32 normalized_y = (f32)flipped_y / (f32)height;
-            f32 normalized_x = (f32)x / (f32)width;
-
-            v2 ray = v2make(glyf->x_min + normalized_x * (glyf->x_max - glyf->x_min), glyf->y_min + normalized_y * (glyf->y_max - glyf->y_min));
-
-            for (u32 i = 0; i < segment_count; i++)
+            for (u32 sy = 0; sy < sample_count; sy++)
             {
-                line_segment *segment = &segments[i];
-
-                f32 x0 = segment->start.x;
-                f32 y0 = segment->start.y;
-
-                f32 x1 = segment->end.x;
-                f32 y1 = segment->end.y;
-
-                if ((y0 > ray.y) != (y1 > ray.y))
+                for (u32 sx = 0; sx < sample_count; sx++)
                 {
-                    f32 intersect_x = x0 + (ray.y - y0) * (x1 - x0) / (y1 - y0);
+                    f32 sub_x = (f32)x + ((f32)sx + 0.5f) * sample_step;
+                    f32 sub_y = (f32)y + ((f32)sy + 0.5f) * sample_step;
 
-                    if (intersect_x >= ray.x)
+                    f32 flipped_y    = height - sub_y;
+                    f32 normalized_y = (f32)flipped_y / (f32)height;
+                    f32 normalized_x = sub_x / (f32)width;
+
+                    v2 ray = v2make(glyf->x_min + normalized_x * (glyf->x_max - glyf->x_min), glyf->y_min + normalized_y * (glyf->y_max - glyf->y_min));
+
+                    // NOTE: Used to determent if pixel is inside or outside the shape
+                    i32 intersect_count = 0;
+
+                    for (u32 i = 0; i < segment_count; i++)
                     {
-                        if (y0 > ray.y)
+                        line_segment *segment = &segments[i];
+
+                        f32 x0 = segment->start.x;
+                        f32 y0 = segment->start.y;
+
+                        f32 x1 = segment->end.x;
+                        f32 y1 = segment->end.y;
+
+                        if ((y0 > ray.y) != (y1 > ray.y))
                         {
-                            intersect_count--;
+                            f32 intersect_x = x0 + (ray.y - y0) * (x1 - x0) / (y1 - y0);
+
+                            if (intersect_x >= ray.x)
+                            {
+                                if (y0 > ray.y)
+                                {
+                                    intersect_count--;
+                                }
+                                else
+                                {
+                                    intersect_count++;
+                                }
+                            }
                         }
-                        else
-                        {
-                            intersect_count++;
-                        }
+                    }
+
+                    if (intersect_count != 0)
+                    {
+                        ++inside_samples;
                     }
                 }
             }
 
-            if (intersect_count != 0)
-            {
-                pixels[y * width + x] = 0xFFFFFFFF;
-            }
+            f32 coverage          = (f32)inside_samples / (f32)total_samples;
+            u8  alpha             = (u8)(coverage * 255.0f + 0.5f);
+            pixels[y * width + x] = 0x00FFFFFFu | ((u32)alpha << 24);
         }
     }
 
@@ -1269,11 +1288,11 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
 
     out_font->size_px = 64.0f;
 
-    const f32 scale = (out_font->size_px / (f32)head.units_per_em);
-    out_font->ascent = (f32)hhea.ascent * scale;
-    out_font->descent = (f32)hhea.descent * scale;
+    const f32 scale    = (out_font->size_px / (f32)head.units_per_em);
+    out_font->ascent   = (f32)hhea.ascent * scale;
+    out_font->descent  = (f32)hhea.descent * scale;
     out_font->line_gap = (f32)hhea.line_gap * scale;
-    
+
     out_font->pack = pack_create(atlas_width, atlas_height);
 
     table *glyf_table = table_find(&directory, TAG_GLYF);
@@ -1321,9 +1340,9 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
         image_raw glyph_data   = glyph_rasterize(&glyf, (u32)new_width, (u32)glyph_height_px);
 
         ttf_glyph glyph = {
-            .size_px.x  = (u32)new_width,
-            .size_px.y  = (u32)glyph_height_px,
-            .advance = (f32)glyph_advance * scale,
+            .size_px.x = (u32)new_width,
+            .size_px.y = (u32)glyph_height_px,
+            .advance   = (f32)glyph_advance * scale,
             .bearing.x = glyf.x_min * scale,
             .bearing.y = glyf.y_max * scale,
         };

@@ -51,7 +51,7 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
         if (c == '\n')
         {
             write.x = pos.x;
-            write.y = write.y + line_height * scale;
+            write.y = SDL_roundf(write.y + line_height * scale);
             continue;
         }
         if (c < '!' || c > '~')
@@ -61,7 +61,8 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
 
         ttf_glyph *glyph = &font->glyphs[c - '!'];
 
-        const f32 margin = 0.001f;
+        // TODO: Get rid of this its a hack for now
+        const f32 margin = 0.0011f;
         pc.uv_min        = v2make(glyph->uv_min.x + margin, glyph->uv_min.y + margin);
         pc.uv_max        = v2make(glyph->uv_max.x - margin, glyph->uv_max.y - margin);
 
