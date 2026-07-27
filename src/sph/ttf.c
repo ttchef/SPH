@@ -153,12 +153,41 @@ typedef struct
     u32 point_count;
 } glyf_simple;
 
+typedef union
+{
+    i16 i16;
+    u16 u16;
+    i8 i8;
+    u8 u8;
+} glyf_arg;
+
 typedef struct
 {
     u16 flags;
     u16 glyph_index;
-    i16 arg_1;
-    i16 arg_2;
+    glyf_arg arg1;
+    glyf_arg arg2;
+} glyf_component_part;
+
+enum
+{
+    COMPOUND_FLAG_ARG_1_AND_2_ARE_WORDS,
+    COMPOUND_FLAG_ARGS_ARE_XY_VALUES,
+    COMPOUND_FLAG_ROUND_XY_TO_GRID,
+    COMPOUND_FLAG_WE_HAVE_A_SCALE,
+    COMPOUND_FLAG_OBSOLETE,
+    COMPOUND_FLAG_MORE_COMPONENTS,
+    COMPOUND_FLAG_WE_HAVE_AN_X_AND_Y_SCALE,
+    COMPOUND_FLAG_WE_HAVE_A_TWO_BY_TWO,
+    COMPOUND_FLAG_WE_HAVE_INSTRUCTIONS,
+    COMPOUND_FLAG_USE_MY_METRICS,
+    COMPOUND_FLAG_OVERLAP_COMPOUND,  
+};
+
+typedef struct
+{
+    glyf_component_part *parts;
+    u32 part_count;
 } glyf_compound;
 
 typedef enum
@@ -926,6 +955,30 @@ static bool glyf_compound_parse(memory_stream *stream, glyf *out_glyf)
 {
     UNUSED(stream);
     out_glyf->type = GLYF_TYPE_COMPOUND;
+
+
+    u16 flags = 1u << COMPOUND_FLAG_MORE_COMPONENTS;
+
+    while (IS_BIT_SET(flags, COMPOUND_FLAG_MORE_COMPONENTS))
+    {
+        flags = memory_stream_read_u16_be(stream);
+        u16 glyph_index = memory_stream_read_u16_be(stream);
+
+        if (IS_BIT_SET(flags, COMPOUND_FLAG_ARG_1_AND_2_ARE_WORDS))
+        {
+            memory_stream_read_u16_be(stream);
+            memory_stream_read_u16_be(stream);
+        }
+        else
+        {        
+            memory_stream_read_u8(stream);
+            memory_stream_read_u8(stream);
+        }
+         
+        SDL_Log("Index: %u", glyph_index);
+    }
+    
+
     return true;
 }
 
