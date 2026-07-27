@@ -37,7 +37,7 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
     };
 
     const f32 line_height = font->ascent - font->descent + font->line_gap;
-    v2        write       = v2make(pos.x, SDL_roundf(pos.y + font->ascent * scale));
+    v2        write       = v2make(pos.x, SDL_roundf(pos.y + font->ascent * scale - font->size_px * scale));
 
     for (i32 i = 0; i < written; i++)
     {
@@ -61,10 +61,8 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
 
         ttf_glyph *glyph = &font->glyphs[c - '!'];
 
-        // TODO: Get rid of this its a hack for now
-        const f32 margin = 0.0011f;
-        pc.uv_min        = v2make(glyph->uv_min.x + margin, glyph->uv_min.y + margin);
-        pc.uv_max        = v2make(glyph->uv_max.x - margin, glyph->uv_max.y - margin);
+        pc.uv_min = glyph->uv_min;
+        pc.uv_max = glyph->uv_max;
 
         f32 w = (f32)glyph->size_px.x * scale;
         f32 h = (f32)glyph->size_px.y * scale;

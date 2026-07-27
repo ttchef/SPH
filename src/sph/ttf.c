@@ -1348,7 +1348,8 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
         };
 
         v2u glyph_pos;
-        if (!pack_add(&out_font->pack, glyph.size_px, &glyph_pos))
+        // NOTE: 2 pixel padding
+        if (!pack_add(&out_font->pack, v2uadd(glyph.size_px, v2umake(2, 2)), &glyph_pos))
         {
             SDL_Log("[TTF] Failed to pack: %c.", c);
             continue;

@@ -30,6 +30,15 @@ static inline v2 v2lerp(v2 a, v2 b, f32 t)
 }
 
 //
+// NOTE: V2u
+// 
+
+static inline v2u v2uadd(v2u a, v2u b)
+{
+    return v2umake(a.x + b.x, a.y + b.y);
+}
+
+//
 // NOTE: V3
 //
 
