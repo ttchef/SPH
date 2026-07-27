@@ -51,7 +51,7 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
         if (c == '\n')
         {
             write.x = pos.x;
-            write.y = SDL_roundf(write.y + line_height * scale);
+            write.y = write.y + line_height * scale;
             continue;
         }
         if (c < '!' || c > '~')
@@ -68,8 +68,7 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
         f32 w = (f32)glyph->size_px.x * scale;
         f32 h = (f32)glyph->size_px.y * scale;
 
-        v2 top_left = v2make(SDL_roundf(write.x + glyph->bearing.x * scale),
-                             write.y - SDL_roundf(glyph->bearing.y * scale));
+        v2 top_left = v2make(write.x + glyph->bearing.x * scale, write.y + font->size_px * scale - glyph->bearing.y * scale);
         v2 center   = v2make(top_left.x + w * 0.5f, top_left.y + h * 0.5f);
 
         m4 scale_m   = m4scale(w, h, 1.0f);
@@ -175,7 +174,7 @@ bool simulation_create(simulation *simulation)
     if (!pipelines_create(&simulation->vulkan, simulation->pipelines, PIPELINE_COUNT))
     {
         return false;
-    }    
+    }
 
     if (!resources_create(simulation))
     {
@@ -231,7 +230,7 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    draw_text(simulation, v2make(0, 0), 0.5f, "Frametime: %.4fms", simulation->time.smooth_delta * 1000.0f);
+    draw_text(simulation, v2make(0, 0), 0.5f, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 
     vulkan_command_end_rendering(vulkan);

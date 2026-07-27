@@ -1267,10 +1267,12 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
         .data   = SDL_calloc(atlas_width * atlas_height, sizeof(u32)),
     };
 
-    const f32 base_scale = (64.0f / (f32)head.units_per_em);
-    out_font->ascent = (f32)hhea.ascent * base_scale;
-    out_font->descent = (f32)hhea.descent * base_scale;
-    out_font->line_gap = (f32)hhea.line_gap * base_scale;
+    out_font->size_px = 64.0f;
+
+    const f32 scale = (out_font->size_px / (f32)head.units_per_em);
+    out_font->ascent = (f32)hhea.ascent * scale;
+    out_font->descent = (f32)hhea.descent * scale;
+    out_font->line_gap = (f32)hhea.line_gap * scale;
     
     out_font->pack = pack_create(atlas_width, atlas_height);
 
@@ -1310,8 +1312,6 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
             SDL_Log("[TTF] Glyph has negative height: %c.", c);
             continue;
         }
-
-        f32 scale = 64.0f / (f32)head.units_per_em;
 
         f32 glyph_width_px  = (f32)glyph_width_funits * scale;
         f32 glyph_height_px = (f32)glyph_height_funits * scale;
