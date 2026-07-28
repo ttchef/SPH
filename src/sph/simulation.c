@@ -90,10 +90,10 @@ static void draw_screen_quad(simulation *simulation, v2 pos, v2 scale, vulkan_im
 
     vulkan_command_bind_pipeline(vulkan, simulation->pipelines[PIPELINE_TEXTURED_QUAD]);
 
-    v2 top_left = v2add(pos, v2scale(scale, 0.5f));
+    v2 center = v2add(pos, v2scale(scale, 0.5f));
 
     m4 scale_m   = m4scale(scale.x, scale.y, 1.0);
-    m4 translate = m4translate(top_left.x, top_left.y, 0.0f);
+    m4 translate = m4translate(center.x, center.y, 0.0f);
     m4 model     = m4mul(translate, scale_m);
 
     textured_quad_pc pc = {
@@ -147,7 +147,7 @@ static bool resources_create(simulation *simulation)
         return false;
     }
 
-    vulkan_image_create(vulkan, v2umake(test_image.width, test_image.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, false, "watermelon", &simulation->test_texture);
+    vulkan_image_create(vulkan, v2umake(test_image.width, test_image.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, "watermelon", &simulation->test_texture);
     vulkan_image_data_upload(vulkan, &simulation->test_texture, test_image.width * test_image.height * 4, test_image.data, v2umake(test_image.width, test_image.height), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
 
     SDL_free(test_image.data);
@@ -227,8 +227,6 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_quads", BLUE);
-    draw_screen_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5), v2make(200, 200), &simulation->test_texture, &simulation->linear_sampler);
-    draw_screen_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), &simulation->test_texture, &simulation->linear_sampler);
     draw_screen_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), &simulation->test_texture, &simulation->linear_sampler);
     vulkan_command_label_end(vulkan);
 

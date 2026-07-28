@@ -28,7 +28,7 @@ typedef struct
 	vulkan_bindless_sampler descriptor;
 } vulkan_sampler;
 
-bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, bool create_descriptor, const char *name, vulkan_image *out_image);
+bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image);
 
 void vulkan_image_destroy(vulkan *vulkan, vulkan_image image);
 

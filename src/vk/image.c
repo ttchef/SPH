@@ -7,7 +7,7 @@
 #include <SDL3/SDL_log.h>
 #include <vulkan/vulkan_core.h>
 
-bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, bool create_descriptor, const char *name, vulkan_image *out_image)
+bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image)
 {
     // NOTE: For release
     UNUSED(name);
@@ -76,11 +76,6 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
 	result.access = VK_ACCESS_NONE;
 	result.layout = VK_IMAGE_LAYOUT_UNDEFINED;
 	result.aspect = aspect;
-
-	if (create_descriptor)
-	{
-		vulkan_bindless_image_aquire(vulkan, &vulkan->bindless, &result);
-	}
 
 	vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE_VIEW, (u64)result.view, "image_view:%s", name);
 	vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE, (u64)result.handle, "image:%s", name);

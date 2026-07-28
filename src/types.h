@@ -2,10 +2,10 @@
 #pragma once
 
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdarg.h>
 
 typedef int8_t  i8;
 typedef int16_t i16;
@@ -62,9 +62,12 @@ static inline color4 color4gray(f32 v, f32 a)
     return color4make(v, v, v, a);
 }
 
-#define RED   (color4make(1.0, 0.0, 0.0, 1.0))
-#define GREEN (color4make(0.0, 1.0, 0.0, 1.0))
-#define BLUE  (color4make(0.0, 0.0, 1.0, 1.0))
+#define RED    (color4make(1.0, 0.0, 0.0, 1.0))
+#define GREEN  (color4make(0.0, 1.0, 0.0, 1.0))
+#define BLUE   (color4make(0.0, 0.0, 1.0, 1.0))
+#define YELLOW (color4make(1.0, 1.0, 0.0, 1.0))
+#define PURPLE (color4make(1.0, 0.0, 1.0, 1.0))
+#define CYAN   (color4make(0.0, 1.0, 1.0, 1.0))
 
 typedef struct
 {

@@ -43,18 +43,18 @@ bool pipelines_create(vulkan *vulkan, vulkan_pipeline_id *pipelines, u32 count)
 
     for (u32 i = 0; i < PIPELINE_COUNT; i++)
     {
-        vulkan_pipeline_desc *desc = &table[i];
+        vulkan_pipeline_desc desc = table[i];
 
         // NOTE: Convert shader paths to aboslute paths
-        desc->vertex_path = path_abs(desc->vertex_path);
-        desc->fragment_path = path_abs(desc->fragment_path);
-        desc->compute_path = path_abs(desc->compute_path);
+        desc.vertex_path = path_abs(desc.vertex_path);
+        desc.fragment_path = path_abs(desc.fragment_path);
+        desc.compute_path = path_abs(desc.compute_path);
         
-        pipelines[i] = vulkan_pipeline_create(vulkan, desc);
+        pipelines[i] = vulkan_pipeline_create(vulkan, &desc);
 
         if (pipelines[i] == VULKAN_INVALID_PIPELINE)
         {
-            SDL_Log("[ENGINE] Failed to create pipeline: %s", desc->name);
+            SDL_Log("[ENGINE] Failed to create pipeline: %s", desc.name);
             return false;
         }
     }
