@@ -1043,6 +1043,7 @@ static bool glyf_compound_parse(u32 size, void *data, table *table, loca *loca, 
         }
 
         darray_push((void *)&out_glyf->glyphs, &glyph.glyphs[0]);
+        darray_destroy(glyph.glyphs);
     }
 
     return true;
@@ -1107,6 +1108,33 @@ static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph
     }
 
     return true;
+}
+
+static void glyf_destroy(glyf *glyf)
+{
+    for (u32 i = 0; i < darray_len(glyf->glyphs); i++)
+    {
+        glyf_simple *simple = &glyf->glyphs[i];
+
+        if (simple->end_pts_of_contours)
+        {
+            SDL_free(simple->end_pts_of_contours);
+        }
+        if (simple->flags)
+        {
+            SDL_free(simple->flags);
+        }
+        if (simple->x)
+        {
+            SDL_free(simple->x);
+        }
+        if (simple->y)
+        {
+            SDL_free(simple->y);
+        }
+    }
+
+    darray_destroy(glyf->glyphs);
 }
 
 static void line_segment_bezier(v2 a, v2 b, v2 control, u32 resolution, line_segment *out_segments)
@@ -1418,12 +1446,6 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
             continue;
         }
 
-        if (glyf.type == GLYF_TYPE_COMPOUND)
-        {
-            // SDL_Log("[TTF] No support for compound glyf's yet: %c.", c);
-            // continue;
-        }
-
         i32 glyph_width_funits  = glyf.x_max - glyf.x_min;
         i32 glyph_height_funits = glyf.y_max - glyf.y_min;
 
@@ -1474,6 +1496,9 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
         }
 
         out_font->glyphs[c - '!'] = glyph;
+
+        SDL_free(glyph_data.data);
+        glyf_destroy(&glyf);
     }
 
     // NOTE: turn into vulkan image
@@ -1503,6 +1528,10 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
     if (hmtx.metrics)
     {
         SDL_free(hmtx.metrics);
+    }
+    if (directory.tables)
+    {
+        SDL_free(directory.tables);
     }
 
     return true;

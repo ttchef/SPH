@@ -150,6 +150,10 @@ static bool resources_create(simulation *simulation)
     vulkan_image_create(vulkan, v2umake(test_image.width, test_image.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, false, "watermelon", &simulation->test_texture);
     vulkan_image_data_upload(vulkan, &simulation->test_texture, test_image.width * test_image.height * 4, test_image.data, v2umake(test_image.width, test_image.height), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
 
+    SDL_free(test_image.data);
+    SDL_free(test_data);
+    SDL_free(jet_brains_data);
+
     return true;
 }
 

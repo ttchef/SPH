@@ -204,14 +204,17 @@ static void zoombie_destroy(vulkan *vulkan, vulkan_swapchain_zombie *zombie)
 	assert(zombie->finished);
 	assert(zombie->image_views);
 	assert(zombie->images);
+	assert(zombie->depth_images);
 
 	SDL_free(zombie->finished);
 	SDL_free(zombie->image_views);
 	SDL_free(zombie->images);
+	SDL_free(zombie->depth_images);
 
 	zombie->finished = NULL;
 	zombie->image_views = NULL;
 	zombie->images = NULL;
+	zombie->depth_images = NULL;
 	
 	zombie->valid = false;
 }
@@ -321,12 +324,15 @@ void vulkan_swapchain_destroy(vulkan *vulkan, vulkan_swapchain *swapchain)
 	assert(swapchain->finished);
 	assert(swapchain->image_views);
 	assert(swapchain->images);
+	assert(swapchain->depth_images);
 
 	SDL_free(swapchain->finished);
 	SDL_free(swapchain->image_views);
 	SDL_free(swapchain->images);
+	SDL_free(swapchain->depth_images);
 
 	swapchain->finished = NULL;
 	swapchain->image_views = NULL;
 	swapchain->images = NULL;
+	swapchain->depth_images = NULL;
 }

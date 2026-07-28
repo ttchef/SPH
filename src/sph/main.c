@@ -65,4 +65,5 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     assert(simulation);
 
     simulation_destroy(simulation);
+    SDL_free(simulation);
 }
