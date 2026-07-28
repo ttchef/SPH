@@ -62,6 +62,8 @@ static inline color4 color4gray(f32 v, f32 a)
     return color4make(v, v, v, a);
 }
 
+#define WHITE  (color4make(1.0, 1.0, 1.0, 1.0))
+#define BLACK  (color4make(0.0, 0.0, 0.0, 1.0))
 #define RED    (color4make(1.0, 0.0, 0.0, 1.0))
 #define GREEN  (color4make(0.0, 1.0, 0.0, 1.0))
 #define BLUE   (color4make(0.0, 0.0, 1.0, 1.0))

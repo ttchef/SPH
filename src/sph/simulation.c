@@ -11,7 +11,7 @@ typedef struct
     m4 orthographic;
 } global_ubo;
 
-static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *format, ...)
+static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -34,8 +34,11 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
     textured_quad_pc pc = {
         .image   = font->atlas.descriptor,
         .sampler = simulation->linear_sampler.descriptor,
+        .color   = v4fromcolor4(WHITE),
+        .rounded = 0,
     };
 
+    const f32 scale       = (f32)font_size / (f32)font->size_px;
     const f32 line_height = font->ascent - font->descent + font->line_gap;
     v2        write       = v2make(pos.x, SDL_roundf(pos.y + font->ascent * scale - font->size_px * scale));
 
@@ -84,7 +87,7 @@ static void draw_text(simulation *simulation, v2 pos, f32 scale, const char *for
     va_end(args);
 }
 
-static void draw_screen_quad(simulation *simulation, v2 pos, v2 scale, vulkan_image *image, vulkan_sampler *sampler)
+static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vulkan_image *image, vulkan_sampler *sampler)
 {
     vulkan *vulkan = &simulation->vulkan;
 
@@ -100,8 +103,10 @@ static void draw_screen_quad(simulation *simulation, v2 pos, v2 scale, vulkan_im
         .model   = model,
         .uv_min  = v2make(0.0f, 0.0f),
         .uv_max  = v2make(1.0f, 1.0f),
-        .image   = image->descriptor,
-        .sampler = sampler->descriptor,
+        .image   = image ? image->descriptor : VULKAN_INVALID_BINDING,
+        .sampler = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
+        .color   = v4fromcolor4(color),
+        .rounded = 1,
     };
 
     vulkan_command_push_constants(vulkan, sizeof(textured_quad_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, simulation->pipelines[PIPELINE_TEXTURED_QUAD]);
@@ -227,11 +232,12 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_quads", BLUE);
-    draw_screen_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), &simulation->test_texture, &simulation->linear_sampler);
+    draw_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), WHITE, &simulation->test_texture, &simulation->linear_sampler);
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    draw_text(simulation, v2make(0, 0), 0.5f, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
+    draw_quad(simulation, v2make(400, 400), v2make(400, 400), BLUE, NULL, NULL);
+    draw_text(simulation, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 
     vulkan_command_end_rendering(vulkan);
