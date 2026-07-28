@@ -1,5 +1,6 @@
 
 #include <math/vector.h>
+#include <sph/darray.h>
 #include <sph/memory.h>
 #include <sph/ttf.h>
 #include <types.h>
@@ -151,22 +152,28 @@ typedef struct
     i16 *y;
 
     u32 point_count;
+    i32 contour_count;
 } glyf_simple;
 
 typedef union
 {
     i16 i16;
     u16 u16;
-    i8 i8;
-    u8 u8;
+    i8  i8;
+    u8  u8;
 } glyf_arg;
 
 typedef struct
 {
-    u16 flags;
-    u16 glyph_index;
+    u16      flags;
+    u16      glyph_index;
     glyf_arg arg1;
     glyf_arg arg2;
+
+    f64 scale_x;
+    f64 scale_y;
+    f64 scale0;
+    f64 scale1;
 } glyf_component_part;
 
 enum
@@ -181,14 +188,8 @@ enum
     COMPOUND_FLAG_WE_HAVE_A_TWO_BY_TWO,
     COMPOUND_FLAG_WE_HAVE_INSTRUCTIONS,
     COMPOUND_FLAG_USE_MY_METRICS,
-    COMPOUND_FLAG_OVERLAP_COMPOUND,  
+    COMPOUND_FLAG_OVERLAP_COMPOUND,
 };
-
-typedef struct
-{
-    glyf_component_part *parts;
-    u32 part_count;
-} glyf_compound;
 
 typedef enum
 {
@@ -206,11 +207,8 @@ typedef struct
     i16 x_max;
     i16 y_max;
 
-    union
-    {
-        glyf_simple   simple;
-        glyf_compound compound;
-    };
+    // NOTE: darray.h
+    glyf_simple   *glyphs;
 } glyf;
 
 enum
@@ -902,82 +900,150 @@ static void glyf_simple_coordinates_read(memory_stream *stream, u32 point_count,
 static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
 {
     out_glyf->type = GLYF_TYPE_SIMPLE;
+    out_glyf->glyphs = darray_create(sizeof(glyf_simple));
 
-    glyf_simple *simple = &out_glyf->simple;
+    glyf_simple simple = {0};
 
-    simple->end_pts_of_contours = SDL_calloc(out_glyf->number_of_contours, sizeof(u16));
-    assert(simple->end_pts_of_contours);
+    simple.end_pts_of_contours = SDL_calloc(out_glyf->number_of_contours, sizeof(u16));
+    assert(simple.end_pts_of_contours);
 
     for (i16 i = 0; i < out_glyf->number_of_contours; i++)
     {
-        simple->end_pts_of_contours[i] = memory_stream_read_u16_be(stream);
+        simple.end_pts_of_contours[i] = memory_stream_read_u16_be(stream);
     }
 
     u16 instruction_length = memory_stream_read_u16_be(stream);
     memory_stream_consume(stream, instruction_length);
 
-    simple->point_count = simple->end_pts_of_contours[out_glyf->number_of_contours - 1] + 1;
-    if (simple->point_count < 0 || simple->point_count > 0xFFFF)
+    simple.contour_count = out_glyf->number_of_contours;
+    simple.point_count = simple.end_pts_of_contours[out_glyf->number_of_contours - 1] + 1;
+    if (simple.point_count > 0xFFFF)
     {
-        SDL_Log("[TTF] Invalid glyf point count: %u.", simple->point_count);
+        SDL_Log("[TTF] Invalid glyf point count: %u.", simple.point_count);
         return false;
     }
 
-    simple->flags = SDL_calloc(simple->point_count, sizeof(u8));
-    simple->x     = SDL_calloc(simple->point_count, sizeof(i16));
-    simple->y     = SDL_calloc(simple->point_count, sizeof(i16));
-    assert(simple->flags);
-    assert(simple->x);
-    assert(simple->y);
+    simple.flags = SDL_calloc(simple.point_count, sizeof(u8));
+    simple.x     = SDL_calloc(simple.point_count, sizeof(i16));
+    simple.y     = SDL_calloc(simple.point_count, sizeof(i16));
+    assert(simple.flags);
+    assert(simple.x);
+    assert(simple.y);
 
-    for (u32 i = 0; i < simple->point_count; i++)
+    for (u32 i = 0; i < simple.point_count; i++)
     {
         u8 flag          = memory_stream_read_u8(stream);
-        simple->flags[i] = flag;
+        simple.flags[i] = flag;
 
         if (IS_BIT_SET(flag, GLYF_FLAG_REPEAT))
         {
             u8 num_copies = memory_stream_read_u8(stream);
-            for (u32 j = 0; j < num_copies && i + 1 < simple->point_count; j++)
+            for (u32 j = 0; j < num_copies && i + 1 < simple.point_count; j++)
             {
-                simple->flags[++i] = flag;
+                simple.flags[++i] = flag;
             }
         }
     }
 
-    glyf_simple_coordinates_read(stream, simple->point_count, GLYF_FLAG_X_SHORT_VECTOR, GLYF_FLAG_POSITIVE_X_VECTOR, simple->flags, simple->x);
-    glyf_simple_coordinates_read(stream, simple->point_count, GLYF_FLAG_Y_SHORT_VECTOR, GLYF_FLAG_POSITIVE_Y_VECTOR, simple->flags, simple->y);
+    glyf_simple_coordinates_read(stream, simple.point_count, GLYF_FLAG_X_SHORT_VECTOR, GLYF_FLAG_POSITIVE_X_VECTOR, simple.flags, simple.x);
+    glyf_simple_coordinates_read(stream, simple.point_count, GLYF_FLAG_Y_SHORT_VECTOR, GLYF_FLAG_POSITIVE_Y_VECTOR, simple.flags, simple.y);
+
+    darray_push((void *)&out_glyf->glyphs, &simple);
 
     return true;
 }
 
-static bool glyf_compound_parse(memory_stream *stream, glyf *out_glyf)
-{
-    UNUSED(stream);
-    out_glyf->type = GLYF_TYPE_COMPOUND;
+// NOTE: Forward declaration
+static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph_index, glyf *out_glyf);
 
+static bool glyf_compound_parse(u32 size, void *data, table *table, loca *loca, memory_stream *stream, glyf *out_glyf)
+{
+    out_glyf->type = GLYF_TYPE_COMPOUND;
+    out_glyf->glyphs = darray_create(sizeof(glyf_simple));
 
     u16 flags = 1u << COMPOUND_FLAG_MORE_COMPONENTS;
 
     while (IS_BIT_SET(flags, COMPOUND_FLAG_MORE_COMPONENTS))
     {
-        flags = memory_stream_read_u16_be(stream);
-        u16 glyph_index = memory_stream_read_u16_be(stream);
+        glyf_component_part part = {0};
+
+        flags            = memory_stream_read_u16_be(stream);
+        part.flags       = flags;
+        part.glyph_index = memory_stream_read_u16_be(stream);
+
+        if (!IS_BIT_SET(flags, COMPOUND_FLAG_ARGS_ARE_XY_VALUES))
+        {
+            SDL_Log("[TTF] Point indices for compound glyphs are not supported.");
+            return false;
+        }
 
         if (IS_BIT_SET(flags, COMPOUND_FLAG_ARG_1_AND_2_ARE_WORDS))
         {
-            memory_stream_read_u16_be(stream);
-            memory_stream_read_u16_be(stream);
+            part.arg1.u16 = memory_stream_read_u16_be(stream);
+            part.arg2.u16 = memory_stream_read_u16_be(stream);
         }
         else
-        {        
-            memory_stream_read_u8(stream);
-            memory_stream_read_u8(stream);
+        {
+            part.arg1.u8 = memory_stream_read_u8(stream);
+            part.arg2.u8 = memory_stream_read_u8(stream);
         }
-         
-        SDL_Log("Index: %u", glyph_index);
+
+        if (IS_BIT_SET(flags, COMPOUND_FLAG_WE_HAVE_A_TWO_BY_TWO))
+        {
+            part.scale_x = memory_stream_read_f2dot14(stream);
+            part.scale0 = memory_stream_read_f2dot14(stream);
+            part.scale1 = memory_stream_read_f2dot14(stream);
+            part.scale_y = memory_stream_read_f2dot14(stream);
+        }
+        else if (IS_BIT_SET(flags, COMPOUND_FLAG_WE_HAVE_AN_X_AND_Y_SCALE))
+        {
+            part.scale_x = memory_stream_read_f2dot14(stream);
+            part.scale_y = memory_stream_read_f2dot14(stream);
+        }
+        else if (IS_BIT_SET(flags, COMPOUND_FLAG_WE_HAVE_A_SCALE))
+        {
+            part.scale_x = memory_stream_read_f2dot14(stream);
+            part.scale_y = part.scale_x;
+        }
+        else
+        {
+            part.scale_x = 1.0;
+            part.scale_y = 1.0;
+        }
+
+        glyf glyph;
+        if (!glyf_parse(size, data, table, loca, part.glyph_index, &glyph))
+        {
+            SDL_Log("[TTF] Failed to parse compound glyph sub glyph.");
+            return false;
+        }
+        if (glyph.type == GLYF_TYPE_COMPOUND)
+        {
+            SDL_Log("[TTF] Compound glyph in compound glyph is this allowed???");
+            return false;
+        }
+
+        // NOTE: transform
+        i32 index = 0;
+        for (i16 c = 0; c < glyph.number_of_contours; c++)
+        {
+            i32 start_index = index;
+            i32 end_index   = glyph.glyphs[0].end_pts_of_contours[c];
+
+            for (i32 point_index = start_index; point_index <= end_index; point_index++)
+            {
+                i16 x = glyph.glyphs[0].x[point_index];
+                i16 y = glyph.glyphs[0].y[point_index];
+
+                glyph.glyphs[0].x[point_index] = (i16)SDL_roundf((f64)x * part.scale_x + (f64)y * part.scale1 + part.arg1.i16);
+                glyph.glyphs[0].y[point_index] = (i16)SDL_roundf((f64)x * part.scale0 + (f64)y * part.scale_y + part.arg2.i16);
+            }
+
+            index = end_index + 1;
+        }
+
+        darray_push((void *)&out_glyf->glyphs, &glyph.glyphs[0]);
     }
-    
 
     return true;
 }
@@ -1037,29 +1103,10 @@ static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph
     }
     else
     {
-        SDL_Log("[TTF] Compound glyph.");
-        return glyf_compound_parse(&stream, out_glyf);
+        return glyf_compound_parse(size, data, table, loca, &stream, out_glyf);
     }
 
     return true;
-}
-
-static void line_segment_add(line_segment **segments, u32 *segment_capacity, u32 *segment_count, line_segment segment)
-{
-    u32 capacity = *segment_capacity;
-    u32 count    = *segment_count;
-
-    if (count + 1 > capacity)
-    {
-        capacity *= 2;
-        line_segment *new = SDL_realloc(*segments, capacity * sizeof(line_segment));
-        assert(new);
-
-        *segments         = new;
-        *segment_capacity = capacity;
-    }
-    (*segments)[count++] = segment;
-    *segment_count       = count;
 }
 
 static void line_segment_bezier(v2 a, v2 b, v2 control, u32 resolution, line_segment *out_segments)
@@ -1093,103 +1140,105 @@ static void line_segment_bezier(v2 a, v2 b, v2 control, u32 resolution, line_seg
     };
 }
 
-static line_segment *glyph_segments_generate(glyf *glyf, u32 *out_count)
+static line_segment *glyph_segments_generate(glyf *glyf)
 {
-    u32           seg_count    = 0;
-    u32           seg_capacity = 1;
-    line_segment *seg          = SDL_calloc(seg_capacity, sizeof(line_segment));
+    line_segment *seg = darray_create(sizeof(line_segment));
     assert(seg);
 
     const u32 segment_resolution = 12;
 
-    i32 index = 0;
-    for (i32 contour = 0; contour < glyf->number_of_contours; contour++)
+    for (u32 i = 0; i < darray_len(glyf->glyphs); i++)
     {
-        i32 start_index = index;
-        i32 end_index   = glyf->simple.end_pts_of_contours[contour];
-        i32 count       = end_index - start_index + 1;
+        glyf_simple *simple = &glyf->glyphs[i];
 
-        i32 first_on_curve = -1;
-        for (i32 i = 0; i < count; i++)
+        i32 index = 0;
+        for (i32 contour = 0; contour < simple->contour_count; contour++)
         {
-            if (IS_BIT_SET(glyf->simple.flags[start_index + i], GLYF_FLAG_ON_CURVE))
+            i32 start_index = index;
+            i32 end_index   = simple->end_pts_of_contours[contour];
+            i32 count       = end_index - start_index + 1;
+
+            i32 first_on_curve = -1;
+            for (i32 i = 0; i < count; i++)
             {
-                first_on_curve = i;
-                break;
+                if (IS_BIT_SET(simple->flags[start_index + i], GLYF_FLAG_ON_CURVE))
+                {
+                    first_on_curve = i;
+                    break;
+                }
             }
-        }
 
-        if (first_on_curve == -1)
-        {
-            SDL_Log("[TTF] Did not find on curve point for contour... skipping.");
-            continue;
-        }
+            if (first_on_curve == -1)
+            {
+                SDL_Log("[TTF] Did not find on curve point for contour... skipping.");
+                continue;
+            }
 
-        v2 start = {
-            .x = glyf->simple.x[start_index + first_on_curve],
-            .y = glyf->simple.y[start_index + first_on_curve],
-        };
-
-        bool has_control_point = false;
-        v2   control           = {0};
-
-        for (i32 j = 1; j <= count; j++)
-        {
-            i32 point_index = start_index + (first_on_curve + j) % count;
-
-            v2 point = {
-                .x = glyf->simple.x[point_index],
-                .y = glyf->simple.y[point_index],
+            v2 start = {
+                .x = simple->x[start_index + first_on_curve],
+                .y = simple->y[start_index + first_on_curve],
             };
 
-            if (IS_BIT_SET(glyf->simple.flags[point_index], GLYF_FLAG_ON_CURVE))
-            {
-                if (has_control_point)
-                {
-                    line_segment s[segment_resolution];
-                    line_segment_bezier(start, point, control, segment_resolution, s);
+            bool has_control_point = false;
+            v2   control           = {0};
 
-                    for (u32 k = 0; k < segment_resolution; k++)
+            for (i32 j = 1; j <= count; j++)
+            {
+                i32 point_index = start_index + (first_on_curve + j) % count;
+
+                v2 point = {
+                    .x = simple->x[point_index],
+                    .y = simple->y[point_index],
+                };
+
+                if (IS_BIT_SET(simple->flags[point_index], GLYF_FLAG_ON_CURVE))
+                {
+                    if (has_control_point)
                     {
-                        line_segment_add(&seg, &seg_capacity, &seg_count, s[k]);
+                        line_segment s[segment_resolution];
+                        line_segment_bezier(start, point, control, segment_resolution, s);
+
+                        for (u32 k = 0; k < segment_resolution; k++)
+                        {
+                            darray_push((void *)&seg, &s[k]);
+                        }
                     }
+                    else
+                    {
+                        line_segment s = {
+                            .start = start,
+                            .end   = point,
+                        };
+                        darray_push((void *)&seg, &s);
+                    }
+
+                    start             = point;
+                    has_control_point = false;
                 }
                 else
                 {
-                    line_segment s = {
-                        .start = start,
-                        .end   = point,
-                    };
-                    line_segment_add(&seg, &seg_capacity, &seg_count, s);
-                }
-
-                start             = point;
-                has_control_point = false;
-            }
-            else
-            {
-                if (has_control_point)
-                {
-                    v2 middle = v2lerp(control, point, 0.5f);
-
-                    line_segment s[segment_resolution];
-                    line_segment_bezier(start, middle, control, segment_resolution, s);
-
-                    for (u32 k = 0; k < segment_resolution; k++)
+                    if (has_control_point)
                     {
-                        line_segment_add(&seg, &seg_capacity, &seg_count, s[k]);
-                    }
-                    start = middle;
-                }
-                has_control_point = true;
-                control           = point;
-            }
-        }
+                        v2 middle = v2lerp(control, point, 0.5f);
 
-        index += count;
+                        line_segment s[segment_resolution];
+                        line_segment_bezier(start, middle, control, segment_resolution, s);
+
+                        for (u32 k = 0; k < segment_resolution; k++)
+                        {
+                            darray_push((void *)&seg, &s[k]);
+                        }
+                        start = middle;
+                    }
+                    has_control_point = true;
+                    control           = point;
+                }
+            }
+
+            index += count;
+        }
     }
 
-    *out_count = seg_count;
     return seg;
 }
 
@@ -1204,8 +1253,7 @@ static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
 
     u32 *pixels = (u32 *)result.data;
 
-    u32           segment_count;
-    line_segment *segments = glyph_segments_generate(glyf, &segment_count);
+    line_segment *segments = glyph_segments_generate(glyf);
 
     const u32 sample_count  = 4;
     const f32 sample_step   = 1.0f / (f32)sample_count;
@@ -1233,7 +1281,7 @@ static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
                     // NOTE: Used to determent if pixel is inside or outside the shape
                     i32 intersect_count = 0;
 
-                    for (u32 i = 0; i < segment_count; i++)
+                    for (u32 i = 0; i < darray_len(segments); i++)
                     {
                         line_segment *segment = &segments[i];
 
@@ -1274,7 +1322,7 @@ static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
         }
     }
 
-    SDL_free(segments);
+    darray_destroy(segments);
 
     return result;
 }
@@ -1372,8 +1420,8 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
 
         if (glyf.type == GLYF_TYPE_COMPOUND)
         {
-            SDL_Log("[TTF] No support for compound glyf's yet: %c.", c);
-            continue;
+            // SDL_Log("[TTF] No support for compound glyf's yet: %c.", c);
+            // continue;
         }
 
         i32 glyph_width_funits  = glyf.x_max - glyf.x_min;

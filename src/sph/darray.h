@@ -8,82 +8,98 @@
 
 //
 // NOTE: Darray with shadowdata
-// 
-// 
+//
 
 #define DARRAY_START_CAPACITY 10
 #define DARRAY_MAGIC          0x6767187F
 
-enum
+typedef struct
 {
-    DARRAY_CAPACITY_INDEX,
-    DARRAY_LEN_INDEX,
-    DARRAY_ELEMENT_SIZE_INDEX,
-    DARRAY_MAGIC_INDEX,
-    DARRAY_INDEX_COUNT,
-};
+    u32 capacity;
+    u32 len;
+    u32 element_size;
+    u32 magic;
+} darray_header;
+
+static inline darray_header *darray_base(void *darray)
+{
+    return ((darray_header *)darray) - 1;
+}
 
 static inline void *darray_create(u32 element_size)
 {
-    u32 *ptr = SDL_malloc(element_size * DARRAY_START_CAPACITY + sizeof(u32) * 4);
-    assert(ptr);
+    darray_header *header = SDL_malloc(element_size * DARRAY_START_CAPACITY + sizeof(darray_header));
+    assert(header);
 
-    ptr[DARRAY_CAPACITY_INDEX] = DARRAY_START_CAPACITY;
-    ptr[DARRAY_LEN_INDEX] = 0;
-    ptr[DARRAY_ELEMENT_SIZE_INDEX] = element_size;
-    ptr[DARRAY_MAGIC_INDEX] = DARRAY_MAGIC;
+    header->capacity     = DARRAY_START_CAPACITY;
+    header->len          = 0;
+    header->element_size = element_size;
+    header->magic        = DARRAY_MAGIC;
 
-    return (void *)&ptr[DARRAY_INDEX_COUNT];
+    return (void *)(header + 1);
 }
 
-static inline u32 *darray_base_ptr(void *darray)
+static inline void darray_destroy(void *darray)
 {
-    u32 *ptr = darray;
-    ptr -= DARRAY_INDEX_COUNT;
-    return ptr;
+    if (!darray)
+    {
+        SDL_Log("[DARRAY] Array ptr is NULL.");
+        return;
+    }
+
+    darray_header *header = darray_base(darray);
+    assert(header->magic == DARRAY_MAGIC);
+    SDL_free(header);
 }
 
 static inline u32 darray_magic(void *darray)
 {
-    return darray_base_ptr(darray)[DARRAY_MAGIC_INDEX];
+    return darray_base(darray)->magic;
 }
 
 static inline u32 darray_element_size(void *darray)
 {
-    return darray_base_ptr(darray)[DARRAY_ELEMENT_SIZE_INDEX];
+    return darray_base(darray)->element_size;
 }
 
 static inline u32 darray_len(void *darray)
 {
-    return darray_base_ptr(darray)[DARRAY_LEN_INDEX];
+    return darray_base(darray)->len;
 }
 
 static inline u32 darray_capacity(void *darray)
 {
-    return darray_base_ptr(darray)[DARRAY_CAPACITY_INDEX];
+    return darray_base(darray)->capacity;
 }
 
-static inline bool darray_push(void *darray, void *element)
+static inline bool darray_push(void **darray_ptr, void *element)
 {
-    assert(darray_magic(darray) == DARRAY_MAGIC);
+    void          *darray = *darray_ptr;
+    darray_header *header = darray_base(darray);
 
-    if (darray_len(darray) + 1 > darray_capacity(darray))
+    assert(header->magic == DARRAY_MAGIC);
+
+    if (header->len + 1 > header->capacity)
     {
-        u32 new_capacity = darray_capacity(darray) * 2;
-        u32 *new_data = SDL_realloc(darray_base_ptr(darray), new_capacity * darray_element_size(darray));
-        if (!new_data)
+        u32            new_capacity = header->capacity * 2;
+        darray_header *new_header   = SDL_realloc(header, header->element_size * new_capacity + sizeof(darray_header));
+        if (!new_header)
         {
             SDL_Log("[DARRAY] Out of memory.");
             return false;
         }
 
-        new_data[DARRAY_CAPACITY_INDEX] = new_capacity;
+        new_header->capacity = new_capacity;
+        header               = new_header;
 
+        *darray_ptr = (void *)(new_header + 1);
+        darray      = *darray_ptr;
     }
 
     u8 *data = darray;
+    SDL_memcpy(data + header->element_size * header->len, element, header->element_size);
 
-    SDL_memcpy(data + darray_element_size(darray) * darray_len(darray), element, darray_element_size(darray));
+    header->len++;
 
     return true;
 }

@@ -64,3 +64,8 @@ i64 memory_stream_read_i64_be(memory_stream *stream)
     u8 *x = memory_stream_consume(stream, sizeof(i64));
     return ((i64)x[0] << 56) | ((i64)x[1] << 48) | ((i64)x[2] << 40) | ((i64)x[3] << 32) | ((i64)x[4] << 24) | ((i64)x[5] << 16) | ((i64)x[6] << 8) | ((i64)x[7]);
 }
+
+f64 memory_stream_read_f2dot14(memory_stream *stream)
+{
+    return ((f64)memory_stream_read_i16_be(stream)) / 16384.0;
+}
