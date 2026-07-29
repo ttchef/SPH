@@ -4,6 +4,7 @@
 #include <sph/simulation.h>
 #include <sph/darray.h>
 #include <sph/utils.h>
+#include <sph/ui.h>
 
 typedef struct
 {
@@ -12,17 +13,7 @@ typedef struct
     m4 orthographic;
 } global_ubo;
 
-typedef struct ui_element
-{
-    v2 pos;
-    v2 size;
-    color4 color;
-
-    // NOTE: darray.h
-    struct ui_element *children;
-} ui_element;
-
-static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...)
+void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -97,7 +88,7 @@ static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char 
     va_end(args);
 }
 
-static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vulkan_image *image, vulkan_sampler *sampler)
+void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vulkan_image *image, vulkan_sampler *sampler)
 {
     vulkan *vulkan = &simulation->vulkan;
 
@@ -116,7 +107,7 @@ static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vu
         .image        = image ? image->descriptor : VULKAN_INVALID_BINDING,
         .sampler      = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
         .color        = v4fromcolor4(color),
-        .roundness    = 0.3f,
+        .roundness    = 0.0f,
         .aspect_ratio = scale.x / scale.y,
     };
 
@@ -124,7 +115,7 @@ static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vu
     vulkan_command_draw(vulkan, 6);
 }
 
-static void draw_cube_lines(simulation *simulation, v3 pos, v3 scale)
+void draw_cube_lines(simulation *simulation, v3 pos, v3 scale)
 {
     vulkan *vulkan = &simulation->vulkan;
 
@@ -139,58 +130,6 @@ static void draw_cube_lines(simulation *simulation, v3 pos, v3 scale)
     vulkan_command_bind_pipeline(vulkan, simulation->pipelines[PIPELINE_CUBE_LINES]);
     vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT, simulation->pipelines[PIPELINE_CUBE_LINES]);
     vulkan_command_draw(vulkan, 24);
-}
-
-static ui_element *ui(ui_element *parent, ui_element *element)
-{
-    if (!parent)
-    {
-        void *data = SDL_malloc(sizeof(*element));
-        SDL_memcpy(data, element, sizeof(*element));
-        return data;
-    }
-
-    if (!parent->children)
-    {
-        parent->children = darray_create(sizeof(ui_element));
-    }
-
-    return darray_push((void *)&parent->children, element);
-}
-
-static void ui_draw(simulation *simulation, ui_element *root)
-{
-    if (!root)
-    {
-        return;
-    }
-
-    draw_quad(simulation, root->pos, root->size, root->color, NULL, NULL);
-
-    if (!root->children)
-    {
-        return;
-    }
-
-    for (u32 i = 0; i < darray_len(root->children); i++)
-    {
-        ui_draw(simulation, &root->children[i]);
-    }
-}
-
-static void ui_destroy(ui_element *root)
-{
-    if (!root || !root->children)
-    {
-        return;
-    }
-
-    for (u32 i = 0; i < darray_len(root->children); i++)
-    {
-        ui_destroy(&root->children[i]);
-    }
-    darray_destroy(root->children);
-    SDL_free(root);
 }
 
 static bool resources_create(simulation *simulation)
@@ -299,22 +238,37 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    // draw_quad(simulation, v2make(400, 400), v2make(400, 200), BLUE, NULL, NULL);
     draw_text(simulation, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 
     ui_element ui_info = {
-        .pos = v2make(0, 0),
-        .size = v2make(500, 500),
-        .color = RED,  
+        .pos = v2make(200, 200),
+        .size = size(SIZE_FIT, 0, 0),
+        .padding = padding(32, 32, 32, 32),
+        .color = RED,
+        .child_gap = 16,
     };
     
-    ui_element *root = ui(NULL, &ui_info);
+    ui_element *root = ui_open(NULL, &ui_info);
 
-    ui_info.size = v2make(200, 200);
-    ui_info.color = BLUE;
-    ui(root, &ui_info);
+    ui_info = (ui_element){
+          .pos = v2make(0, 0),
+          .size = size(SIZE_FIXED, 150, 200),
+          .color = BLUE,  
+    };
+    ui_element *child = ui_open(root, &ui_info);
+    ui_close(child);
 
+    ui_info = (ui_element){
+          .pos = v2make(0, 0),
+          .size = size(SIZE_FIXED, 300, 120),
+          .color = YELLOW,  
+    };
+    child = ui_open(root, &ui_info);
+    ui_close(child);
+
+    ui_close(root);
+    
     ui_draw(simulation, root);
     ui_destroy(root);
 
