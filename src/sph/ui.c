@@ -30,18 +30,36 @@ void ui_close(ui_element *element)
 
     if (element->width.type == UI_SIZE_FIT)
     {
+        if (element->text)
+        {
+            element->width.value = measure_text(element->font, element->font_size, "%s", element->text);
+        }
         element->width.value += element->padding.left + element->padding.right;
+        
         if (element->width.max != 0.0f)
         {
             element->width.value = MIN(element->width.value, element->width.max);
         }
+        if (element->width.min != 0.0f)
+        {
+            element->width.value = MAX(element->width.value, element->width.min);
+        }
     }
     if (element->height.type == UI_SIZE_FIT)
     {
+        if (element->text)
+        {
+            element->height.value = element->font_size;
+        }
+        
         element->height.value += element->padding.top + element->padding.bottom;
         if (element->height.max != 0.0f)
         {
             element->height.value = MIN(element->height.value, element->height.max);
+        }
+        if (element->height.min != 0.0f)
+        {
+            element->height.value = MAX(element->height.value, element->height.min);
         }
     }
 
@@ -229,6 +247,10 @@ void ui_draw(simulation *simulation, ui_element *root)
     ui_grow_resolve(root, simulation->window.width, simulation->window.height);
 
     draw_quad(simulation, root->pos, v2make(root->width.value, root->height.value), root->roundness, root->color, NULL, NULL);
+    if (root->text)
+    {
+        draw_text(simulation, root->font, v2make(root->pos.x + root->padding.left, root->pos.y + root->padding.top), root->font_size, "%s", root->text);
+    }
 
     if (!root->children)
     {

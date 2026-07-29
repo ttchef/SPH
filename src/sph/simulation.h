@@ -33,9 +33,11 @@ void simulation_update(simulation *simulation);
 void simulation_destroy(simulation *simulation);
 
 //
-// NOTE: Highly used draw commands
+// NOTE: Helpers
 //
-void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...);
+f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...);
+
+void draw_text(simulation *simulation, ttf_font *font, v2 pos, u32 font_size, const char *format, ...);
  
 void draw_quad(simulation *simulation, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_image *image, vulkan_sampler *sampler);
 

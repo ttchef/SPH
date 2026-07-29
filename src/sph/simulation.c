@@ -1,10 +1,10 @@
 
 #include <math/core.h>
+#include <sph/darray.h>
 #include <sph/png.h>
 #include <sph/simulation.h>
-#include <sph/darray.h>
-#include <sph/utils.h>
 #include <sph/ui.h>
+#include <sph/utils.h>
 
 typedef struct
 {
@@ -13,7 +13,58 @@ typedef struct
     m4 orthographic;
 } global_ubo;
 
-void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...)
+f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    static char buffer[4096];
+    i32         written = SDL_vsnprintf(buffer, sizeof(buffer), format, args);
+    if (written < 0 || written >= (i32)sizeof(buffer))
+    {
+        SDL_Log("[ENGINE] Draw string format error.");
+        va_end(args);
+        return 0.0f;
+    }
+
+    f32 max_width = 0.0f;
+
+    const f32 scale       = (f32)font_size / (f32)font->size_px;
+    const f32 line_height = font->ascent - font->descent + font->line_gap;
+    v2        write       = v2make(0.0f, SDL_roundf(0.0f + font->ascent * scale - font->size_px * scale));
+
+    for (i32 i = 0; i < written; i++)
+    {
+        char c = buffer[i];
+
+        if (c == ' ')
+        {
+            write.x += font->glyphs[0].advance * scale;
+            continue;
+        }
+        if (c == '\n')
+        {
+            max_width = MAX(max_width, write.x);
+            write.x   = 0.0f;
+            write.y   = SDL_roundf(write.y + line_height * scale);
+            continue;
+        }
+        if (c < '!' || c > '~')
+        {
+            continue;
+        }
+
+        ttf_glyph *glyph = &font->glyphs[c - '!'];
+        write.x += glyph->advance * scale;
+    }
+
+    va_end(args);
+
+    max_width = MAX(max_width, write.x);
+    return max_width;
+}
+
+void draw_text(simulation *simulation, ttf_font *font, v2 pos, u32 font_size, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -30,8 +81,6 @@ void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format
     vulkan *vulkan = &simulation->vulkan;
 
     vulkan_command_bind_pipeline(vulkan, simulation->pipelines[PIPELINE_TEXTURED_QUAD]);
-
-    ttf_font *font = &simulation->jet_brains;
 
     textured_quad_pc pc = {
         .image   = font->atlas.descriptor,
@@ -238,56 +287,60 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    draw_text(simulation, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
+    draw_text(simulation, &simulation->jet_brains, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 
     ui_element ui_info = {
-        .layout = LAYOUT_TO_BOTTOM,
-        .pos = v2make(200, 200),
-        .width = fit(0, 0),
-        .height = fit(MAX((i32)window->height - 900, 0), 0),
-        .padding = padding(32, 32, 32, 32),
-        .color = RED,
+        .layout    = LAYOUT_TO_RIGHT,
+        .pos       = v2make(200, 200),
+        .width     = fit(MAX((i32)window->width - 900, 0), 0),
+        .height    = fit(0, 0),
+        .padding   = padding(32, 32, 32, 32),
+        .color     = RED,
         .child_gap = 16,
     };
-    
+
     ui_element *root = ui_open(NULL, &ui_info);
 
     ui_info = (ui_element){
-          .pos = v2make(0, 0),
-          .width = fixed(150),
-          .height = fixed(200),
-          .color = BLUE,  
+        .pos    = v2make(0, 0),
+        .width  = fixed(150),
+        .height = fixed(200),
+        .color  = YELLOW,
     };
     ui_element *child = ui_open(root, &ui_info);
     ui_close(child);
 
     ui_info = (ui_element){
-          .pos = v2make(0, 0),
-          .width = grow(30, 0),
-          .height = grow(64, 0),
-          .roundness = 0.2f,
-          .color = YELLOW,  
+        .pos       = v2make(0, 0),
+        .width     = fit(0, 0),
+        .height    = fit(0, 0),
+        .roundness = 0.2f,
+        .padding   = padding(32, 32, 32, 32),
+        .color     = BLUE,
+        .text      = "Hello World",
+        .font_size = 24,
+        .font      = &simulation->jet_brains,
     };
     child = ui_open(root, &ui_info);
     ui_close(child);
 
     ui_info = (ui_element){
-          .pos = v2make(0, 0),
-          .width = grow(120, 0),
-          .height = grow(120, 0),
-          .roundness = 0.2f,
-          .color = GREEN,  
+        .pos       = v2make(0, 0),
+        .width     = grow(120, 0),
+        .height    = grow(120, 0),
+        .roundness = 0.2f,
+        .color     = GREEN,
     };
     child = ui_open(root, &ui_info);
     ui_close(child);
 
     ui_close(root);
-    
+
     vulkan_command_label_begin(vulkan, "ui", RED);
     ui_draw(simulation, root);
     vulkan_command_label_end(vulkan);
-    
+
     ui_destroy(root);
 
     vulkan_command_end_rendering(vulkan);

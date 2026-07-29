@@ -50,6 +50,10 @@ typedef struct ui_element
     f32 child_gap;
     f32 roundness;
 
+    const char *text;
+    u32 font_size;
+    ttf_font *font;
+
     struct ui_element *parent;
     // NOTE: darray.h
     struct ui_element *children;
