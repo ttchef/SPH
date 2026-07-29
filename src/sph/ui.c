@@ -138,11 +138,18 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     }
     remaining_along -= (darray_len(root->children) - 1) * root->child_gap;
 
+    u32 iteration_count = 0;
     while (growable_count && remaining_along > 0.0f)
     {
         f32 smallest        = root->layout == LAYOUT_TO_RIGHT ? root->children[smallest_growable].width.value : root->children[smallest_growable].height.value;
         f32 second_smallest = FLT_MAX;
         f32 size_to_add     = remaining_along;
+
+        iteration_count++;
+        if (iteration_count > 200)
+        {
+            u32 x = 0; 
+        }
 
         for (u32 i = 0; i < darray_len(root->children); i++)
         {
@@ -167,6 +174,11 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
         }
 
         size_to_add = MIN(size_to_add, (f32)remaining_along / (f32)growable_count);
+
+        if (size_to_add < 0.1f)
+        {
+            break;
+        }
 
         for (u32 i = 0; i < darray_len(root->children); i++)
         {
