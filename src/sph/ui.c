@@ -35,7 +35,7 @@ void ui_close(ui_element *element)
             element->width.value = measure_text(element->font, element->font_size, "%s", element->text);
         }
         element->width.value += element->padding.left + element->padding.right;
-        
+
         if (element->width.max != 0.0f)
         {
             element->width.value = MIN(element->width.value, element->width.max);
@@ -51,7 +51,7 @@ void ui_close(ui_element *element)
         {
             element->height.value = element->font_size;
         }
-        
+
         element->height.value += element->padding.top + element->padding.bottom;
         if (element->height.max != 0.0f)
         {
@@ -130,12 +130,12 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
         if (child->width.type == UI_SIZE_GROW)
         {
             child->width.value = child->width.min;
-        } 
+        }
 
         if (child->height.type == UI_SIZE_GROW)
         {
             child->height.value = child->height.min;
-        } 
+        }
     }
 
     f32 remaining_width  = root->width.value;
@@ -164,7 +164,7 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
             if (along_layout_size->value < smallest_growable_size)
             {
                 smallest_growable_size = along_layout_size->value;
-                smallest_growable = i;
+                smallest_growable      = i;
             }
         }
 
@@ -284,15 +284,23 @@ void ui_draw(simulation *simulation, ui_element *root)
 
 void ui_destroy(ui_element *root)
 {
-    if (!root || !root->children)
+    if (!root)
     {
         return;
     }
 
-    for (u32 i = 0; i < darray_len(root->children); i++)
+    if (root->children)
     {
-        ui_destroy(&root->children[i]);
+        for (u32 i = 0; i < darray_len(root->children); i++)
+        {
+            ui_destroy(&root->children[i]);
+        }
+
+        darray_destroy(root->children);
     }
-    darray_destroy(root->children);
-    SDL_free(root);
+
+    if (!root->parent)
+    {
+        SDL_free(root);
+    }
 }

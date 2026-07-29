@@ -312,6 +312,14 @@ void simulation_update(simulation *simulation)
     ui_close(child);
 
     ui_info = (ui_element){
+        .width   = fit(0, 0),
+        .height  = fixed(500),
+        .padding = padding(16, 16, 16, 16),
+        .color   = PURPLE,
+    };
+    child = ui_open(root, &ui_info);
+
+    ui_info = (ui_element){
         .pos       = v2make(0, 0),
         .width     = fit(0, 0),
         .height    = fit(0, 0),
@@ -321,8 +329,10 @@ void simulation_update(simulation *simulation)
         .text      = "Hello World",
         .font_size = 24,
         .font      = &simulation->jet_brains,
+        .align_y   = CENTER,
     };
-    child = ui_open(root, &ui_info);
+    ui_element *idk = ui_open(child, &ui_info);
+    ui_close(idk);
     ui_close(child);
 
     ui_info = (ui_element){

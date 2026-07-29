@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include <types.h>
-#include <sph/types.h>
 #include <math/vector.h>
+#include <sph/types.h>
+#include <types.h>
 
 //
 // NOTE: Heavily inspired by clay: https://github.com/nicbarker/clay.git
@@ -20,9 +20,9 @@ typedef enum
 typedef struct
 {
     ui_size_type type;
-    f32 value;
-    f32 min;
-    f32 max;
+    f32          value;
+    f32          min;
+    f32          max;
 } ui_size;
 
 typedef struct
@@ -35,24 +35,33 @@ typedef struct
 
 typedef enum
 {
-    LAYOUT_TO_RIGHT,  
+    LAYOUT_TO_RIGHT,
     LAYOUT_TO_BOTTOM,
 } ui_layout;
 
+typedef enum
+{
+    TOP,
+    CENTER,
+    BOTTOM,
+} ui_alignement;
+
 typedef struct ui_element
 {
-    ui_layout layout;
-    v2 pos;
-    ui_size width;
-    ui_size height;
-    ui_padding padding;
-    color4 color;
-    f32 child_gap;
-    f32 roundness;
+    ui_layout     layout;
+    v2            pos;
+    ui_size       width;
+    ui_size       height;
+    ui_padding    padding;
+    color4        color;
+    f32           child_gap;
+    f32           roundness;
+    ui_alignement align_x;
+    ui_alignement align_y;
 
     const char *text;
-    u32 font_size;
-    ttf_font *font;
+    u32         font_size;
+    ttf_font   *font;
 
     struct ui_element *parent;
     // NOTE: darray.h
@@ -71,7 +80,7 @@ void ui_destroy(ui_element *root);
 static inline ui_size fixed(f32 value)
 {
     return (ui_size){
-        .type = UI_SIZE_FIXED,
+        .type  = UI_SIZE_FIXED,
         .value = value,
     };
 }
@@ -79,9 +88,9 @@ static inline ui_size fixed(f32 value)
 static inline ui_size fit(f32 min, f32 max)
 {
     return (ui_size){
-        .type = UI_SIZE_FIT,
-        .min = min,
-        .max = max,
+        .type  = UI_SIZE_FIT,
+        .min   = min,
+        .max   = max,
         .value = min,
     };
 }
@@ -89,9 +98,9 @@ static inline ui_size fit(f32 min, f32 max)
 static inline ui_size grow(f32 min, f32 max)
 {
     return (ui_size){
-        .type = UI_SIZE_GROW,
-        .min = min,
-        .max = max,
+        .type  = UI_SIZE_GROW,
+        .min   = min,
+        .max   = max,
         .value = min,
     };
 }
@@ -99,9 +108,9 @@ static inline ui_size grow(f32 min, f32 max)
 static inline ui_padding padding(f32 left, f32 right, f32 top, f32 bottom)
 {
     return (ui_padding){
-        .left = left,
-        .right = right,
-        .top = top,
+        .left   = left,
+        .right  = right,
+        .top    = top,
         .bottom = bottom,
     };
 }
