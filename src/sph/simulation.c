@@ -242,9 +242,9 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     ui_element ui_info = {
-        .layout = LAYOUT_TO_BOTTOM,
+        .layout = LAYOUT_TO_RIGHT,
         .pos = v2make(200, 200),
-        .width = fit(0),
+        .width = fixed(1000),
         .height = fit(0),
         .padding = padding(32, 32, 32, 32),
         .color = RED,
@@ -264,9 +264,18 @@ void simulation_update(simulation *simulation)
 
     ui_info = (ui_element){
           .pos = v2make(0, 0),
-          .width = fixed(300),
-          .height = fixed(120),
+          .width = grow(0),
+          .height = grow(0),
           .color = YELLOW,  
+    };
+    child = ui_open(root, &ui_info);
+    ui_close(child);
+
+    ui_info = (ui_element){
+          .pos = v2make(0, 0),
+          .width = fixed(120),
+          .height = fixed(120),
+          .color = GREEN,  
     };
     child = ui_open(root, &ui_info);
     ui_close(child);

@@ -14,6 +14,7 @@ typedef enum
 {
     UI_SIZE_FIXED,
     UI_SIZE_FIT,
+    UI_SIZE_GROW,
 } ui_size_type;
 
 typedef struct
@@ -72,6 +73,14 @@ static inline ui_size fit(f32 value)
 {
     return (ui_size){
         .type = UI_SIZE_FIT,
+        .value = value,
+    };
+}
+
+static inline ui_size grow(f32 value)
+{
+    return (ui_size){
+        .type = UI_SIZE_GROW,
         .value = value,
     };
 }

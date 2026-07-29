@@ -68,12 +68,57 @@ void ui_close(ui_element *element)
     }
 }
 
+static void ui_grow_resolve(ui_element *root)
+{
+    // TODO: handle parent grow as a special case later
+
+    if (!root->children)
+    {
+        return;
+    }
+
+    f32 remaining_width  = root->width.value;
+    f32 remaining_height = root->height.value;
+
+    remaining_width -= root->padding.left + root->padding.right;
+    remaining_height -= root->padding.top + root->padding.bottom;
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_element *child = &root->children[i];
+
+        if (child->width.type == UI_SIZE_GROW)
+        {
+            continue;
+        }
+
+        remaining_width -= child->width.value;
+    }
+    remaining_width -= (darray_len(root->children) - 1) * root->child_gap;
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_element *child = &root->children[i];
+
+        if (child->width.type == UI_SIZE_GROW)
+        {
+            child->width.value += remaining_width;
+        }
+        if (child->height.type == UI_SIZE_GROW)
+        {
+            child->height.value += (remaining_height - child->height.value);
+        }
+    }
+}
+
 void ui_draw(simulation *simulation, ui_element *root)
 {
     if (!root)
     {
         return;
     }
+
+    ui_grow_resolve(root);
 
     draw_quad(simulation, root->pos, v2make(root->width.value, root->height.value), root->color, NULL, NULL);
 
