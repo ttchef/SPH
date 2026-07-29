@@ -28,11 +28,13 @@ void ui_close(ui_element *element)
         return;
     }
 
-    if (element->size.type == SIZE_FIT)
+    if (element->width.type == UI_SIZE_FIT)
     {
-        ui_padding padding = element->padding;
-        element->size.width += padding.left + padding.right;
-        element->size.height += padding.top + padding.bottom;
+        element->width.value += element->padding.left + element->padding.right;
+    }
+    if (element->height.type == UI_SIZE_FIT)
+    {
+        element->height.value += element->padding.top + element->padding.bottom;
     }
 
     ui_element *parent = element->parent;
@@ -41,19 +43,27 @@ void ui_close(ui_element *element)
         return;
     }
 
-    if (parent->size.type == SIZE_FIT)
+    f32 child_gap = (darray_len(parent->children) - 1) * parent->child_gap;
+    if (parent->width.type == UI_SIZE_FIT)
     {
-        f32 child_gap = (darray_len(parent->children) - 1) * parent->child_gap;
-
         if (parent->layout == LAYOUT_TO_RIGHT)
         {
-            parent->size.width += element->size.width + child_gap;
-            parent->size.height = MAX(element->size.height, parent->size.height);
+            parent->width.value += element->width.value + child_gap;
         }
         else if (parent->layout == LAYOUT_TO_BOTTOM)
         {
-            parent->size.width = MAX(element->size.width, parent->size.width);
-            parent->size.height += element->size.height + child_gap;
+            parent->width.value = MAX(element->width.value, parent->width.value);
+        }
+    }
+    if (parent->height.type == UI_SIZE_FIT)
+    {
+        if (parent->layout == LAYOUT_TO_RIGHT)
+        {
+            parent->height.value = MAX(element->height.value, parent->height.value);
+        }
+        else if (parent->layout == LAYOUT_TO_BOTTOM)
+        {
+            parent->height.value += element->height.value + child_gap;
         }
     }
 }
@@ -65,7 +75,7 @@ void ui_draw(simulation *simulation, ui_element *root)
         return;
     }
 
-    draw_quad(simulation, root->pos, v2make(root->size.width, root->size.height), root->color, NULL, NULL);
+    draw_quad(simulation, root->pos, v2make(root->width.value, root->height.value), root->color, NULL, NULL);
 
     if (!root->children)
     {
@@ -84,13 +94,13 @@ void ui_draw(simulation *simulation, ui_element *root)
         {
             child->pos.x += offset;
             child->pos.y += root->padding.top;
-            offset += child->size.width + root->child_gap;
+            offset += child->width.value + root->child_gap;
         }
         else if (root->layout == LAYOUT_TO_BOTTOM)
         {
             child->pos.x += root->padding.left;
             child->pos.y += offset;
-            offset += child->size.height + root->child_gap;
+            offset += child->height.value + root->child_gap;
         }
 
         ui_draw(simulation, child);

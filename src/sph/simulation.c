@@ -244,7 +244,8 @@ void simulation_update(simulation *simulation)
     ui_element ui_info = {
         .layout = LAYOUT_TO_BOTTOM,
         .pos = v2make(200, 200),
-        .size = size(SIZE_FIT, 0, 0),
+        .width = fit(0),
+        .height = fit(0),
         .padding = padding(32, 32, 32, 32),
         .color = RED,
         .child_gap = 16,
@@ -254,7 +255,8 @@ void simulation_update(simulation *simulation)
 
     ui_info = (ui_element){
           .pos = v2make(0, 0),
-          .size = size(SIZE_FIXED, 150, 200),
+          .width = fixed(150),
+          .height = fixed(200),
           .color = BLUE,  
     };
     ui_element *child = ui_open(root, &ui_info);
@@ -262,7 +264,8 @@ void simulation_update(simulation *simulation)
 
     ui_info = (ui_element){
           .pos = v2make(0, 0),
-          .size = size(SIZE_FIXED, 300, 120),
+          .width = fixed(300),
+          .height = fixed(120),
           .color = YELLOW,  
     };
     child = ui_open(root, &ui_info);

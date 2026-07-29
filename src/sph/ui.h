@@ -12,25 +12,15 @@
 
 typedef enum
 {
-    SIZE_FIXED,
-    SIZE_FIT,
+    UI_SIZE_FIXED,
+    UI_SIZE_FIT,
 } ui_size_type;
 
 typedef struct
 {
     ui_size_type type;
-    f32 width;
-    f32 height;
+    f32 value;
 } ui_size;
-
-static inline ui_size size(ui_size_type type, f32 width, f32 height)
-{
-    return (ui_size){
-        .type = type,
-        .width = width,
-        .height = height,
-    };
-}
 
 typedef struct
 {
@@ -39,16 +29,6 @@ typedef struct
     f32 top;
     f32 bottom;
 } ui_padding;
-
-static inline ui_padding padding(f32 left, f32 right, f32 top, f32 bottom)
-{
-    return (ui_padding){
-        .left = left,
-        .right = right,
-        .top = top,
-        .bottom = bottom,
-    };
-}
 
 typedef enum
 {
@@ -60,7 +40,8 @@ typedef struct ui_element
 {
     ui_layout layout;
     v2 pos;
-    ui_size size;
+    ui_size width;
+    ui_size height;
     ui_padding padding;
     color4 color;
     f32 child_gap;
@@ -78,3 +59,29 @@ void ui_draw(simulation *simulation, ui_element *root);
 
 void ui_destroy(ui_element *root);
 
+// NOTE: Struct builders
+static inline ui_size fixed(f32 value)
+{
+    return (ui_size){
+        .type = UI_SIZE_FIXED,
+        .value = value,
+    };
+}
+
+static inline ui_size fit(f32 value)
+{
+    return (ui_size){
+        .type = UI_SIZE_FIT,
+        .value = value,
+    };
+}
+
+static inline ui_padding padding(f32 left, f32 right, f32 top, f32 bottom)
+{
+    return (ui_padding){
+        .left = left,
+        .right = right,
+        .top = top,
+        .bottom = bottom,
+    };
+}
