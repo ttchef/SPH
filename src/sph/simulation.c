@@ -35,7 +35,6 @@ static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char 
         .image   = font->atlas.descriptor,
         .sampler = simulation->linear_sampler.descriptor,
         .color   = v4fromcolor4(WHITE),
-        .rounded = 0,
     };
 
     const f32 scale       = (f32)font_size / (f32)font->size_px;
@@ -100,13 +99,14 @@ static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vu
     m4 model     = m4mul(translate, scale_m);
 
     textured_quad_pc pc = {
-        .model   = model,
-        .uv_min  = v2make(0.0f, 0.0f),
-        .uv_max  = v2make(1.0f, 1.0f),
-        .image   = image ? image->descriptor : VULKAN_INVALID_BINDING,
-        .sampler = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
-        .color   = v4fromcolor4(color),
-        .rounded = 1,
+        .model        = model,
+        .uv_min       = v2make(0.0f, 0.0f),
+        .uv_max       = v2make(1.0f, 1.0f),
+        .image        = image ? image->descriptor : VULKAN_INVALID_BINDING,
+        .sampler      = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
+        .color        = v4fromcolor4(color),
+        .roundness    = 0.1f,
+        .aspect_ratio = scale.x / scale.y,
     };
 
     vulkan_command_push_constants(vulkan, sizeof(textured_quad_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, simulation->pipelines[PIPELINE_TEXTURED_QUAD]);
@@ -236,7 +236,7 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    draw_quad(simulation, v2make(400, 400), v2make(400, 400), BLUE, NULL, NULL);
+    draw_quad(simulation, v2make(400, 400), v2make(400, 200), BLUE, NULL, NULL);
     draw_text(simulation, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 

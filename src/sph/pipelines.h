@@ -14,8 +14,8 @@ typedef struct
     m4                      model;
     vulkan_bindless_image   image;
     vulkan_bindless_sampler sampler;
-    u32 rounded;
-    u32 padding;
+    f32                     roundness;
+    f32                     aspect_ratio;
     v2                      uv_min;
     v2                      uv_max;
     v4                      color;
