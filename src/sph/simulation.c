@@ -242,6 +242,7 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     ui_element ui_info = {
+        .layout = LAYOUT_TO_BOTTOM,
         .pos = v2make(200, 200),
         .size = size(SIZE_FIT, 0, 0),
         .padding = padding(32, 32, 32, 32),

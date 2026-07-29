@@ -50,8 +50,15 @@ static inline ui_padding padding(f32 left, f32 right, f32 top, f32 bottom)
     };
 }
 
+typedef enum
+{
+    LAYOUT_TO_RIGHT,  
+    LAYOUT_TO_BOTTOM,
+} ui_layout;
+
 typedef struct ui_element
 {
+    ui_layout layout;
     v2 pos;
     ui_size size;
     ui_padding padding;
