@@ -21,6 +21,7 @@ typedef struct
 {
     ui_size_type type;
     f32 value;
+    f32 min;
 } ui_size;
 
 typedef struct
@@ -69,19 +70,21 @@ static inline ui_size fixed(f32 value)
     };
 }
 
-static inline ui_size fit(f32 value)
+static inline ui_size fit(f32 min)
 {
     return (ui_size){
         .type = UI_SIZE_FIT,
-        .value = value,
+        .min = min,
+        .value = min,
     };
 }
 
-static inline ui_size grow(f32 value)
+static inline ui_size grow(f32 min)
 {
     return (ui_size){
         .type = UI_SIZE_GROW,
-        .value = value,
+        .min = min,
+        .value = min,
     };
 }
 

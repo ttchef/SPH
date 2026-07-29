@@ -75,17 +75,33 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     {
         if (root->width.type == UI_SIZE_GROW)
         {
-            root->width.value = window_width;
+            root->width.value = window_width - root->pos.x;
         }
         if (root->height.type == UI_SIZE_GROW)
         {
-            root->height.value = window_height;
+            root->height.value = window_height - root->pos.y;
         }
     }
 
     if (!root->children)
     {
         return;
+    }
+
+    // NOTE: Reset growable to min size
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_element *child = &root->children[i];
+
+        if (child->width.type == UI_SIZE_GROW)
+        {
+            child->width.value = child->width.min;
+        } 
+
+        if (child->height.type == UI_SIZE_GROW)
+        {
+            child->height.value = child->height.min;
+        } 
     }
 
     f32 remaining_width  = root->width.value;
@@ -98,6 +114,7 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     f32 remaining_across = root->layout == LAYOUT_TO_RIGHT ? remaining_height : remaining_width;
 
     f32 smallest_growable_size = FLT_MAX;
+    u32 smallest_growable      = 0;
     u32 growable_count         = 0;
 
     // NOTE: All sizes of regular sized elements
@@ -113,6 +130,7 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
             if (along_layout_size->value < smallest_growable_size)
             {
                 smallest_growable_size = along_layout_size->value;
+                smallest_growable = i;
             }
         }
 
@@ -120,9 +138,9 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     }
     remaining_along -= (darray_len(root->children) - 1) * root->child_gap;
 
-    while (remaining_along > 0.0f)
+    while (growable_count && remaining_along > 0.0f)
     {
-        f32 smallest        = smallest_growable_size;
+        f32 smallest        = root->layout == LAYOUT_TO_RIGHT ? root->children[smallest_growable].width.value : root->children[smallest_growable].height.value;
         f32 second_smallest = FLT_MAX;
         f32 size_to_add     = remaining_along;
 
