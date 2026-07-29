@@ -88,7 +88,7 @@ void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format
     va_end(args);
 }
 
-void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vulkan_image *image, vulkan_sampler *sampler)
+void draw_quad(simulation *simulation, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_image *image, vulkan_sampler *sampler)
 {
     vulkan *vulkan = &simulation->vulkan;
 
@@ -107,7 +107,7 @@ void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vulkan_im
         .image        = image ? image->descriptor : VULKAN_INVALID_BINDING,
         .sampler      = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
         .color        = v4fromcolor4(color),
-        .roundness    = 0.0f,
+        .roundness    = roundness,
         .aspect_ratio = scale.x / scale.y,
     };
 
@@ -234,7 +234,7 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_quads", BLUE);
-    draw_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), WHITE, &simulation->test_texture, &simulation->linear_sampler);
+    draw_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), 0.0f, WHITE, &simulation->test_texture, &simulation->linear_sampler);
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
@@ -242,10 +242,10 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     ui_element ui_info = {
-        .layout = LAYOUT_TO_RIGHT,
+        .layout = LAYOUT_TO_BOTTOM,
         .pos = v2make(200, 200),
-        .width = grow(0),
-        .height = grow(0),
+        .width = fit(0, 0),
+        .height = fit(MAX((i32)window->height - 900, 0), 0),
         .padding = padding(32, 32, 32, 32),
         .color = RED,
         .child_gap = 16,
@@ -264,8 +264,9 @@ void simulation_update(simulation *simulation)
 
     ui_info = (ui_element){
           .pos = v2make(0, 0),
-          .width = grow(0),
-          .height = fixed(64),
+          .width = grow(30, 0),
+          .height = grow(64, 0),
+          .roundness = 0.2f,
           .color = YELLOW,  
     };
     child = ui_open(root, &ui_info);
@@ -273,8 +274,9 @@ void simulation_update(simulation *simulation)
 
     ui_info = (ui_element){
           .pos = v2make(0, 0),
-          .width = grow(120),
-          .height = fixed(120),
+          .width = grow(120, 0),
+          .height = grow(120, 0),
+          .roundness = 0.2f,
           .color = GREEN,  
     };
     child = ui_open(root, &ui_info);

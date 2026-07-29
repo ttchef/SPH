@@ -37,6 +37,6 @@ void simulation_destroy(simulation *simulation);
 //
 void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...);
  
-void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vulkan_image *image, vulkan_sampler *sampler);
+void draw_quad(simulation *simulation, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_image *image, vulkan_sampler *sampler);
 
 void draw_cube_lines(simulation *simulation, v3 pos, v3 scale);

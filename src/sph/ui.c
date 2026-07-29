@@ -31,10 +31,18 @@ void ui_close(ui_element *element)
     if (element->width.type == UI_SIZE_FIT)
     {
         element->width.value += element->padding.left + element->padding.right;
+        if (element->width.max != 0.0f)
+        {
+            element->width.value = MIN(element->width.value, element->width.max);
+        }
     }
     if (element->height.type == UI_SIZE_FIT)
     {
         element->height.value += element->padding.top + element->padding.bottom;
+        if (element->height.max != 0.0f)
+        {
+            element->height.value = MIN(element->height.value, element->height.max);
+        }
     }
 
     ui_element *parent = element->parent;
@@ -76,10 +84,18 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
         if (root->width.type == UI_SIZE_GROW)
         {
             root->width.value = window_width - root->pos.x;
+            if (root->width.max != 0.0f)
+            {
+                root->width.value = MIN(root->width.value, root->width.max - root->pos.x);
+            }
         }
         if (root->height.type == UI_SIZE_GROW)
         {
             root->height.value = window_height - root->pos.y;
+            if (root->height.max != 0.0f)
+            {
+                root->height.value = MIN(root->height.value, root->height.max - root->pos.y);
+            }
         }
     }
 
@@ -138,18 +154,11 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     }
     remaining_along -= (darray_len(root->children) - 1) * root->child_gap;
 
-    u32 iteration_count = 0;
     while (growable_count && remaining_along > 0.0f)
     {
         f32 smallest        = root->layout == LAYOUT_TO_RIGHT ? root->children[smallest_growable].width.value : root->children[smallest_growable].height.value;
         f32 second_smallest = FLT_MAX;
         f32 size_to_add     = remaining_along;
-
-        iteration_count++;
-        if (iteration_count > 200)
-        {
-            u32 x = 0; 
-        }
 
         for (u32 i = 0; i < darray_len(root->children); i++)
         {
@@ -219,7 +228,7 @@ void ui_draw(simulation *simulation, ui_element *root)
 
     ui_grow_resolve(root, simulation->window.width, simulation->window.height);
 
-    draw_quad(simulation, root->pos, v2make(root->width.value, root->height.value), root->color, NULL, NULL);
+    draw_quad(simulation, root->pos, v2make(root->width.value, root->height.value), root->roundness, root->color, NULL, NULL);
 
     if (!root->children)
     {

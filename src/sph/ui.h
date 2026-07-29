@@ -22,6 +22,7 @@ typedef struct
     ui_size_type type;
     f32 value;
     f32 min;
+    f32 max;
 } ui_size;
 
 typedef struct
@@ -47,6 +48,7 @@ typedef struct ui_element
     ui_padding padding;
     color4 color;
     f32 child_gap;
+    f32 roundness;
 
     struct ui_element *parent;
     // NOTE: darray.h
@@ -70,20 +72,22 @@ static inline ui_size fixed(f32 value)
     };
 }
 
-static inline ui_size fit(f32 min)
+static inline ui_size fit(f32 min, f32 max)
 {
     return (ui_size){
         .type = UI_SIZE_FIT,
         .min = min,
+        .max = max,
         .value = min,
     };
 }
 
-static inline ui_size grow(f32 min)
+static inline ui_size grow(f32 min, f32 max)
 {
     return (ui_size){
         .type = UI_SIZE_GROW,
         .min = min,
+        .max = max,
         .value = min,
     };
 }
