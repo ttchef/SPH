@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <float.h>
 
 typedef int8_t  i8;
 typedef int16_t i16;

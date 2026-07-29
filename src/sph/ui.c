@@ -83,19 +83,75 @@ static void ui_grow_resolve(ui_element *root)
     remaining_width -= root->padding.left + root->padding.right;
     remaining_height -= root->padding.top + root->padding.bottom;
 
+    f32 smallest_growable_width = FLT_MAX;
+    u32 smallest_growable = UINT32_MAX;
+    u32 growable_count = 0;
+
+    // NOTE: All sizes of regular sized elements
     for (u32 i = 0; i < darray_len(root->children); i++)
     {
         ui_element *child = &root->children[i];
 
         if (child->width.type == UI_SIZE_GROW)
         {
-            continue;
+            ++growable_count;
+
+            if (child->width.value < smallest_growable_width)
+            {
+                smallest_growable_width = child->width.type;
+                smallest_growable = i;
+            }
         }
 
         remaining_width -= child->width.value;
     }
     remaining_width -= (darray_len(root->children) - 1) * root->child_gap;
 
+    while (remaining_width > 0.0f)
+    {
+        f32 smallest = root->children[smallest_growable].width.value;
+        f32 second_smallest = FLT_MAX;
+        f32 width_to_add = remaining_width;
+
+        for (u32 i = 0; i < darray_len(root->children); i++)
+        {
+            ui_element *child = &root->children[i];
+            if (child->width.type != UI_SIZE_GROW)
+            {
+                continue;
+            }
+            
+            if (child->width.value < smallest)
+            {
+                second_smallest = smallest;
+                smallest = child->width.value;
+            }
+            else if (child->width.value > smallest)
+            {
+                second_smallest = MIN(second_smallest, child->width.value);
+                width_to_add = second_smallest - smallest;
+            }
+        }
+
+        width_to_add = MIN(width_to_add, (f32)remaining_width / (f32)growable_count);
+
+        for (u32 i = 0; i < darray_len(root->children); i++)
+        {
+            ui_element *child = &root->children[i];
+            if (child->width.type != UI_SIZE_GROW)
+            {
+                continue;
+            }
+
+            if (child->width.value == smallest)
+            {
+                child->width.value += width_to_add;
+                remaining_width -= width_to_add;
+            }
+        }
+    }
+
+    /*
     for (u32 i = 0; i < darray_len(root->children); i++)
     {
         ui_element *child = &root->children[i];
@@ -109,6 +165,7 @@ static void ui_grow_resolve(ui_element *root)
             child->height.value += (remaining_height - child->height.value);
         }
     }
+    */
 }
 
 void ui_draw(simulation *simulation, ui_element *root)

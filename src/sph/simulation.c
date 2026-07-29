@@ -265,7 +265,7 @@ void simulation_update(simulation *simulation)
     ui_info = (ui_element){
           .pos = v2make(0, 0),
           .width = grow(0),
-          .height = grow(0),
+          .height = fixed(120),
           .color = YELLOW,  
     };
     child = ui_open(root, &ui_info);
@@ -273,7 +273,7 @@ void simulation_update(simulation *simulation)
 
     ui_info = (ui_element){
           .pos = v2make(0, 0),
-          .width = fixed(120),
+          .width = grow(120),
           .height = fixed(120),
           .color = GREEN,  
     };
