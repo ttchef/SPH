@@ -2,6 +2,7 @@
 #include <math/core.h>
 #include <sph/png.h>
 #include <sph/simulation.h>
+#include <sph/darray.h>
 #include <sph/utils.h>
 
 typedef struct
@@ -10,6 +11,16 @@ typedef struct
     m4 perspective;
     m4 orthographic;
 } global_ubo;
+
+typedef struct ui_element
+{
+    v2 pos;
+    v2 size;
+    color4 color;
+
+    // NOTE: darray.h
+    struct ui_element *children;
+} ui_element;
 
 static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...)
 {
@@ -130,6 +141,58 @@ static void draw_cube_lines(simulation *simulation, v3 pos, v3 scale)
     vulkan_command_draw(vulkan, 24);
 }
 
+static ui_element *ui(ui_element *parent, ui_element *element)
+{
+    if (!parent)
+    {
+        void *data = SDL_malloc(sizeof(*element));
+        SDL_memcpy(data, element, sizeof(*element));
+        return data;
+    }
+
+    if (!parent->children)
+    {
+        parent->children = darray_create(sizeof(ui_element));
+    }
+
+    return darray_push((void *)&parent->children, element);
+}
+
+static void ui_draw(simulation *simulation, ui_element *root)
+{
+    if (!root)
+    {
+        return;
+    }
+
+    draw_quad(simulation, root->pos, root->size, root->color, NULL, NULL);
+
+    if (!root->children)
+    {
+        return;
+    }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_draw(simulation, &root->children[i]);
+    }
+}
+
+static void ui_destroy(ui_element *root)
+{
+    if (!root || !root->children)
+    {
+        return;
+    }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_destroy(&root->children[i]);
+    }
+    darray_destroy(root->children);
+    SDL_free(root);
+}
+
 static bool resources_create(simulation *simulation)
 {
     vulkan *vulkan = &simulation->vulkan;
@@ -236,9 +299,24 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    draw_quad(simulation, v2make(400, 400), v2make(400, 200), BLUE, NULL, NULL);
+    // draw_quad(simulation, v2make(400, 400), v2make(400, 200), BLUE, NULL, NULL);
     draw_text(simulation, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
+
+    ui_element ui_info = {
+        .pos = v2make(0, 0),
+        .size = v2make(500, 500),
+        .color = RED,  
+    };
+    
+    ui_element *root = ui(NULL, &ui_info);
+
+    ui_info.size = v2make(200, 200);
+    ui_info.color = BLUE;
+    ui(root, &ui_info);
+
+    ui_draw(simulation, root);
+    ui_destroy(root);
 
     vulkan_command_end_rendering(vulkan);
 

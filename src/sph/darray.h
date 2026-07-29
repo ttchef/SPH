@@ -72,7 +72,8 @@ static inline u32 darray_capacity(void *darray)
     return darray_base(darray)->capacity;
 }
 
-static inline bool darray_push(void **darray_ptr, void *element)
+// NOTE: Returns pointer to pushed element in the array and NULL on error
+static inline void *darray_push(void **darray_ptr, void *element)
 {
     void          *darray = *darray_ptr;
     darray_header *header = darray_base(darray);
@@ -86,7 +87,7 @@ static inline bool darray_push(void **darray_ptr, void *element)
         if (!new_header)
         {
             SDL_Log("[DARRAY] Out of memory.");
-            return false;
+            return NULL;
         }
 
         new_header->capacity = new_capacity;
@@ -97,9 +98,10 @@ static inline bool darray_push(void **darray_ptr, void *element)
     }
 
     u8 *data = darray;
-    SDL_memcpy(data + header->element_size * header->len, element, header->element_size);
+    void *pos = data + header->element_size * header->len;
+    
+    SDL_memcpy(pos, element, header->element_size);
 
     header->len++;
-
-    return true;
+    return pos;
 }
