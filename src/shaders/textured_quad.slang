@@ -86,7 +86,11 @@ float4 fragmentMain(VSOutput input)
         float2 remapped_uv = (input.uv * 2) - 1;
         remapped_uv.x *= pc.aspect_ratio;
         float sdf = sdfRoundedBox(remapped_uv, float2(1.0 * pc.aspect_ratio, 1.0), pc.roundness);
-        return step(sdf, 0.0) * pc.color;
+
+        float pd = fwidth(sdf);
+        float mask = 1.0 - saturate(sdf / pd);
+        
+        return mask * pc.color;
     }
     return pc.color;
 }

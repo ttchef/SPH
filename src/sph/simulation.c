@@ -105,7 +105,7 @@ static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vu
         .image        = image ? image->descriptor : VULKAN_INVALID_BINDING,
         .sampler      = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
         .color        = v4fromcolor4(color),
-        .roundness    = 0.1f,
+        .roundness    = 0.3f,
         .aspect_ratio = scale.x / scale.y,
     };
 
