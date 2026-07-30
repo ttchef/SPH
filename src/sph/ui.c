@@ -5,6 +5,15 @@
 
 ui_element *ui_open(ui_element *parent, ui_element *element)
 {
+    if (element->width.max < FLT_EPSILON)
+    {
+        element->width.max = FLT_MAX;
+    }
+    if (element->height.max < FLT_EPSILON)
+    {
+        element->height.max = FLT_MAX;
+    }
+    
     if (!parent)
     {
         void *data = SDL_malloc(sizeof(*element));
@@ -28,18 +37,15 @@ void ui_close(ui_element *element)
         return;
     }
 
-    if (element->width.type == UI_SIZE_FIT)
+    else if (element->width.type == UI_SIZE_FIT)
     {
         if (element->text)
         {
             element->width.value = measure_text(element->font, element->font_size, "%s", element->text);
         }
         element->width.value += element->padding.left + element->padding.right;
+        element->width.value = MIN(element->width.value, element->width.max);
 
-        if (element->width.max != 0.0f)
-        {
-            element->width.value = MIN(element->width.value, element->width.max);
-        }
         if (element->width.min != 0.0f)
         {
             element->width.value = MAX(element->width.value, element->width.min);
@@ -53,10 +59,8 @@ void ui_close(ui_element *element)
         }
 
         element->height.value += element->padding.top + element->padding.bottom;
-        if (element->height.max != 0.0f)
-        {
-            element->height.value = MIN(element->height.value, element->height.max);
-        }
+        element->height.value = MIN(element->height.value, element->height.max);
+
         if (element->height.min != 0.0f)
         {
             element->height.value = MAX(element->height.value, element->height.min);
@@ -102,18 +106,12 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
         if (root->width.type == UI_SIZE_GROW)
         {
             root->width.value = window_width - root->pos.x;
-            if (root->width.max != 0.0f)
-            {
-                root->width.value = MIN(root->width.value, root->width.max - root->pos.x);
-            }
+            root->width.value = MIN(root->width.value, root->width.max - root->pos.x);
         }
         if (root->height.type == UI_SIZE_GROW)
         {
             root->height.value = window_height - root->pos.y;
-            if (root->height.max != 0.0f)
-            {
-                root->height.value = MIN(root->height.value, root->height.max - root->pos.y);
-            }
+            root->height.value = MIN(root->height.value, root->height.max - root->pos.y);
         }
     }
 
@@ -237,6 +235,50 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     }
 }
 
+static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_height)
+{
+    if (!root)
+    {
+        return;
+    }
+
+    if (root->width.type == UI_SIZE_PERCENT)
+    {
+        if (!root->parent)
+        {
+            root->width.value = window_width * root->width.value;
+        }
+        else
+        {
+            root->width.value = root->parent->width.value * root->width.value;
+        }
+        root->width.value = CLAMP(root->width.value, root->width.min, root->width.max);
+    }
+    
+    if (root->height.type == UI_SIZE_PERCENT)
+    {
+        if (!root->parent)
+        {
+            root->height.value = window_height * root->height.value;
+        }
+        else
+        {
+            root->height.value = root->parent->height.value * root->height.value;
+        }        
+        root->height.value = CLAMP(root->height.value, root->height.min, root->height.max);
+    }
+
+    if (!root->children)
+    {
+        return;
+    }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_percent_resolve(&root->children[i], window_width, window_height);
+    }
+}
+
 void ui_draw(simulation *simulation, ui_element *root)
 {
     if (!root)
@@ -244,6 +286,7 @@ void ui_draw(simulation *simulation, ui_element *root)
         return;
     }
 
+    ui_percent_resolve(root, simulation->window.width, simulation->window.height);
     ui_grow_resolve(root, simulation->window.width, simulation->window.height);
 
     draw_quad(simulation, root->pos, v2make(root->width.value, root->height.value), root->roundness, root->color, NULL, NULL);

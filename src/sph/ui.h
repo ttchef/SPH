@@ -13,6 +13,7 @@
 typedef enum
 {
     UI_SIZE_FIXED,
+    UI_SIZE_PERCENT,
     UI_SIZE_FIT,
     UI_SIZE_GROW,
 } ui_size_type;
@@ -81,6 +82,16 @@ static inline ui_size fixed(f32 value)
 {
     return (ui_size){
         .type  = UI_SIZE_FIXED,
+        .value = value,
+    };
+}
+
+static inline ui_size percent(f32 value, f32 min, f32 max)
+{
+    return (ui_size){
+        .type  = UI_SIZE_PERCENT,
+        .min   = min,
+        .max   = max,
         .value = value,
     };
 }

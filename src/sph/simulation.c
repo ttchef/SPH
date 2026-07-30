@@ -293,8 +293,8 @@ void simulation_update(simulation *simulation)
     ui_element ui_info = {
         .layout    = LAYOUT_TO_RIGHT,
         .pos       = v2make(200, 200),
-        .width     = fit(MAX((i32)window->width - 900, 0), 0),
-        .height    = fit(0, 0),
+        .width     = percent(0.5, 800, 0),
+        .height    = percent(0.5, 800, 0),
         .padding   = padding(32, 32, 32, 32),
         .color     = RED,
         .child_gap = 16,
