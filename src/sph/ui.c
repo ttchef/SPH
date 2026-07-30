@@ -37,21 +37,21 @@ void ui_update(void)
     }
 }
 
-ui_element *ui_open(ui_element *parent, ui_element *element)
+ui_element *ui_open(ui_element *parent, ui_element element)
 {
-    if (element->width.max < FLT_EPSILON)
+    if (element.width.min_max.max == 0.0f)
     {
-        element->width.max = FLT_MAX;
+        element.width.min_max.max = FLT_MAX;
     }
-    if (element->height.max < FLT_EPSILON)
+    if (element.height.min_max.max == 0.0f)
     {
-        element->height.max = FLT_MAX;
+        element.height.min_max.max = FLT_MAX;
     }
 
     if (!parent)
     {
-        void *data = SDL_malloc(sizeof(*element));
-        SDL_memcpy(data, element, sizeof(*element));
+        void *data = SDL_malloc(sizeof(element));
+        SDL_memcpy(data, &element, sizeof(element));
 
         if (ui_ctx.root)
         {
@@ -73,8 +73,8 @@ ui_element *ui_open(ui_element *parent, ui_element *element)
         parent->children = darray_create(sizeof(ui_element));
     }
 
-    element->parent = parent;
-    ui_element *child_address =  darray_push((void **)&parent->children, element);
+    element.parent = parent;
+    ui_element *child_address =  darray_push((void **)&parent->children, &element);
     
     if (ui_ctx.open_elements.element_count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
     {
@@ -92,32 +92,23 @@ void ui_close(ui_element *element)
 
     else if (element->width.type == UI_SIZE_FIT)
     {
-        if (element->text)
+        f32 min = element->width.min_max.min;
+        if (element->text.chars)
         {
-            element->width.value = measure_text(element->font, element->font_size, "%s", element->text);
+            element->width.min_max.min = measure_text(element->text.font, element->text.font_size, "%s", element->text.chars);
         }
-        element->width.value += element->padding.left + element->padding.right;
-        element->width.value = MIN(element->width.value, element->width.max);
-
-        if (element->width.min != 0.0f)
-        {
-            element->width.value = MAX(element->width.value, element->width.min);
-        }
+        element->width.min_max.min += element->padding.left + element->padding.right;
+        element->width.min_max.min = CLAMP(element->width.min_max.min, min, element->width.min_max.max);
     }
     if (element->height.type == UI_SIZE_FIT)
     {
-        if (element->text)
+        f32 min = element->height.min_max.min;
+        if (element->text.chars)
         {
-            element->height.value = element->font_size;
+            element->height.min_max.min = element->text.font_size;
         }
-
-        element->height.value += element->padding.top + element->padding.bottom;
-        element->height.value = MIN(element->height.value, element->height.max);
-
-        if (element->height.min != 0.0f)
-        {
-            element->height.value = MAX(element->height.value, element->height.min);
-        }
+        element->height.min_max.min += element->padding.top + element->padding.bottom;
+        element->height.min_max.min = CLAMP(element->height.min_max.min, min, element->height.min_max.max);
     }
 
     ui_element *parent = element->parent;
@@ -131,22 +122,22 @@ void ui_close(ui_element *element)
     {
         if (parent->layout == LAYOUT_TO_RIGHT)
         {
-            parent->width.value += element->width.value + child_gap;
+            parent->width.min_max.min += element->width.min_max.min + child_gap;
         }
         else if (parent->layout == LAYOUT_TO_BOTTOM)
         {
-            parent->width.value = MAX(element->width.value, parent->width.value);
+            parent->width.min_max.min = MAX(element->width.min_max.min, parent->width.min_max.min);
         }
     }
     if (parent->height.type == UI_SIZE_FIT)
     {
         if (parent->layout == LAYOUT_TO_RIGHT)
         {
-            parent->height.value = MAX(element->height.value, parent->height.value);
+            parent->height.min_max.min = MAX(element->height.min_max.min, parent->height.min_max.min);
         }
         else if (parent->layout == LAYOUT_TO_BOTTOM)
         {
-            parent->height.value += element->height.value + child_gap;
+            parent->height.min_max.min += element->height.min_max.min + child_gap;
         }
     }
 }
@@ -158,13 +149,13 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     {
         if (root->width.type == UI_SIZE_GROW)
         {
-            root->width.value = window_width - root->pos.x;
-            root->width.value = MIN(root->width.value, root->width.max - root->pos.x);
+            root->width.min_max.min = window_width - root->pos.x;
+            root->width.min_max.min = MIN(root->width.min_max.min, root->width.min_max.max - root->pos.x);
         }
         if (root->height.type == UI_SIZE_GROW)
         {
-            root->height.value = window_height - root->pos.y;
-            root->height.value = MIN(root->height.value, root->height.max - root->pos.y);
+            root->height.min_max.min = window_height - root->pos.y;
+            root->height.min_max.min = MIN(root->height.min_max.min, root->height.min_max.max - root->pos.y);
         }
     }
 
@@ -174,23 +165,25 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     }
 
     // NOTE: Reset growable to min size
+    /*
     for (u32 i = 0; i < darray_len(root->children); i++)
     {
         ui_element *child = &root->children[i];
 
         if (child->width.type == UI_SIZE_GROW)
         {
-            child->width.value = child->width.min;
+            child->width.min_max.min = child->width.min;
         }
 
         if (child->height.type == UI_SIZE_GROW)
         {
-            child->height.value = child->height.min;
+            child->height.min_max.min = child->height.min;
         }
     }
+    */
 
-    f32 remaining_width  = root->width.value;
-    f32 remaining_height = root->height.value;
+    f32 remaining_width  = root->width.min_max.min;
+    f32 remaining_height = root->height.min_max.min;
 
     remaining_width -= root->padding.left + root->padding.right;
     remaining_height -= root->padding.top + root->padding.bottom;
@@ -212,20 +205,20 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
         {
             ++growable_count;
 
-            if (along_layout_size->value < smallest_growable_size)
+            if (along_layout_size->min_max.min < smallest_growable_size)
             {
-                smallest_growable_size = along_layout_size->value;
+                smallest_growable_size = along_layout_size->min_max.min;
                 smallest_growable      = i;
             }
         }
 
-        remaining_along -= along_layout_size->value;
+        remaining_along -= along_layout_size->min_max.min;
     }
     remaining_along -= (darray_len(root->children) - 1) * root->child_gap;
 
     while (growable_count && remaining_along > 0.0f)
     {
-        f32 smallest        = root->layout == LAYOUT_TO_RIGHT ? root->children[smallest_growable].width.value : root->children[smallest_growable].height.value;
+        f32 smallest        = root->layout == LAYOUT_TO_RIGHT ? root->children[smallest_growable].width.min_max.min : root->children[smallest_growable].height.min_max.min;
         f32 second_smallest = FLT_MAX;
         f32 size_to_add     = remaining_along;
 
@@ -239,14 +232,14 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
                 continue;
             }
 
-            if (along_layout_size->value < smallest)
+            if (along_layout_size->min_max.min < smallest)
             {
                 second_smallest = smallest;
-                smallest        = along_layout_size->value;
+                smallest        = along_layout_size->min_max.min;
             }
-            else if (along_layout_size->value > smallest)
+            else if (along_layout_size->min_max.min > smallest)
             {
-                second_smallest = MIN(second_smallest, along_layout_size->value);
+                second_smallest = MIN(second_smallest, along_layout_size->min_max.min);
                 size_to_add     = second_smallest - smallest;
             }
         }
@@ -268,9 +261,9 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
                 continue;
             }
 
-            if (along_layout_size->value == smallest)
+            if (along_layout_size->min_max.min == smallest)
             {
-                along_layout_size->value += size_to_add;
+                along_layout_size->min_max.min += size_to_add;
                 remaining_along -= size_to_add;
             }
         }
@@ -283,7 +276,7 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
 
         if (across_layout_size->type == UI_SIZE_GROW)
         {
-            across_layout_size->value += (remaining_across - across_layout_size->value);
+            across_layout_size->min_max.min += (remaining_across - across_layout_size->min_max.min);
         }
     }
 }
@@ -299,26 +292,25 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
     {
         if (!root->parent)
         {
-            root->width.value = window_width * root->width.value;
+            root->width.min_max.min = window_width * root->width.percent;
         }
         else
         {
-            root->width.value = root->parent->width.value * root->width.value;
+            root->width.min_max.min = root->parent->width.min_max.min * root->width.percent;
         }
-        root->width.value = CLAMP(root->width.value, root->width.min, root->width.max);
     }
     
     if (root->height.type == UI_SIZE_PERCENT)
     {
         if (!root->parent)
         {
-            root->height.value = window_height * root->height.value;
+            root->height.min_max.min = window_height * root->height.percent;
         }
         else
         {
-            root->height.value = root->parent->height.value * root->height.value;
-        }        
-        root->height.value = CLAMP(root->height.value, root->height.min, root->height.max);
+            root->height.min_max.min = root->parent->height.min_max.min * root->height.percent;
+        }
+
     }
 
     if (!root->children)
@@ -343,10 +335,10 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
     ui_percent_resolve(root, simulation->window.width, simulation->window.height);
     ui_grow_resolve(root, simulation->window.width, simulation->window.height);
 
-    draw_quad(simulation, root->pos, v2make(root->width.value, root->height.value), root->roundness, root->color, NULL, NULL);
-    if (root->text)
+    draw_quad(simulation, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
+    if (root->text.chars)
     {
-        draw_text(simulation, root->font, v2make(root->pos.x + root->padding.left, root->pos.y + root->padding.top), root->font_size, "%s", root->text);
+        draw_text(simulation, root->text.font, v2make(root->pos.x + root->padding.left, root->pos.y + root->padding.top), root->text.font_size, "%s", root->text.chars);
     }
 
     if (!root->children)
@@ -366,13 +358,13 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
         {
             child->pos.x += offset;
             child->pos.y += root->padding.top;
-            offset += child->width.value + root->child_gap;
+            offset += child->width.min_max.min + root->child_gap;
         }
         else if (root->layout == LAYOUT_TO_BOTTOM)
         {
             child->pos.x += root->padding.left;
             child->pos.y += offset;
-            offset += child->height.value + root->child_gap;
+            offset += child->height.min_max.min + root->child_gap;
         }
 
         ui_draw_helper(simulation, child);

@@ -12,18 +12,27 @@
 
 typedef enum
 {
+    // NOTE: Default is FIT
+    UI_SIZE_FIT,
     UI_SIZE_FIXED,
     UI_SIZE_PERCENT,
-    UI_SIZE_FIT,
     UI_SIZE_GROW,
 } ui_size_type;
 
 typedef struct
 {
+    f32 min;
+    f32 max;
+} ui_min_max;
+
+typedef struct
+{
     ui_size_type type;
-    f32          value;
-    f32          min;
-    f32          max;
+    union
+    {
+        f32        percent;
+        ui_min_max min_max;
+    };
 } ui_size;
 
 typedef struct
@@ -60,9 +69,12 @@ typedef struct ui_element
     ui_alignement align_x;
     ui_alignement align_y;
 
-    const char *text;
-    u32         font_size;
-    ttf_font   *font;
+    struct
+    {
+        const char *chars;
+        u32         font_size;
+        ttf_font   *font;
+    } text;
 
     struct ui_element *parent;
     // NOTE: darray.h
@@ -86,7 +98,7 @@ typedef struct
 
 void ui_update(void);
 
-ui_element *ui_open(ui_element *parent, ui_element *element);
+ui_element *ui_open(ui_element *parent, ui_element element);
 
 void ui_close(ui_element *element);
 
@@ -98,58 +110,60 @@ ui_element *ui_open_elements_pop(void);
 
 ui_element *ui_open_elements_peek(void);
 
-#define UI(...) \
-    for (u32 _ = (ui_open(ui_open_elements_peek(), __VA_ARGS__), 0); \
-        _ < 1; \
-        _ = 1, ui_close(ui_open_elements_pop()))
-        
+#define UI(...)                                                                  \
+    for (u32 _ = (ui_open(ui_open_elements_peek(), (ui_element)__VA_ARGS__), 0); \
+         _ < 1;                                                                  \
+         _ = 1, ui_close(ui_open_elements_pop()))
 
-// NOTE: Struct builders
-static inline ui_size fixed(f32 value)
-{
-    return (ui_size){
-        .type  = UI_SIZE_FIXED,
-        .value = value,
-    };
-}
+#define FIXED(size)                   \
+    (ui_size)                         \
+    {                                 \
+        .type        = UI_SIZE_FIXED, \
+        .min_max.min = size,          \
+        .min_max.max = size,          \
+    }
 
-static inline ui_size percent(f32 value, f32 min, f32 max)
-{
-    return (ui_size){
-        .type  = UI_SIZE_PERCENT,
-        .min   = min,
-        .max   = max,
-        .value = value,
-    };
-}
+#define PERCENT(size)               \
+    (ui_size)                       \
+    {                               \
+        .type    = UI_SIZE_PERCENT, \
+        .percent = size,            \
+    }
 
-static inline ui_size fit(f32 min, f32 max)
-{
-    return (ui_size){
-        .type  = UI_SIZE_FIT,
-        .min   = min,
-        .max   = max,
-        .value = min,
-    };
-}
+#define FIT(...)             \
+    (ui_size)                \
+    {                        \
+        .type = UI_SIZE_FIT, \
+        .min_max =           \
+        {                    \
+            __VA_ARGS__      \
+        }                    \
+    }
 
-static inline ui_size grow(f32 min, f32 max)
-{
-    return (ui_size){
-        .type  = UI_SIZE_GROW,
-        .min   = min,
-        .max   = max,
-        .value = min,
-    };
-}
+#define GROW(...)             \
+    (ui_size)                 \
+    {                         \
+        .type = UI_SIZE_GROW, \
+        .min_max =            \
+        {                     \
+            __VA_ARGS__       \
+        }                     \
+    }
 
-static inline ui_padding padding(f32 left, f32 right, f32 top, f32 bottom)
-{
-    return (ui_padding){
-        .left   = left,
-        .right  = right,
-        .top    = top,
-        .bottom = bottom,
-    };
-}
+#define PAD(left_value, right_value, top_value, bottom_value) \
+    (ui_padding)                                              \
+    {                                                         \
+        .left   = left_value,                                 \
+        .right  = right_value,                                \
+        .top    = top_value,                                  \
+        .bottom = bottom_value,                               \
+    }
 
+#define PAD_ALL(value)   \
+    (ui_padding)         \
+    {                    \
+        .left   = value, \
+        .right  = value, \
+        .top    = value, \
+        .bottom = value, \
+    }
