@@ -164,24 +164,6 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
         return;
     }
 
-    // NOTE: Reset growable to min size
-    /*
-    for (u32 i = 0; i < darray_len(root->children); i++)
-    {
-        ui_element *child = &root->children[i];
-
-        if (child->width.type == UI_SIZE_GROW)
-        {
-            child->width.min_max.min = child->width.min;
-        }
-
-        if (child->height.type == UI_SIZE_GROW)
-        {
-            child->height.min_max.min = child->height.min;
-        }
-    }
-    */
-
     f32 remaining_width  = root->width.min_max.min;
     f32 remaining_height = root->height.min_max.min;
 
@@ -357,20 +339,52 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
     {
         ui_element *child = &root->children[i];
 
-        child->pos = v2add(root->pos, child->pos);
+        if (root->child_align.x == LEFT)
+        {
+            child->pos = v2add(root->pos, child->pos);
 
-        if (root->layout == LAYOUT_TO_RIGHT)
+            if (root->layout == LAYOUT_TO_RIGHT)
+            {
+                child->pos.x += offset;
+                child->pos.y += root->padding.top;
+                offset += child->width.min_max.min + root->child_gap;
+            }
+            else if (root->layout == LAYOUT_TO_BOTTOM)
+            {
+                child->pos.x += root->padding.left;
+                child->pos.y += offset;
+                offset += child->height.min_max.min + root->child_gap;
+            }   
+        }
+        else if (root->child_align.x == RIGHT)
         {
-            child->pos.x += offset;
+            child->pos = v2sub(v2add(root->pos, v2make(root->width.min_max.min, 0)), child->pos);
+            child->pos.x -= child->width.min_max.min;
+
+            if (root->layout == LAYOUT_TO_RIGHT)
+            {
+                child->pos.x -= offset;
+                child->pos.y += root->padding.top;
+                offset += child->width.min_max.min + root->child_gap;
+            }
+            else if (root->layout == LAYOUT_TO_BOTTOM)
+            {
+                child->pos.x -= root->padding.right;
+                child->pos.y += offset;
+                offset += child->height.min_max.min + root->child_gap;
+            }
+        }
+        else if (root->child_align.x == CENTER)
+        {
+            f32 space = (root->width.min_max.min - root->padding.left - root->padding.right) / (darray_len(root->children) + 1);
+            
+            child->pos = root->pos;
+            child->pos.x += offset + space - child->width.min_max.min * 0.5f;
             child->pos.y += root->padding.top;
-            offset += child->width.min_max.min + root->child_gap;
+
+            offset += space;
         }
-        else if (root->layout == LAYOUT_TO_BOTTOM)
-        {
-            child->pos.x += root->padding.left;
-            child->pos.y += offset;
-            offset += child->height.min_max.min + root->child_gap;
-        }
+        
 
         ui_draw_helper(simulation, child);
     }

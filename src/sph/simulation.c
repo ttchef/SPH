@@ -296,27 +296,26 @@ void simulation_update(simulation *simulation)
     ui_update();
 
     UI({
-        .layout = LAYOUT_TO_RIGHT,
-        .pos = v2make(window->width * 0.7f, 0.0f),
-        .width  = PERCENT(0.3),
-        .height = PERCENT(1.0),
-        .color  = BACKGROUND,
-        .padding = PAD_ALL(16),
-        .child_align = ALIGN(LEFT, CENTER),
-        .child_gap = 12,
+        .layout      = LAYOUT_TO_RIGHT,
+        .pos         = v2make(window->width * 0.7f, 0.0f),
+        .width       = PERCENT(0.3),
+        .height      = PERCENT(1.0),
+        .color       = BACKGROUND,
+        .padding     = PAD_ALL(16),
+        .child_align = ALIGN(CENTER, CENTER),
+        .child_gap   = 0,
     })
     {
         UI({
-            .width = PERCENT(0.3),
-            .height = PERCENT(0.3),
-            .color = BLUE,
+            .width  = FIXED(64),
+            .height = FIXED(64),
+            .color  = BLUE,
         });
         UI({
-            .width = PERCENT(0.3),
-            .height = PERCENT(0.3),
-            .color = RED,
+            .width  = FIXED(64),
+            .height = FIXED(64),
+            .color  = RED,
         });
-
     }
 
     vulkan_command_label_begin(vulkan, "ui", RED);
