@@ -297,30 +297,26 @@ void simulation_update(simulation *simulation)
 
     UI({
         .layout = LAYOUT_TO_RIGHT,
-        .width  = PERCENT(0.5),
-        .height = PERCENT(0.5),
+        .pos = v2make(window->width * 0.7f, 0.0f),
+        .width  = PERCENT(0.3),
+        .height = PERCENT(1.0),
         .color  = BACKGROUND,
         .padding = PAD_ALL(16),
+        .child_align = ALIGN(LEFT, CENTER),
+        .child_gap = 12,
     })
     {
         UI({
-            .width = GROW(0),
-            .height = GROW(0),
-            .color = FOREGROUND,
-            .padding = PAD_ALL(16),
-            .roundness = 0.15f,
-        })
-        {
-            UI({
-                .color = BACKGROUND,
-                .padding = PAD_ALL(10),
-                .text = {
-                    .chars = "Hello World",
-                    .font = &simulation->jet_brains,
-                    .font_size = 30,
-                },
-            });
-        }
+            .width = PERCENT(0.3),
+            .height = PERCENT(0.3),
+            .color = BLUE,
+        });
+        UI({
+            .width = PERCENT(0.3),
+            .height = PERCENT(0.3),
+            .color = RED,
+        });
+
     }
 
     vulkan_command_label_begin(vulkan, "ui", RED);

@@ -51,23 +51,32 @@ typedef enum
 
 typedef enum
 {
+    LEFT,
+    RIGHT,
     TOP,
-    CENTER,
     BOTTOM,
+    CENTER,
+} ui_alignement_type;
+
+typedef struct
+{
+    ui_alignement_type x;
+    ui_alignement_type y;
 } ui_alignement;
 
 typedef struct ui_element
 {
-    ui_layout     layout;
-    v2            pos;
-    ui_size       width;
-    ui_size       height;
-    ui_padding    padding;
-    color4        color;
+    ui_layout layout;
+    v2        pos;
+    ui_size   width;
+    ui_size   height;
+    color4    color;
+    f32       roundness;
+
+    ui_padding padding;
+
     f32           child_gap;
-    f32           roundness;
-    ui_alignement align_x;
-    ui_alignement align_y;
+    ui_alignement child_align;
 
     struct
     {
@@ -166,4 +175,11 @@ ui_element *ui_open_elements_peek(void);
         .right  = value, \
         .top    = value, \
         .bottom = value, \
+    }
+
+#define ALIGN(x_type, y_type) \
+    (ui_alignement) \
+    {               \
+        .x = x_type,     \
+        .y = y_type,     \
     }

@@ -29,7 +29,7 @@ static void ui_destroy(ui_element *root)
 }
 
 void ui_update(void)
-{    
+{
     if (ui_ctx.root)
     {
         ui_destroy(ui_ctx.root);
@@ -59,12 +59,12 @@ ui_element *ui_open(ui_element *parent, ui_element element)
             assert(0);
         }
         ui_ctx.root = data;
-        
+
         if (ui_ctx.open_elements.element_count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
         {
             ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count++] = data;
         }
-        
+
         return data;
     }
 
@@ -73,9 +73,9 @@ ui_element *ui_open(ui_element *parent, ui_element element)
         parent->children = darray_create(sizeof(ui_element));
     }
 
-    element.parent = parent;
-    ui_element *child_address =  darray_push((void **)&parent->children, &element);
-    
+    element.parent            = parent;
+    ui_element *child_address = darray_push((void **)&parent->children, &element);
+
     if (ui_ctx.open_elements.element_count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
     {
         ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count++] = child_address;
@@ -296,10 +296,15 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
         }
         else
         {
-            root->width.min_max.min = root->parent->width.min_max.min * root->width.percent;
+            f32 child_gap = 0.0f;
+            if (root->parent->layout == LAYOUT_TO_RIGHT)
+            {
+                child_gap = (darray_len(root->parent->children) - 1) * root->parent->child_gap;
+            }
+            root->width.min_max.min = root->width.percent * (root->parent->width.min_max.min - root->parent->padding.left - root->padding.right - child_gap);
         }
     }
-    
+
     if (root->height.type == UI_SIZE_PERCENT)
     {
         if (!root->parent)
@@ -308,9 +313,13 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
         }
         else
         {
-            root->height.min_max.min = root->parent->height.min_max.min * root->height.percent;
+            f32 child_gap = 0.0f;
+            if (root->parent->layout == LAYOUT_TO_BOTTOM)
+            {
+                child_gap = (darray_len(root->parent->children) - 1) * root->parent->child_gap;
+            }
+            root->height.min_max.min = root->height.percent * (root->parent->height.min_max.min - root->parent->padding.bottom - root->padding.top - child_gap);
         }
-
     }
 
     if (!root->children)
@@ -326,14 +335,10 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
 
 static void ui_draw_helper(simulation *simulation, ui_element *root)
 {
-     
     if (!root)
     {
         return;
     }
-
-    ui_percent_resolve(root, simulation->window.width, simulation->window.height);
-    ui_grow_resolve(root, simulation->window.width, simulation->window.height);
 
     draw_quad(simulation, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
     if (root->text.chars)
@@ -374,8 +379,10 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
 void ui_draw(simulation *simulation)
 {
     ui_element *root = ui_ctx.root;
+
+    ui_percent_resolve(root, simulation->window.width, simulation->window.height);
+    ui_grow_resolve(root, simulation->window.width, simulation->window.height);
     ui_draw_helper(simulation, root);
-   
 }
 
 ui_context *ui_context_get(void)
@@ -403,4 +410,3 @@ ui_element *ui_open_elements_peek(void)
 
     return ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count - 1];
 }
-
