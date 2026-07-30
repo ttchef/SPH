@@ -3,6 +3,40 @@
 #include <sph/simulation.h>
 #include <sph/ui.h>
 
+static ui_context ui_ctx;
+
+static void ui_destroy(ui_element *root)
+{
+    if (!root)
+    {
+        return;
+    }
+
+    if (root->children)
+    {
+        for (u32 i = 0; i < darray_len(root->children); i++)
+        {
+            ui_destroy(&root->children[i]);
+        }
+
+        darray_destroy(root->children);
+    }
+
+    if (!root->parent)
+    {
+        SDL_free(root);
+    }
+}
+
+void ui_update(void)
+{    
+    if (ui_ctx.root)
+    {
+        ui_destroy(ui_ctx.root);
+        ui_ctx.root = NULL;
+    }
+}
+
 ui_element *ui_open(ui_element *parent, ui_element *element)
 {
     if (element->width.max < FLT_EPSILON)
@@ -13,11 +47,24 @@ ui_element *ui_open(ui_element *parent, ui_element *element)
     {
         element->height.max = FLT_MAX;
     }
-    
+
     if (!parent)
     {
         void *data = SDL_malloc(sizeof(*element));
         SDL_memcpy(data, element, sizeof(*element));
+
+        if (ui_ctx.root)
+        {
+            SDL_Log("[UI] More than one root element.. quitting.");
+            assert(0);
+        }
+        ui_ctx.root = data;
+        
+        if (ui_ctx.open_elements.element_count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
+        {
+            ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count++] = data;
+        }
+        
         return data;
     }
 
@@ -27,7 +74,13 @@ ui_element *ui_open(ui_element *parent, ui_element *element)
     }
 
     element->parent = parent;
-    return darray_push((void *)&parent->children, element);
+    ui_element *child_address =  darray_push((void **)&parent->children, element);
+    
+    if (ui_ctx.open_elements.element_count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
+    {
+        ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count++] = child_address;
+    }
+    return child_address;
 }
 
 void ui_close(ui_element *element)
@@ -279,8 +332,9 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
     }
 }
 
-void ui_draw(simulation *simulation, ui_element *root)
+static void ui_draw_helper(simulation *simulation, ui_element *root)
 {
+     
     if (!root)
     {
         return;
@@ -321,29 +375,40 @@ void ui_draw(simulation *simulation, ui_element *root)
             offset += child->height.value + root->child_gap;
         }
 
-        ui_draw(simulation, child);
+        ui_draw_helper(simulation, child);
     }
 }
 
-void ui_destroy(ui_element *root)
+void ui_draw(simulation *simulation)
 {
-    if (!root)
-    {
-        return;
-    }
-
-    if (root->children)
-    {
-        for (u32 i = 0; i < darray_len(root->children); i++)
-        {
-            ui_destroy(&root->children[i]);
-        }
-
-        darray_destroy(root->children);
-    }
-
-    if (!root->parent)
-    {
-        SDL_free(root);
-    }
+    ui_element *root = ui_ctx.root;
+    ui_draw_helper(simulation, root);
+   
 }
+
+ui_context *ui_context_get(void)
+{
+    return &ui_ctx;
+}
+
+ui_element *ui_open_elements_pop(void)
+{
+    if (ui_ctx.open_elements.element_count == 0)
+    {
+        SDL_Log("[UI] Tried to pop open elements with a count of 0.");
+        return NULL;
+    }
+
+    return ui_ctx.open_elements.elements[--ui_ctx.open_elements.element_count];
+}
+
+ui_element *ui_open_elements_peek(void)
+{
+    if (ui_ctx.open_elements.element_count == 0)
+    {
+        return NULL;
+    }
+
+    return ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count - 1];
+}
+

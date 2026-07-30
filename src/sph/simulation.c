@@ -290,6 +290,8 @@ void simulation_update(simulation *simulation)
     draw_text(simulation, &simulation->jet_brains, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 
+    ui_update();
+
     ui_element ui_info = {
         .layout    = LAYOUT_TO_RIGHT,
         .pos       = v2make(200, 200),
@@ -300,58 +302,53 @@ void simulation_update(simulation *simulation)
         .child_gap = 16,
     };
 
-    ui_element *root = ui_open(NULL, &ui_info);
+    UI(&ui_info)
+    { 
+        ui_info = (ui_element){
+            .pos    = v2make(0, 0),
+            .width  = fixed(150),
+            .height = fixed(200),
+            .color  = YELLOW,
+        };
+        UI(&ui_info);
 
-    ui_info = (ui_element){
-        .pos    = v2make(0, 0),
-        .width  = fixed(150),
-        .height = fixed(200),
-        .color  = YELLOW,
-    };
-    ui_element *child = ui_open(root, &ui_info);
-    ui_close(child);
+        ui_info = (ui_element){
+            .width   = fit(100, 0),
+            .height  = fixed(500),
+            .padding = padding(16, 16, 16, 16),
+            .color   = CYAN,
+        };
+        UI(&ui_info)
+        {
+            ui_element info = (ui_element){
+                .pos       = v2make(0, 0),
+                .width     = fit(0, 0),
+                .height    = fit(0, 0),
+                .roundness = 0.2f,
+                .padding   = padding(32, 32, 32, 32),
+                .color     = BLUE,
+                .text      = "Hello World",
+                .font_size = 24,
+                .font      = &simulation->jet_brains,
+                .align_y   = CENTER,
+            };
+            UI(&info);
+        }
 
-    ui_info = (ui_element){
-        .width   = fit(0, 0),
-        .height  = fixed(500),
-        .padding = padding(16, 16, 16, 16),
-        .color   = PURPLE,
-    };
-    child = ui_open(root, &ui_info);
+        ui_info = (ui_element){
+            .pos       = v2make(0, 0),
+            .width     = grow(120, 0),
+            .height    = grow(120, 0),
+            .roundness = 0.2f,
+            .color     = GREEN,
+        };
+        UI(&ui_info);
+    }
 
-    ui_info = (ui_element){
-        .pos       = v2make(0, 0),
-        .width     = fit(0, 0),
-        .height    = fit(0, 0),
-        .roundness = 0.2f,
-        .padding   = padding(32, 32, 32, 32),
-        .color     = BLUE,
-        .text      = "Hello World",
-        .font_size = 24,
-        .font      = &simulation->jet_brains,
-        .align_y   = CENTER,
-    };
-    ui_element *idk = ui_open(child, &ui_info);
-    ui_close(idk);
-    ui_close(child);
-
-    ui_info = (ui_element){
-        .pos       = v2make(0, 0),
-        .width     = grow(120, 0),
-        .height    = grow(120, 0),
-        .roundness = 0.2f,
-        .color     = GREEN,
-    };
-    child = ui_open(root, &ui_info);
-    ui_close(child);
-
-    ui_close(root);
 
     vulkan_command_label_begin(vulkan, "ui", RED);
-    ui_draw(simulation, root);
+    ui_draw(simulation);
     vulkan_command_label_end(vulkan);
-
-    ui_destroy(root);
 
     vulkan_command_end_rendering(vulkan);
 

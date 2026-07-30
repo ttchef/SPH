@@ -69,13 +69,40 @@ typedef struct ui_element
     struct ui_element *children;
 } ui_element;
 
+typedef struct
+{
+    struct
+    {
+        // NOTE: Max of 32 element depth
+        ui_element *elements[32];
+        u32         element_count;
+    } open_elements;
+
+    // NOTE: Only have one root element for now
+    ui_element *root;
+
+    v2 mouse_pos;
+} ui_context;
+
+void ui_update(void);
+
 ui_element *ui_open(ui_element *parent, ui_element *element);
 
 void ui_close(ui_element *element);
 
-void ui_draw(simulation *simulation, ui_element *root);
+void ui_draw(simulation *simulation);
 
-void ui_destroy(ui_element *root);
+ui_context *ui_context_get(void);
+
+ui_element *ui_open_elements_pop(void);
+
+ui_element *ui_open_elements_peek(void);
+
+#define UI(...) \
+    for (u32 _ = (ui_open(ui_open_elements_peek(), __VA_ARGS__), 0); \
+        _ < 1; \
+        _ = 1, ui_close(ui_open_elements_pop()))
+        
 
 // NOTE: Struct builders
 static inline ui_size fixed(f32 value)
@@ -125,3 +152,4 @@ static inline ui_padding padding(f32 left, f32 right, f32 top, f32 bottom)
         .bottom = bottom,
     };
 }
+

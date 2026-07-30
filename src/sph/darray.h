@@ -73,7 +73,7 @@ static inline u32 darray_capacity(void *darray)
 }
 
 // NOTE: Returns pointer to pushed element in the array and NULL on error
-static inline void *darray_push(void **darray_ptr, void *element)
+static inline void *darray_push(void ** darray_ptr, void *element)
 {
     void          *darray = *darray_ptr;
     darray_header *header = darray_base(darray);
