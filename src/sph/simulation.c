@@ -302,7 +302,7 @@ void simulation_update(simulation *simulation)
         .height      = PERCENT(1.0),
         .color       = BACKGROUND,
         .padding     = PAD_ALL(16),
-        .child_align = ALIGN(CENTER, CENTER),
+        .child_align = BOTTOM,
         .child_gap   = 0,
     })
     {
@@ -311,11 +311,13 @@ void simulation_update(simulation *simulation)
             .height = FIXED(64),
             .color  = BLUE,
         });
+
         UI({
             .width  = FIXED(64),
             .height = FIXED(64),
             .color  = RED,
         });
+
     }
 
     vulkan_command_label_begin(vulkan, "ui", RED);

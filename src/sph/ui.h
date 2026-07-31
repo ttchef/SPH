@@ -56,12 +56,6 @@ typedef enum
     TOP,
     BOTTOM,
     CENTER,
-} ui_alignement_type;
-
-typedef struct
-{
-    ui_alignement_type x;
-    ui_alignement_type y;
 } ui_alignement;
 
 typedef struct ui_element

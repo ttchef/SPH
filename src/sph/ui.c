@@ -339,52 +339,61 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
     {
         ui_element *child = &root->children[i];
 
-        if (root->child_align.x == LEFT)
-        {
-            child->pos = v2add(root->pos, child->pos);
+        child->pos = v2add(root->pos, child->pos);
 
-            if (root->layout == LAYOUT_TO_RIGHT)
+        if (root->layout == LAYOUT_TO_RIGHT)
+        {
+            switch (root->child_align)
             {
-                child->pos.x += offset;
+            case TOP:
+            {
                 child->pos.y += root->padding.top;
-                offset += child->width.min_max.min + root->child_gap;
+            } break;
+            case BOTTOM:
+            {
+                child->pos.y += root->height.min_max.min - root->padding.bottom - child->height.min_max.min;
+            } break;
+            case CENTER:
+            {
+                child->pos.y += (root->height.min_max.min - root->padding.top - root->padding.bottom) * 0.5f - child->height.min_max.min * 0.5f + root->padding.top; 
+            } break;
+            default:
+            {
+                SDL_Log("[UI] Unkown child alignement.");
             }
-            else if (root->layout == LAYOUT_TO_BOTTOM)
+            break;
+            }
+            child->pos.x += offset;
+            offset += child->width.min_max.min + root->child_gap;
+        }
+        else if (root->layout == LAYOUT_TO_BOTTOM)
+        {
+            switch (root->child_align)
+            {
+            case LEFT:
             {
                 child->pos.x += root->padding.left;
-                child->pos.y += offset;
-                offset += child->height.min_max.min + root->child_gap;
-            }   
-        }
-        else if (root->child_align.x == RIGHT)
-        {
-            child->pos = v2sub(v2add(root->pos, v2make(root->width.min_max.min, 0)), child->pos);
-            child->pos.x -= child->width.min_max.min;
-
-            if (root->layout == LAYOUT_TO_RIGHT)
-            {
-                child->pos.x -= offset;
-                child->pos.y += root->padding.top;
-                offset += child->width.min_max.min + root->child_gap;
             }
-            else if (root->layout == LAYOUT_TO_BOTTOM)
+            break;
+            case RIGHT:
             {
-                child->pos.x -= root->padding.right;
-                child->pos.y += offset;
-                offset += child->height.min_max.min + root->child_gap;
+                child->pos.x += root->width.min_max.min - child->width.min_max.min - root->padding.right;
             }
+            break;
+            case CENTER:
+            {
+                child->pos.x += (root->width.min_max.min - root->padding.left - root->padding.right) * 0.5f - child->width.min_max.min * 0.5f + root->padding.left;
+            }
+            break;
+            default:
+            {
+                SDL_Log("[UI] Unkown child alignement.");
+            }
+            break;
+            }
+            child->pos.y += offset;
+            offset += child->height.min_max.min + root->child_gap;
         }
-        else if (root->child_align.x == CENTER)
-        {
-            f32 space = (root->width.min_max.min - root->padding.left - root->padding.right) / (darray_len(root->children) + 1);
-            
-            child->pos = root->pos;
-            child->pos.x += offset + space - child->width.min_max.min * 0.5f;
-            child->pos.y += root->padding.top;
-
-            offset += space;
-        }
-        
 
         ui_draw_helper(simulation, child);
     }
