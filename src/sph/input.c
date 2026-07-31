@@ -48,7 +48,7 @@ static u32 mouse_button_to_enum(u32 button)
 }
 
 void input_update(input *input, SDL_Event *event)
-{
+{    
     for (u32 i = 0; i < INPUT_COUNT; i++)
     {
         input->actions[i].pressed  = false;
@@ -113,6 +113,11 @@ void input_update(input *input, SDL_Event *event)
     }
     default:
         break;
+    }
+
+    if (input_pressed(input, INPUT_LMB))
+    {
+        input->mouse_press_pos = input->mouse_pos;
     }
 }
 

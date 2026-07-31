@@ -4,6 +4,7 @@
 #include <math/vector.h>
 #include <sph/input.h>
 #include <sph/types.h>
+#include <sph/darray.h>
 #include <types.h>
 
 //
@@ -90,6 +91,13 @@ typedef struct ui_element
 
 typedef struct
 {
+    v2    pos;
+    v2    size;
+    ui_id id;
+} ui_previous_data;
+
+typedef struct
+{
     struct
     {
         // NOTE: Max of 32 element depth
@@ -100,8 +108,11 @@ typedef struct
     // NOTE: Only have one root element for now
     ui_element *root;
 
-    u32    element_count;
-    ui_id *pointer_over_ids;
+    u32 element_count;
+
+    // NOTE: darray.h
+    ui_id            *pointer_over_ids;
+    ui_previous_data *previous_data;
 } ui_context;
 
 void ui_update(input *input);
@@ -116,29 +127,28 @@ ui_context *ui_context_get(void);
 
 ui_element *ui_open_elements_pop(void);
 
-ui_element *ui_open_elements_peek(void);
+ui_element *ui_open_elements_peek(i32 offset);
 
 bool ui_hovered(ui_id id);
 
-#define UI(...)                                                                  \
-    for (u32 _ = (ui_open(ui_open_elements_peek(), (ui_element)__VA_ARGS__), 0); \
-         _ < 1;                                                                  \
-         _ = 1, ui_close(ui_open_elements_pop()))
+v2 ui_world_position(ui_id id, bool size);
 
-#define FIXED(size)                   \
-    (ui_size)                         \
-    {                                 \
-        .type        = UI_SIZE_FIXED, \
-        .min_max.min = size,          \
-        .min_max.max = size,          \
-    }
+static inline ui_size FIXED(f32 size)
+{
+    return (ui_size){
+        .type        = UI_SIZE_FIXED,
+        .min_max.min = size,
+        .min_max.max = size,
+    };
+}
 
-#define PERCENT(size)               \
-    (ui_size)                       \
-    {                               \
-        .type    = UI_SIZE_PERCENT, \
-        .percent = size,            \
-    }
+static inline ui_size PERCENT(f32 percent)
+{
+    return (ui_size){
+        .type    = UI_SIZE_PERCENT,
+        .percent = percent,
+    };
+}
 
 #define FIT(...)             \
     (ui_size)                \
@@ -160,34 +170,62 @@ bool ui_hovered(ui_id id);
         }                     \
     }
 
-#define PAD(left_value, right_value, top_value, bottom_value) \
-    (ui_padding)                                              \
-    {                                                         \
-        .left   = left_value,                                 \
-        .right  = right_value,                                \
-        .top    = top_value,                                  \
-        .bottom = bottom_value,                               \
+static inline ui_padding PAD(f32 left, f32 right, f32 top, f32 bottom)
+{
+    return (ui_padding){
+        .left   = left,
+        .right  = right,
+        .top    = top,
+        .bottom = bottom,
+    };
+}
+
+static inline ui_padding PAD_ALL(f32 padding)
+{
+    return (ui_padding){
+        .left   = padding,
+        .right  = padding,
+        .top    = padding,
+        .bottom = padding,
+    };
+}
+
+static inline ui_element *PARENT(void)
+{
+    return ui_open_elements_peek(-1);
+}
+
+static inline ui_element *CURRENT(void)
+{
+    return ui_open_elements_peek(0);
+}
+
+static inline bool HOVERED(void)
+{
+    return ui_hovered(CURRENT()->id);
+}
+
+static inline v2 WORLD_POS(ui_id id)
+{
+    return ui_world_position(id, false);
+}
+
+static inline v2 SIZE(ui_id id)
+{
+    return ui_world_position(id, true);
+}
+
+static inline bool MOUSE_OVER_UI(void)
+{
+    ui_context *ctx = ui_context_get();
+    if (ctx && ctx->pointer_over_ids)
+    {
+        return darray_len(ctx->pointer_over_ids) > 0;
     }
+    return false;
+}
 
-#define PAD_ALL(value)   \
-    (ui_padding)         \
-    {                    \
-        .left   = value, \
-        .right  = value, \
-        .top    = value, \
-        .bottom = value, \
-    }
-
-#define ALIGN(x_type, y_type) \
-    (ui_alignement)           \
-    {                         \
-        .x = x_type,          \
-        .y = y_type,          \
-    }
-
-#define CURRENT(...) \
-    ui_open_elements_peek()
-
-#define HOVERED(...) \
-    ui_hovered(ui_open_elements_peek()->id)
-
+#define UI(...)                                                    \
+    for (u32 _ = (ui_open(CURRENT(), (ui_element)__VA_ARGS__), 0); \
+         _ < 1;                                                    \
+         _ = 1, ui_close(ui_open_elements_pop()))

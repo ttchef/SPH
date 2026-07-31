@@ -53,15 +53,48 @@ static void ui_mouse_over_elements(ui_element *root, v2 mouse_pos, ui_id **point
     }
 }
 
+static void ui_data_collect(ui_element *root, ui_previous_data **world_positions)
+{
+    if (!root)
+    {
+        return;
+    }
+
+    ui_previous_data pos = {
+          .id = root->id,
+          .pos = v2make(root->pos.x, root->pos.y),
+          .size = v2make(root->width.min_max.min, root->height.min_max.min),  
+    };
+
+    darray_push((void **)world_positions, &pos);
+
+    if (!root->children)
+    {
+        return;
+    }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_data_collect(&root->children[i], world_positions);
+    }
+}
+
 void ui_update(input *input)
 {
     if (!ui_ctx.pointer_over_ids)
     {
         ui_ctx.pointer_over_ids = darray_create(sizeof(ui_id));
     }
+    if (!ui_ctx.previous_data)
+    {
+        ui_ctx.previous_data = darray_create(sizeof(ui_previous_data));
+    }
 
     darray_len_set(ui_ctx.pointer_over_ids, 0);
+    darray_len_set(ui_ctx.previous_data, 0);
+
     ui_mouse_over_elements(ui_ctx.root, input->mouse_pos, &ui_ctx.pointer_over_ids);
+    ui_data_collect(ui_ctx.root, &ui_ctx.previous_data);
 
     ui_ctx.element_count = 0;
 
@@ -303,6 +336,11 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
             across_layout_size->min_max.min += (remaining_across - across_layout_size->min_max.min);
         }
     }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_grow_resolve(&root->children[i], window_width, window_height);
+    }
 }
 
 static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_height)
@@ -469,14 +507,14 @@ ui_element *ui_open_elements_pop(void)
     return ui_ctx.open_elements.elements[--ui_ctx.open_elements.count];
 }
 
-ui_element *ui_open_elements_peek(void)
+ui_element *ui_open_elements_peek(i32 offset)
 {
-    if (ui_ctx.open_elements.count == 0)
+    if (ui_ctx.open_elements.count < (u32)SDL_abs(offset - 1))
     {
         return NULL;
     }
 
-    return ui_ctx.open_elements.elements[ui_ctx.open_elements.count - 1];
+    return ui_ctx.open_elements.elements[ui_ctx.open_elements.count + offset - 1];
 }
 
 bool ui_hovered(ui_id id)
@@ -490,4 +528,24 @@ bool ui_hovered(ui_id id)
     }
 
     return false;
+}
+
+v2 ui_world_position(ui_id id, bool size)
+{
+    for (u32 i = 0; i < darray_len(ui_ctx.previous_data); i++)
+    {
+        if (id == ui_ctx.previous_data[i].id)
+        {
+            if (size)
+            {
+                return ui_ctx.previous_data[i].size;
+            }
+            else
+            {
+                return ui_ctx.previous_data[i].pos;
+            }
+        }
+    }
+
+    return v2zero();
 }
