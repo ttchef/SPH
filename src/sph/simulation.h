@@ -22,6 +22,8 @@ struct simulation
 	vulkan_sampler linear_sampler;
 	vulkan_image test_texture;
 	ttf_font jet_brains;
+
+	cube bounding_box;
 };
 
 bool simulation_create(simulation *simulation);
