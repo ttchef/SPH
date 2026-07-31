@@ -285,7 +285,10 @@ void simulation_update(simulation *simulation)
     vulkan_command_set_viewport(vulkan, 0, 0, MAX(window->width, simulation->ui_layout.width + 1) - simulation->ui_layout.width, window->height);
 
     vulkan_command_label_begin(vulkan, "render_cube", RED);
-    draw_cube_lines(simulation, simulation->bounding_box.pos, simulation->bounding_box.size);
+    if (simulation->render_bounding_box)
+    {
+        draw_cube_lines(simulation, simulation->bounding_box.pos, simulation->bounding_box.size);
+    }
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_quads", BLUE);

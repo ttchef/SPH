@@ -25,6 +25,7 @@ struct simulation
 	vulkan_image test_texture;
 	ttf_font jet_brains;
 
+	bool render_bounding_box;
 	cube bounding_box;
 };
 

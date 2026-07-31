@@ -405,7 +405,11 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
     draw_quad(simulation, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
     if (root->text.chars)
     {
-        draw_text(simulation, root->text.font, v2make(root->pos.x + root->padding.left, root->pos.y + root->padding.top), root->text.font_size, "%s", root->text.chars);
+        // TODO: Fix this
+        v2 text_pos = root->pos;
+        text_pos.y -= root->text.font_size * 0.25f;
+         
+        draw_text(simulation, root->text.font, text_pos, root->text.font_size, "%s", root->text.chars);
     }
 
     if (!root->children)

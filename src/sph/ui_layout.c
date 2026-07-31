@@ -13,6 +13,8 @@
 #define UI_COLOR8 color4gray(0.68, 1.0)
 #define UI_COLOR9 color4gray(0.80, 1.0)
 
+const f32 STD_ROUNDNESS = 0.3f;
+
 ui_layout_context ui_layout_create(void)
 {
     ui_layout_context result = {0};
@@ -48,7 +50,7 @@ static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const c
         .color       = UI_COLOR1,
         .padding     = PAD_ALL(16),
         .child_gap   = 16,
-        .roundness   = 0.3f,
+        .roundness   = STD_ROUNDNESS,
     })
     {
         v2 world_pos = WORLD_POS(CURRENT()->id);
@@ -61,7 +63,7 @@ static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const c
         {
             if (HOVERED() && input_down(&simulation->input, INPUT_LMB) && is_active(simulation, CURRENT()->id))
             {
-                *value                          = (simulation->input.mouse_pos.x - world_pos.x) / size.x;
+                *value = (simulation->input.mouse_pos.x - world_pos.x) / size.x;
                 set_active(simulation, CURRENT()->id);
             }
         }
@@ -102,6 +104,55 @@ static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const c
     *value += min;
 }
 
+static void checkbox(simulation *simulation, bool *value, const char *label)
+{
+    UI({
+        .width       = GROW(0),
+        .height      = FIT(0),
+        .color       = UI_COLOR1,
+        .roundness   = STD_ROUNDNESS,
+        .padding     = PAD_ALL(16),
+        .child_gap   = 12,
+        .child_align = CENTER,
+    })
+    {
+        UI({
+            .width     = FIXED(32),
+            .height    = FIXED(32),
+            .padding   = PAD_ALL(5),
+            .roundness = 0.4f,
+        })
+        {
+            CURRENT()->color = HOVERED() ? UI_COLOR4 : UI_COLOR3;
+
+            if (HOVERED() && input_pressed(&simulation->input, INPUT_LMB))
+            {
+                *value = !*value;
+            }
+
+            if (*value)
+            {
+                UI({
+                    .width     = GROW(0),
+                    .height    = GROW(0),
+                    .color     = UI_COLOR8,
+                    .roundness = 0.4f,
+                });
+            }
+        }
+
+        UI({
+            .width  = FIT(0),
+            .height = FIT(0),
+            .text   = {
+                .chars     = label,
+                .font_size = 20,
+                .font      = &simulation->jet_brains,
+            },
+        });
+    }
+}
+
 void ui_layout_calculate(simulation *simulation)
 {
     UI({
@@ -117,6 +168,8 @@ void ui_layout_calculate(simulation *simulation)
         slider(simulation, &simulation->bounding_box.size.x, 10, 1000, "Size X");
         slider(simulation, &simulation->bounding_box.size.y, 10, 1000, "Size Y");
         slider(simulation, &simulation->bounding_box.size.z, 10, 1000, "Size Z");
+
+        checkbox(simulation, &simulation->render_bounding_box, "Render bounding box");
     }
 
     // NOTE: Reset current element id
