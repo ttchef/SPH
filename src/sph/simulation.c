@@ -243,6 +243,7 @@ bool simulation_create(simulation *simulation)
         return false;
     }
 
+    simulation->render_bounding_box = true;
     simulation->bounding_box = cubemake(v3zero(), v3make(100, 100, 100));
 
     return true;
@@ -273,7 +274,11 @@ static void global_ubo_update(simulation *simulation)
 
 void simulation_update(simulation *simulation)
 {
-    time_update(&simulation->time);
+    if (!simulation->paused)
+    {
+        time_update(&simulation->time);
+    }
+
     camera_update(&simulation->camera, &simulation->window, &simulation->input, simulation->time.delta);
     global_ubo_update(simulation);
 
@@ -303,6 +308,11 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     ui_layout_calculate(simulation);
+
+    if (simulation->paused_pressed)
+    {
+        simulation->paused = !simulation->paused;
+    }
 
     vulkan_command_label_begin(vulkan, "ui", RED);
     ui_draw(simulation);

@@ -153,6 +153,59 @@ static void checkbox(simulation *simulation, bool *value, const char *label)
     }
 }
 
+// NOTE: Returns true when pressed
+static bool button(simulation *simulation, const char *label)
+{
+    bool result = false;
+    
+    UI({
+        .width     = GROW(0),
+        .height    = FIT(0),
+        .color     = UI_COLOR1,
+        .padding   = PAD_ALL(8),
+        .roundness = STD_ROUNDNESS,
+    })
+    {
+        UI({
+            .width       = GROW(0),
+            .height      = FIXED(32),
+            .roundness   = 0.4f,
+            .child_align = CENTER,
+        })
+        {
+            CURRENT()->color = HOVERED() ? UI_COLOR4 : UI_COLOR3;
+
+            if (HOVERED() && input_pressed(&simulation->input, INPUT_LMB))
+            {
+                CURRENT()->color = UI_COLOR6;
+                result = true;
+            }
+
+            UI({
+                .width  = GROW(0),
+                .height = GROW(0),
+            });
+
+            UI({
+                .width  = FIT(0),
+                .height = FIT(0),
+                .text   = {
+                    .chars     = label,
+                    .font_size = 20,
+                    .font      = &simulation->jet_brains,
+                },
+            });
+
+            UI({
+                .width  = GROW(0),
+                .height = GROW(0),
+            });
+        }
+    }
+
+    return result;
+}
+
 void ui_layout_calculate(simulation *simulation)
 {
     UI({
@@ -170,6 +223,16 @@ void ui_layout_calculate(simulation *simulation)
         slider(simulation, &simulation->bounding_box.size.z, 10, 1000, "Size Z");
 
         checkbox(simulation, &simulation->render_bounding_box, "Render bounding box");
+
+        UI({
+            .width  = GROW(0),
+            .height = FIT(0),
+            .child_gap = 12,
+        })
+        {
+            simulation->paused_pressed = button(simulation, "Reset");
+            simulation->paused_pressed = button(simulation, simulation->paused ? "Resume" : "Pause");
+        }
     }
 
     // NOTE: Reset current element id

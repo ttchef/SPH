@@ -112,11 +112,11 @@ ui_element *ui_open(ui_element *parent, ui_element element)
         element.child_align = TOP;
     }
 
-    if (element.width.min_max.max == 0.0f)
+    if (element.width.type != UI_SIZE_PERCENT && element.width.min_max.max == 0.0f)
     {
         element.width.min_max.max = FLT_MAX;
     }
-    if (element.height.min_max.max == 0.0f)
+    if (element.height.type != UI_SIZE_PERCENT && element.height.min_max.max == 0.0f)
     {
         element.height.min_max.max = FLT_MAX;
     }

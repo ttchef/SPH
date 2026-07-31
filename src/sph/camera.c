@@ -57,7 +57,7 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
         SDL_SetWindowRelativeMouseMode(window->handle, true);
         camera->invis_cursor = true;
     }
-    if (input_released(input, INPUT_LMB) && !MOUSE_OVER_UI())
+    if (input_released(input, INPUT_LMB))
     {
         SDL_SetWindowRelativeMouseMode(window->handle, false);
         camera->invis_cursor = false;

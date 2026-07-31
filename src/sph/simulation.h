@@ -27,6 +27,11 @@ struct simulation
 
 	bool render_bounding_box;
 	cube bounding_box;
+
+	bool reset_pressed;
+	bool paused_pressed;
+
+	bool paused;
 };
 
 bool simulation_create(simulation *simulation);
