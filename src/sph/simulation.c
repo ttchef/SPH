@@ -277,6 +277,7 @@ void simulation_update(simulation *simulation)
 
     window *window = &simulation->window;
     vulkan *vulkan = &simulation->vulkan;
+    input *input = &simulation->input;
 
     vulkan_command_begin_rendering(vulkan);
     vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
@@ -293,7 +294,7 @@ void simulation_update(simulation *simulation)
     draw_text(simulation, &simulation->jet_brains, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 
-    ui_update();
+    ui_update(input);
 
     UI({
         .layout      = LAYOUT_TO_RIGHT,
@@ -302,22 +303,28 @@ void simulation_update(simulation *simulation)
         .height      = PERCENT(1.0),
         .color       = BACKGROUND,
         .padding     = PAD_ALL(16),
-        .child_align = BOTTOM,
-        .child_gap   = 0,
+        .child_align = CENTER,
+        .child_gap   = 12,
     })
     {
         UI({
             .width  = FIXED(64),
             .height = FIXED(64),
-            .color  = BLUE,
+            .color  = HOVERED() ? RED : BLUE,
         });
 
         UI({
             .width  = FIXED(64),
             .height = FIXED(64),
-            .color  = RED,
-        });
+        })
+        {
+            CURRENT()->color = HOVERED() ? YELLOW : CYAN;
 
+            if (HOVERED() && input_down(input, INPUT_LMB))
+            {
+                CURRENT()->color = MAGENTA;
+            }   
+        }
     }
 
     vulkan_command_label_begin(vulkan, "ui", RED);

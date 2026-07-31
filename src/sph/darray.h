@@ -72,6 +72,11 @@ static inline u32 darray_capacity(void *darray)
     return darray_base(darray)->capacity;
 }
 
+static inline void darray_len_set(void *darray, u32 len)
+{
+    darray_base(darray)->len = len;   
+}
+
 // NOTE: Returns pointer to pushed element in the array and NULL on error
 static inline void *darray_push(void ** darray_ptr, void *element)
 {

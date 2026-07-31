@@ -28,8 +28,43 @@ static void ui_destroy(ui_element *root)
     }
 }
 
-void ui_update(void)
+static void ui_mouse_over_elements(ui_element *root, v2 mouse_pos, ui_id **pointer_over_ids)
 {
+    if (!root)
+    {
+        return;
+    }
+
+    if (root->pos.x < mouse_pos.x && root->pos.y < mouse_pos.y &&
+        root->pos.x + root->width.min_max.min > mouse_pos.x &&
+        root->pos.y + root->height.min_max.min > mouse_pos.y)
+    {
+        darray_push((void **)pointer_over_ids, &root->id);
+    }
+
+    if (!root->children)
+    {
+        return;
+    }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_mouse_over_elements(&root->children[i], mouse_pos, pointer_over_ids);
+    }
+}
+
+void ui_update(input *input)
+{
+    if (!ui_ctx.pointer_over_ids)
+    {
+        ui_ctx.pointer_over_ids = darray_create(sizeof(ui_id));
+    }
+
+    darray_len_set(ui_ctx.pointer_over_ids, 0);
+    ui_mouse_over_elements(ui_ctx.root, input->mouse_pos, &ui_ctx.pointer_over_ids);
+
+    ui_ctx.element_count = 0;
+
     if (ui_ctx.root)
     {
         ui_destroy(ui_ctx.root);
@@ -39,6 +74,11 @@ void ui_update(void)
 
 ui_element *ui_open(ui_element *parent, ui_element element)
 {
+    if (element.layout == LAYOUT_TO_RIGHT && element.child_align == 0)
+    {
+        element.child_align = TOP;
+    }
+
     if (element.width.min_max.max == 0.0f)
     {
         element.width.min_max.max = FLT_MAX;
@@ -47,6 +87,8 @@ ui_element *ui_open(ui_element *parent, ui_element element)
     {
         element.height.min_max.max = FLT_MAX;
     }
+
+    element.id = ui_ctx.element_count++;
 
     if (!parent)
     {
@@ -60,9 +102,9 @@ ui_element *ui_open(ui_element *parent, ui_element element)
         }
         ui_ctx.root = data;
 
-        if (ui_ctx.open_elements.element_count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
+        if (ui_ctx.open_elements.count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
         {
-            ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count++] = data;
+            ui_ctx.open_elements.elements[ui_ctx.open_elements.count++] = data;
         }
 
         return data;
@@ -76,9 +118,9 @@ ui_element *ui_open(ui_element *parent, ui_element element)
     element.parent            = parent;
     ui_element *child_address = darray_push((void **)&parent->children, &element);
 
-    if (ui_ctx.open_elements.element_count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
+    if (ui_ctx.open_elements.count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
     {
-        ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count++] = child_address;
+        ui_ctx.open_elements.elements[ui_ctx.open_elements.count++] = child_address;
     }
     return child_address;
 }
@@ -348,15 +390,18 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
             case TOP:
             {
                 child->pos.y += root->padding.top;
-            } break;
+            }
+            break;
             case BOTTOM:
             {
                 child->pos.y += root->height.min_max.min - root->padding.bottom - child->height.min_max.min;
-            } break;
+            }
+            break;
             case CENTER:
             {
-                child->pos.y += (root->height.min_max.min - root->padding.top - root->padding.bottom) * 0.5f - child->height.min_max.min * 0.5f + root->padding.top; 
-            } break;
+                child->pos.y += (root->height.min_max.min - root->padding.top - root->padding.bottom) * 0.5f - child->height.min_max.min * 0.5f + root->padding.top;
+            }
+            break;
             default:
             {
                 SDL_Log("[UI] Unkown child alignement.");
@@ -415,21 +460,34 @@ ui_context *ui_context_get(void)
 
 ui_element *ui_open_elements_pop(void)
 {
-    if (ui_ctx.open_elements.element_count == 0)
+    if (ui_ctx.open_elements.count == 0)
     {
         SDL_Log("[UI] Tried to pop open elements with a count of 0.");
         return NULL;
     }
 
-    return ui_ctx.open_elements.elements[--ui_ctx.open_elements.element_count];
+    return ui_ctx.open_elements.elements[--ui_ctx.open_elements.count];
 }
 
 ui_element *ui_open_elements_peek(void)
 {
-    if (ui_ctx.open_elements.element_count == 0)
+    if (ui_ctx.open_elements.count == 0)
     {
         return NULL;
     }
 
-    return ui_ctx.open_elements.elements[ui_ctx.open_elements.element_count - 1];
+    return ui_ctx.open_elements.elements[ui_ctx.open_elements.count - 1];
+}
+
+bool ui_hovered(ui_id id)
+{
+    for (u32 i = 0; i < darray_len(ui_ctx.pointer_over_ids); i++)
+    {
+        if (id == ui_ctx.pointer_over_ids[i])
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

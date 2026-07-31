@@ -2,6 +2,7 @@
 #pragma once
 
 #include <math/vector.h>
+#include <sph/input.h>
 #include <sph/types.h>
 #include <types.h>
 
@@ -9,6 +10,8 @@
 // NOTE: Heavily inspired by clay: https://github.com/nicbarker/clay.git
 //       This file doesnt have proper namespacing to make using it more pleasent
 //
+
+typedef u32 ui_id;
 
 typedef enum
 {
@@ -60,6 +63,7 @@ typedef enum
 
 typedef struct ui_element
 {
+    ui_id     id;
     ui_layout layout;
     v2        pos;
     ui_size   width;
@@ -90,16 +94,17 @@ typedef struct
     {
         // NOTE: Max of 32 element depth
         ui_element *elements[32];
-        u32         element_count;
+        u32         count;
     } open_elements;
 
     // NOTE: Only have one root element for now
     ui_element *root;
 
-    v2 mouse_pos;
+    u32    element_count;
+    ui_id *pointer_over_ids;
 } ui_context;
 
-void ui_update(void);
+void ui_update(input *input);
 
 ui_element *ui_open(ui_element *parent, ui_element element);
 
@@ -112,6 +117,8 @@ ui_context *ui_context_get(void);
 ui_element *ui_open_elements_pop(void);
 
 ui_element *ui_open_elements_peek(void);
+
+bool ui_hovered(ui_id id);
 
 #define UI(...)                                                                  \
     for (u32 _ = (ui_open(ui_open_elements_peek(), (ui_element)__VA_ARGS__), 0); \
@@ -172,8 +179,15 @@ ui_element *ui_open_elements_peek(void);
     }
 
 #define ALIGN(x_type, y_type) \
-    (ui_alignement) \
-    {               \
-        .x = x_type,     \
-        .y = y_type,     \
+    (ui_alignement)           \
+    {                         \
+        .x = x_type,          \
+        .y = y_type,          \
     }
+
+#define CURRENT(...) \
+    ui_open_elements_peek()
+
+#define HOVERED(...) \
+    ui_hovered(ui_open_elements_peek()->id)
+
