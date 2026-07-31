@@ -231,6 +231,8 @@ bool simulation_create(simulation *simulation)
     simulation->input     = input_create();
     simulation->ui_layout = ui_layout_create();
 
+    window_min_size_set(&simulation->window, simulation->ui_layout.width, 0);
+
     if (!pipelines_create(&simulation->vulkan, simulation->pipelines, PIPELINE_COUNT))
     {
         return false;
