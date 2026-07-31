@@ -9,10 +9,13 @@
 
 //
 // NOTE: Heavily inspired by clay: https://github.com/nicbarker/clay.git
-//       This file doesnt have proper namespacing to make using it more pleasent
+//       This file defines the ui api which you can use to build the ui.
+//       Because of this doesnt have proper namespacing to make using it more pleasent
 //
 
 typedef u32 ui_id;
+
+#define UI_INVALID_ID UINT32_MAX
 
 typedef enum
 {

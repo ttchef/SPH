@@ -6,112 +6,12 @@
 #include <sph/ui.h>
 #include <sph/utils.h>
 
-#define UI_WIDTH 400
-
-#define UI_COLOR0 color4gray(0.04, 1.0)
-#define UI_COLOR1 color4gray(0.08, 1.0)
-#define UI_COLOR2 color4gray(0.12, 1.0)
-#define UI_COLOR3 color4gray(0.2, 1.0)
-#define UI_COLOR4 color4gray(0.27, 1.0)
-#define UI_COLOR5 color4gray(0.36, 1.0)
-#define UI_COLOR6 color4gray(0.48, 1.0)
-#define UI_COLOR7 color4gray(0.56, 1.0)
-#define UI_COLOR8 color4gray(0.68, 1.0)
-#define UI_COLOR9 color4gray(0.80, 1.0)
-
 typedef struct
 {
     m4 view;
     m4 perspective;
     m4 orthographic;
 } global_ubo;
-
-// NOTE Always from 0 - 1
-static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const char *label)
-{
-    const f32 bubble_size = 20;
-
-    *value -= min;
-    *value /= (max - min);
-    
-    UI({
-        .layout = LAYOUT_TO_BOTTOM,
-        .width = GROW(0),
-        .height = FIT(0),
-        .child_align = LEFT,
-        .color = UI_COLOR1,
-        .padding = PAD_ALL(16),
-        .child_gap = 16,
-        .roundness = 0.3f,
-    })
-    {
-        v2 world_pos = WORLD_POS(CURRENT()->id);
-        world_pos.x += CURRENT()->padding.left + bubble_size * 0.5f;
-    
-        v2 size = SIZE(CURRENT()->id);
-        size.x -= CURRENT()->padding.right + CURRENT()->padding.left + bubble_size;
-        
-        if (size.x > FLT_EPSILON)
-        {
-            if (HOVERED() && input_down(&simulation->input, INPUT_LMB))
-            {
-                *value = (simulation->input.mouse_pos.x - world_pos.x) / size.x;
-            }
-        }
-
-        UI({
-            .width = FIT(0),
-            .height = FIT(0),
-            .text = {
-                .chars = label,
-                .font_size = 20,
-                .font = &simulation->jet_brains,
-            },
-        });
-
-        *value = CLAMP(*value, 0.0f, 1.0f);
-    
-        UI({
-            .width = GROW(0),
-            .height = FIXED(10),
-            .color = UI_COLOR3,
-            .roundness = 0.9f,
-        })
-        {        
-            UI({
-                .pos = v2make(0, -5),
-                .width = FIXED(bubble_size),
-                .height = FIXED(bubble_size),
-                .roundness = 1.0f,
-                .color = HOVERED() ? UI_COLOR9 : UI_COLOR6,
-            })
-            {            
-                CURRENT()->pos.x = *value * size.x;
-            }
-        }
-    }
-
-    *value *= (max - min);
-    *value += min;
-}
-
-static void calculate_ui(simulation *simulation)
-{
-    UI({
-        .layout = LAYOUT_TO_BOTTOM,
-        .pos    = v2make(simulation->window.width - 400, 0.0f),
-        .width  = FIXED(400),
-        .height = PERCENT(1.0f),
-        .color  = UI_COLOR0,
-        .padding = PAD_ALL(16),
-        .child_gap = 16,
-    })
-    {
-        slider(simulation, &simulation->bounding_box.size.x, 10, 1000, "Size X");
-        slider(simulation, &simulation->bounding_box.size.y, 10, 1000, "Size Y");
-        slider(simulation, &simulation->bounding_box.size.z, 10, 1000, "Size Z");
-    } 
-}
 
 f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...)
 {
@@ -327,8 +227,9 @@ bool simulation_create(simulation *simulation)
         return false;
     }
 
-    simulation->camera = camera_create();
-    simulation->input  = input_create();
+    simulation->camera    = camera_create();
+    simulation->input     = input_create();
+    simulation->ui_layout = ui_layout_create();
 
     if (!pipelines_create(&simulation->vulkan, simulation->pipelines, PIPELINE_COUNT))
     {
@@ -362,7 +263,7 @@ static void global_ubo_update(simulation *simulation)
 
     ubo->view = camera_view(&simulation->camera);
 
-    f32 aspect_ratio = (f32)(MAX(simulation->window.width, UI_WIDTH + 1) - UI_WIDTH) / (f32)simulation->window.height;
+    f32 aspect_ratio = (f32)(MAX(simulation->window.width, simulation->ui_layout.width + 1) - simulation->ui_layout.width) / (f32)simulation->window.height;
     ubo->perspective = m4perspective(TO_RADIANS(87.0f), aspect_ratio, 0.1f, 1500.0f);
 
     ubo->orthographic = m4orthographic(0, simulation->window.width, simulation->window.height, 0, -1.0, 1.0f);
@@ -379,7 +280,7 @@ void simulation_update(simulation *simulation)
     input  *input  = &simulation->input;
 
     vulkan_command_begin_rendering(vulkan);
-    vulkan_command_set_viewport(vulkan, 0, 0, MAX(window->width, UI_WIDTH + 1) - UI_WIDTH, window->height);
+    vulkan_command_set_viewport(vulkan, 0, 0, MAX(window->width, simulation->ui_layout.width + 1) - simulation->ui_layout.width, window->height);
 
     vulkan_command_label_begin(vulkan, "render_cube", RED);
     draw_cube_lines(simulation, simulation->bounding_box.pos, simulation->bounding_box.size);
@@ -396,8 +297,8 @@ void simulation_update(simulation *simulation)
     draw_text(simulation, &simulation->jet_brains, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
     vulkan_command_label_end(vulkan);
 
-    calculate_ui(simulation);
-    
+    ui_layout_calculate(simulation);
+
     vulkan_command_label_begin(vulkan, "ui", RED);
     ui_draw(simulation);
     vulkan_command_label_end(vulkan);

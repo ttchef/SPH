@@ -6,6 +6,7 @@
 #include <sph/input.h>
 #include <sph/time.h>
 #include <sph/ttf.h>
+#include <sph/ui_layout.h>
 #include <sph/pipelines.h>
 #include <vk/context.h>
 
@@ -16,6 +17,7 @@ struct simulation
 	camera camera;
 	time time;
 	vulkan vulkan;
+	ui_layout_context ui_layout;
 
 	vulkan_pipeline_id pipelines[PIPELINE_COUNT];
 
