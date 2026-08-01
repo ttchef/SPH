@@ -29,14 +29,23 @@ typedef struct
 typedef struct
 {
     VkDeviceAddress positions_addr;
-    u32 particle_count;
+    u32             particle_count;
 } particle_render_pc;
+
+typedef struct
+{
+    VkDeviceAddress positions_addr;
+    VkDeviceAddress velocities_addr;
+    v4 box_pos;
+    v4 box_size;
+} particle_update_pc;
 
 enum
 {
     PIPELINE_TEXTURED_QUAD,
     PIPELINE_CUBE_LINES,
     PIPELINE_PARTICLE_RENDER,
+    PIPELINE_PARTICLE_UPDATE,
     PIPELINE_COUNT,
 };
 

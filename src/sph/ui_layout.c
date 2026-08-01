@@ -230,7 +230,7 @@ void ui_layout_calculate(app *app)
             .child_gap = 12,
         })
         {
-            app->paused_pressed = button(app, "Reset");
+            app->reset_pressed = button(app, "Reset");
             app->paused_pressed = button(app, app->paused ? "Resume" : "Pause");
         }
     }

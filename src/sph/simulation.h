@@ -18,7 +18,7 @@ typedef struct
 
 bool simulation_create(vulkan *vulkan, simulation *out_simulation);
 
-void simulation_update(vulkan *vulkan, simulation *simulation);
+void simulation_update(app *app, vulkan *vulkan, simulation *simulation);
 
 // NOTE: app is only passed in for testing atm it will get removed later
 void simulation_draw(app *app, vulkan *vulkan, simulation *simulation);

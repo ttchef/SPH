@@ -73,6 +73,8 @@ static bool graphics_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc,
     assert(vulkan);
     assert(out_pipeline);
 
+    out_pipeline->type = VULKAN_PIPELINE_TYPE_GRAPHICS;
+
     VkShaderModule vertex_module   = shader_module_create(vulkan, desc->vertex_path);
     VkShaderModule fragment_module = shader_module_create(vulkan, desc->fragment_path);
 
@@ -203,7 +205,8 @@ static bool graphics_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc,
 
 static bool compute_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
-    // TODO: Not hardcode shader
+    out_pipeline->type = VULKAN_PIPELINE_TYPE_COMPUTE;
+    
     VkShaderModule shader_module = shader_module_create(vulkan, desc->compute_path);
 
     VkPipelineShaderStageCreateInfo stage = {

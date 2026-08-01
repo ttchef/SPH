@@ -324,7 +324,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     if (!app->paused)
     {
-        simulation_update(vulkan, &app->simulation);
+        simulation_update(app, vulkan, &app->simulation);
     }
 
     vulkan_command_begin_rendering(vulkan);
@@ -351,6 +351,12 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     if (app->paused_pressed)
     {
         app->paused = !app->paused;
+    }
+    if (app->reset_pressed)
+    {
+        SDL_Log("Wsp");
+        simulation_destroy(vulkan, &app->simulation);
+        simulation_create(vulkan, &app->simulation);
     }
 
     vulkan_command_label_begin(vulkan, "ui", RED);
