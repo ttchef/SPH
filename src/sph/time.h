@@ -12,16 +12,23 @@ typedef struct time
     f64 delta;
     f64 smooth_delta;
     // NOTE: Never gets resetted
-    f64 accumulated;
+    f64 elapsed;
+
+    f64 simulation_delta;
+    f64 simulation_elapsed;
 } time;
 
-static inline void time_init(time *time)
+static inline time time_create(void)
 {
-    assert(time);
+    time result = {0};
+    
+    result.last               = SDL_GetPerformanceCounter();
+    result.elapsed            = 0.0;
+    result.delta              = 0.0;
+    result.simulation_elapsed = 0.0;
+    result.simulation_delta   = 0.0;
 
-    time->last        = SDL_GetPerformanceCounter();
-    time->accumulated = 0.0;
-    time->delta       = 0.0;
+    return result;
 }
 
 static inline void time_update(time *time)
@@ -31,9 +38,12 @@ static inline void time_update(time *time)
     const u64 now  = SDL_GetPerformanceCounter();
     const u64 freq = SDL_GetPerformanceFrequency();
 
-    time->delta = (f64)(now - time->last) / (f64)freq;
+    time->delta        = (f64)(now - time->last) / (f64)freq;
     time->smooth_delta = 0.9f * time->smooth_delta + 0.1f * time->delta;
-    time->last  = now;
+    time->last         = now;
 
-    time->accumulated += time->delta;
+    time->elapsed += time->delta;
+
+    time->simulation_delta = 1.0 / 120;
+    time->simulation_elapsed += time->simulation_delta;
 }

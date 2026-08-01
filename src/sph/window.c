@@ -29,3 +29,8 @@ void window_destroy(window *window)
 {
 	SDL_DestroyWindow(window->handle);
 }
+
+void window_min_size_set(window *window, u32 width, u32 height)
+{
+	SDL_SetWindowMinimumSize(window->handle, width, height);
+}

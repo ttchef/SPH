@@ -1,12 +1,13 @@
 
 #include <math/core.h>
 #include <sph/camera.h>
+#include <sph/ui.h>
 
 camera camera_create(void)
 {
     camera result = {0};
 
-    result.pos = v3make(0, 0, 600);
+    result.pos = v3make(0, 0, 300);
     result.dir = v3make(0, 0, -1);
 
     result.yaw   = -90.0f;
@@ -51,7 +52,7 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
         camera->pos = v3sub(camera->pos, v3scale(up, camera->speed * dt));
     }
 
-    if (input_pressed(input, INPUT_LMB))
+    if (input_pressed(input, INPUT_LMB) && !MOUSE_OVER_UI())
     {
         SDL_SetWindowRelativeMouseMode(window->handle, true);
         camera->invis_cursor = true;

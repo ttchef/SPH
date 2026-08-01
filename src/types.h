@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <float.h>
 
 typedef int8_t  i8;
 typedef int16_t i16;
@@ -68,7 +69,7 @@ static inline color4 color4gray(f32 v, f32 a)
 #define GREEN  (color4make(0.0, 1.0, 0.0, 1.0))
 #define BLUE   (color4make(0.0, 0.0, 1.0, 1.0))
 #define YELLOW (color4make(1.0, 1.0, 0.0, 1.0))
-#define PURPLE (color4make(1.0, 0.0, 1.0, 1.0))
+#define MAGENTA (color4make(1.0, 0.0, 1.0, 1.0))
 #define CYAN   (color4make(0.0, 1.0, 1.0, 1.0))
 
 typedef struct

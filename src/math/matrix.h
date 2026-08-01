@@ -18,9 +18,9 @@ static inline m4 m4identity(void)
 static inline m4 m4mul(m4 a, m4 b)
 {
     m4 result;
-    for (int col = 0; col < 4; ++col)
+    for (u32 col = 0; col < 4; col++)
     {
-        for (int row = 0; row < 4; ++row)
+        for (u32 row = 0; row < 4; row++)
         {
             result.m[col * 4 + row] =
                 a.m[0 * 4 + row] * b.m[col * 4 + 0] +

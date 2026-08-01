@@ -1,7 +1,9 @@
 
 #include <math/core.h>
+#include <sph/darray.h>
 #include <sph/png.h>
 #include <sph/simulation.h>
+#include <sph/ui.h>
 #include <sph/utils.h>
 
 typedef struct
@@ -11,7 +13,58 @@ typedef struct
     m4 orthographic;
 } global_ubo;
 
-static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char *format, ...)
+f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    static char buffer[4096];
+    i32         written = SDL_vsnprintf(buffer, sizeof(buffer), format, args);
+    if (written < 0 || written >= (i32)sizeof(buffer))
+    {
+        SDL_Log("[ENGINE] Draw string format error.");
+        va_end(args);
+        return 0.0f;
+    }
+
+    f32 max_width = 0.0f;
+
+    const f32 scale       = (f32)font_size / (f32)font->size_px;
+    const f32 line_height = font->ascent - font->descent + font->line_gap;
+    v2        write       = v2make(0.0f, SDL_roundf(0.0f + font->ascent * scale - font->size_px * scale));
+
+    for (i32 i = 0; i < written; i++)
+    {
+        char c = buffer[i];
+
+        if (c == ' ')
+        {
+            write.x += font->glyphs[0].advance * scale;
+            continue;
+        }
+        if (c == '\n')
+        {
+            max_width = MAX(max_width, write.x);
+            write.x   = 0.0f;
+            write.y   = SDL_roundf(write.y + line_height * scale);
+            continue;
+        }
+        if (c < '!' || c > '~')
+        {
+            continue;
+        }
+
+        ttf_glyph *glyph = &font->glyphs[c - '!'];
+        write.x += glyph->advance * scale;
+    }
+
+    va_end(args);
+
+    max_width = MAX(max_width, write.x);
+    return max_width;
+}
+
+void draw_text(simulation *simulation, ttf_font *font, v2 pos, u32 font_size, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -28,8 +81,6 @@ static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char 
     vulkan *vulkan = &simulation->vulkan;
 
     vulkan_command_bind_pipeline(vulkan, simulation->pipelines[PIPELINE_TEXTURED_QUAD]);
-
-    ttf_font *font = &simulation->jet_brains;
 
     textured_quad_pc pc = {
         .image   = font->atlas.descriptor,
@@ -86,7 +137,7 @@ static void draw_text(simulation *simulation, v2 pos, u32 font_size, const char 
     va_end(args);
 }
 
-static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vulkan_image *image, vulkan_sampler *sampler)
+void draw_quad(simulation *simulation, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_image *image, vulkan_sampler *sampler)
 {
     vulkan *vulkan = &simulation->vulkan;
 
@@ -105,7 +156,7 @@ static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vu
         .image        = image ? image->descriptor : VULKAN_INVALID_BINDING,
         .sampler      = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
         .color        = v4fromcolor4(color),
-        .roundness    = 0.3f,
+        .roundness    = roundness,
         .aspect_ratio = scale.x / scale.y,
     };
 
@@ -113,7 +164,7 @@ static void draw_quad(simulation *simulation, v2 pos, v2 scale, color4 color, vu
     vulkan_command_draw(vulkan, 6);
 }
 
-static void draw_cube_lines(simulation *simulation, v3 pos, v3 scale)
+void draw_cube_lines(simulation *simulation, v3 pos, v3 scale)
 {
     vulkan *vulkan = &simulation->vulkan;
 
@@ -176,8 +227,12 @@ bool simulation_create(simulation *simulation)
         return false;
     }
 
-    simulation->camera = camera_create();
-    simulation->input  = input_create();
+    simulation->time      = time_create();
+    simulation->camera    = camera_create();
+    simulation->input     = input_create();
+    simulation->ui_layout = ui_layout_create();
+
+    window_min_size_set(&simulation->window, simulation->ui_layout.width, 0);
 
     if (!pipelines_create(&simulation->vulkan, simulation->pipelines, PIPELINE_COUNT))
     {
@@ -188,6 +243,9 @@ bool simulation_create(simulation *simulation)
     {
         return false;
     }
+
+    simulation->render_bounding_box = true;
+    simulation->bounding_box        = cubemake(v3zero(), v3make(100, 100, 100));
 
     return true;
 }
@@ -209,7 +267,7 @@ static void global_ubo_update(simulation *simulation)
 
     ubo->view = camera_view(&simulation->camera);
 
-    f32 aspect_ratio = (f32)simulation->window.width / (f32)simulation->window.height;
+    f32 aspect_ratio = (f32)(MAX(simulation->window.width, simulation->ui_layout.width + 1) - simulation->ui_layout.width) / (f32)simulation->window.height;
     ubo->perspective = m4perspective(TO_RADIANS(87.0f), aspect_ratio, 0.1f, 1500.0f);
 
     ubo->orthographic = m4orthographic(0, simulation->window.width, simulation->window.height, 0, -1.0, 1.0f);
@@ -217,27 +275,48 @@ static void global_ubo_update(simulation *simulation)
 
 void simulation_update(simulation *simulation)
 {
-    time_update(&simulation->time);
+    if (!simulation->paused)
+    {
+        time_update(&simulation->time);
+    }
+
     camera_update(&simulation->camera, &simulation->window, &simulation->input, simulation->time.delta);
     global_ubo_update(simulation);
 
     window *window = &simulation->window;
     vulkan *vulkan = &simulation->vulkan;
+    input  *input  = &simulation->input;
 
     vulkan_command_begin_rendering(vulkan);
-    vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
+    vulkan_command_set_viewport(vulkan, 0, 0, MAX(window->width, simulation->ui_layout.width + 1) - simulation->ui_layout.width, window->height);
 
     vulkan_command_label_begin(vulkan, "render_cube", RED);
-    draw_cube_lines(simulation, v3make(0, 0, 0), v3make(300, 300, 300));
+    if (simulation->render_bounding_box)
+    {
+        draw_cube_lines(simulation, simulation->bounding_box.pos, simulation->bounding_box.size);
+    }
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_quads", BLUE);
-    draw_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), WHITE, &simulation->test_texture, &simulation->linear_sampler);
+    draw_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.simulation_elapsed * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.simulation_elapsed * 2) * 400), v2make(200, 200), 0.0f, WHITE, &simulation->test_texture, &simulation->linear_sampler);
     vulkan_command_label_end(vulkan);
 
+    vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
+    ui_update(input);
+
     vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    draw_quad(simulation, v2make(400, 400), v2make(400, 200), BLUE, NULL, NULL);
-    draw_text(simulation, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
+    draw_text(simulation, &simulation->jet_brains, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", simulation->time.smooth_delta * 1000.0f);
+    vulkan_command_label_end(vulkan);
+
+    ui_layout_calculate(simulation);
+
+    if (simulation->paused_pressed)
+    {
+        simulation->paused = !simulation->paused;
+    }
+
+    vulkan_command_label_begin(vulkan, "ui", RED);
+    ui_draw(simulation);
     vulkan_command_label_end(vulkan);
 
     vulkan_command_end_rendering(vulkan);

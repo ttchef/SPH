@@ -35,8 +35,10 @@ typedef struct input
 {
     input_action actions[INPUT_COUNT];
 
-    v2   mouse_pos;
-    v2   mouse_delta;
+    v2 mouse_pos;
+    v2 mouse_delta;
+    // NOTE: When pressed down this position will update till the next press down
+    v2   mouse_press_pos;
     bool mouse_initialized;
 } input;
 
