@@ -474,6 +474,8 @@ static void render_queue(vulkan *vulkan)
             };
 
             vkCmdBeginRendering(frame_data->command_buffer, &render_info);
+
+            vulkan_descriptor_buffer_bind(vulkan, &vulkan->descriptor_buffers, frame_data->command_buffer);
         }
         break;
         case COMMAND_END_RENDERING:

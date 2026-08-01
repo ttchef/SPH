@@ -49,7 +49,7 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
             .binding         = UBO_BINDING,
             .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_ALL,
+            .stageFlags      = VK_SHADER_STAGE_ALL,
         },
         {
             .binding         = SAMPLED_IMAGE_BINDING,
@@ -128,18 +128,18 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
 
     VkDescriptorBufferInfo ubo_info = {
         .buffer = result.ubo.handle,
-        .range = result.ubo.size,  
+        .range  = result.ubo.size,
         .offset = 0,
     };
 
     VkWriteDescriptorSet ubo_write = {
-          .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-          .dstBinding = UBO_BINDING,  
-          .descriptorCount = 1,
-          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .dstArrayElement = 0,
-          .dstSet = result.set,
-          .pBufferInfo = &ubo_info,
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstBinding      = UBO_BINDING,
+        .descriptorCount = 1,
+        .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .dstArrayElement = 0,
+        .dstSet          = result.set,
+        .pBufferInfo     = &ubo_info,
     };
 
     vkUpdateDescriptorSets(vulkan->device, 1, &ubo_write, 0, NULL);
@@ -234,4 +234,67 @@ void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_bindless *bindless, v
 void vulkan_bindless_sampler_release(vulkan_bindless *bindless, vulkan_bindless_sampler handle)
 {
     bindless->free_samplers[bindless->free_sampler_count++] = handle;
+}
+
+//
+// NOTE: Descriptor buffers
+//
+
+bool vulkan_descriptor_buffers_create(vulkan *vulkan, vulkan_descriptor_buffers *out_descriptor_buffers)
+{
+    vulkan_descriptor_buffers result = {0};
+
+    if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 1024 * 2, NULL, "ssbo_descriptor_buffer", &result.ssbo_descriptor))
+    {
+        SDL_Log("[VULKAN] Failed to create ssbo descriptor buffer.");
+        return false;
+    }
+
+    *out_descriptor_buffers = result;
+
+    return true;
+}
+
+void vulkan_descriptor_buffer_bind(vulkan *vulkan, vulkan_descriptor_buffers *descriptor_buffers, VkCommandBuffer command_buffer)
+{
+    VkDescriptorBufferBindingInfoEXT binding_info = {
+        .sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+        .address = vulkan_buffer_address_get(vulkan, vulkan->descriptor_buffers.ssbo_descriptor),
+        .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT,
+    };
+
+    vulkan->ext.vkCmdBindDescriptorBuffersEXT(command_buffer, 1, &binding_info);
+}
+
+void vulkan_descriptor_buffers_destroy(vulkan *vulkan, vulkan_descriptor_buffers *descriptor_buffers)
+{
+    vulkan_buffer_destroy(vulkan, &descriptor_buffers->ssbo_descriptor);
+}
+
+//
+// NOTE: Public descriptor buffers api
+//
+void vulkan_descriptor_add_ssbo(vulkan *vulkan, vulkan_buffer *buffer)
+{
+    vulkan_descriptor_buffers *descriptor_buffers = &vulkan->descriptor_buffers;
+
+    VkDescriptorAddressInfoEXT addr_info = {
+        .sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
+        .address = vulkan_buffer_address_get(vulkan, *buffer),
+        .range   = buffer->size,
+        .format  = VK_FORMAT_UNDEFINED,
+    };
+
+    VkDescriptorGetInfoEXT get_info = {
+        .sType               = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+        .type                = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .data.pStorageBuffer = &addr_info,
+    };
+
+    vulkan->ext.vkGetDescriptorEXT(vulkan->device, &get_info, vulkan->storage_buffer_descriptor_size, (u8 *)descriptor_buffers->ssbo_descriptor.host_visible.data + descriptor_buffers->ssbo_offset);
+
+    buffer->descriptor.valid  = true;
+    buffer->descriptor.offset = descriptor_buffers->ssbo_offset;
+
+    descriptor_buffers->ssbo_offset += vulkan->storage_buffer_descriptor_size;
 }

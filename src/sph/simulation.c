@@ -3,9 +3,31 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
+#define PARTICLE_X 100
+#define PARTICLE_Y 100
+#define PARTICLE_Z 100
+
 bool simulation_create(vulkan *vulkan, simulation *out_simulation)
 {
     simulation result = {0};
+
+    v4 *particle_positions = SDL_calloc(PARTICLE_X * PARTICLE_Y * PARTICLE_Z, sizeof(v4));
+
+    u32 particle_index = 0;
+    for (i32 z = -PARTICLE_Z / 2; z < PARTICLE_Z / 2; z++)
+    {
+        for (i32 y = -PARTICLE_Y / 2; y < PARTICLE_Y / 2; y++)
+        {
+            for (i32 x = -PARTICLE_X / 2; x < PARTICLE_X / 2; x++)
+            {
+                v4 pos = v4make(x, y, z, 1.0f);
+                particle_positions[particle_index++] = pos;
+            }
+        }
+    }
+
+    vulkan_buffer_device_local_create(vulkan, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, sizeof(v4) * PARTICLE_X * PARTICLE_Y * PARTICLE_Z, particle_positions, "particle_positions", &result.positions);
+    SDL_free(particle_positions);
 
     *out_simulation = result;
 
@@ -29,4 +51,6 @@ void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
 void simulation_destroy(vulkan *vulkan, simulation *simulation)
 {
     vkDeviceWaitIdle(vulkan->device);
+
+    vulkan_buffer_destroy(vulkan, &simulation->positions);
 }

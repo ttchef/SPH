@@ -55,3 +55,25 @@ void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_bindless *bindless, v
 void vulkan_bindless_sampler_release(vulkan_bindless *bindless, vulkan_bindless_sampler handle);
 
 // ----
+
+//
+// NOTE: Descriptor buffer
+// 
+
+typedef struct
+{
+    vulkan_buffer ssbo_descriptor;
+    u32 ssbo_offset;
+} vulkan_descriptor_buffers;
+
+bool vulkan_descriptor_buffers_create(vulkan *vulkan, vulkan_descriptor_buffers *out_descriptor_buffers);
+
+void vulkan_descriptor_buffer_bind(vulkan *vulkan, vulkan_descriptor_buffers *descriptor_buffers, VkCommandBuffer command_buffer);
+
+void vulkan_descriptor_buffers_destroy(vulkan *vulkan, vulkan_descriptor_buffers *descriptor_buffers);
+
+//
+// NOTE: Public descriptor buffer api
+// 
+
+void vulkan_descriptor_add_ssbo(vulkan *vulkan, vulkan_buffer *buffer);

@@ -4,7 +4,7 @@
 #include <vk/utils.h>
 #include <vulkan/vulkan_core.h>
 
-static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, u32 size, const char *name, vulkan_buffer *out_buffer)
+static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, u32 size, const char *name, bool device_address, vulkan_buffer *out_buffer)
 {
     assert(vulkan);
     assert(out_buffer);
@@ -38,8 +38,14 @@ static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryProp
         return false;
     }
 
+    VkMemoryAllocateFlagsInfo flags_info = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+        .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+    };
+
     VkMemoryAllocateInfo alloc_info = {
         .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext           = device_address ? &flags_info : NULL,
         .allocationSize  = memory_requirements.size,
         .memoryTypeIndex = memory_index,
     };
@@ -70,7 +76,12 @@ bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage,
     assert(out_buffer);
 
     vulkan_buffer result = {0};
-    buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, name, &result);
+
+    bool device_address = usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    if (!buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, size, name, device_address, &result))
+    {
+        return false;
+    }
 
     result.type = VULKAN_BUFFER_TYPE_DEVICE_LOCAL;
 
@@ -82,7 +93,7 @@ bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage,
     }
 
     vulkan_buffer staging = {0};
-    if (!buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, "staging", &staging))
+    if (!buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, "staging", false, &staging))
     {
         return false;
     }
@@ -179,7 +190,8 @@ bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage,
 
     result.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
 
-    if (!buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, name, &result))
+    bool device_address = usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    if (!buffer_create(vulkan, usage, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, name, device_address, &result))
     {
         return false;
     }
@@ -204,10 +216,13 @@ bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, c
 {
     vkDeviceWaitIdle(vulkan->device);
 
-    vulkan_buffer staging = {0};
-    buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, buffer.size, name, &staging);
+    vulkan_buffer result = {0};
+    if (!buffer_create(vulkan, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT, buffer.size, name, false, &result))
+    {
+        return false;
+    }
 
-    staging.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
+    result.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
 
     VkCommandPool   command_pool;
     VkCommandBuffer command_buffer;
@@ -221,7 +236,7 @@ bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, c
     if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
     {
         SDL_Log("[VULKAN] Failed to create command pool.");
-        vulkan_buffer_destroy(vulkan, &staging);
+        vulkan_buffer_destroy(vulkan, &result);
         return false;
     }
 
@@ -251,7 +266,7 @@ bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, c
         .size = buffer.size,
     };
 
-    vkCmdCopyBuffer(command_buffer, buffer.handle, staging.handle, 1, &region);
+    vkCmdCopyBuffer(command_buffer, buffer.handle, result.handle, 1, &region);
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
     {
@@ -276,19 +291,29 @@ bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, c
 
     vkDestroyCommandPool(vulkan->device, command_pool, NULL);
 
-    vkMapMemory(vulkan->device, staging.memory, 0, buffer.size, 0, &staging.host_visible.data);
+    vkMapMemory(vulkan->device, result.memory, 0, buffer.size, 0, &result.host_visible.data);
 
-    *out_buffer = staging;
+    *out_buffer = result;
 
     return true;
 
 error:
     vkDestroyCommandPool(vulkan->device, command_pool, NULL);
-    vulkan_buffer_destroy(vulkan, &staging);
+    vulkan_buffer_destroy(vulkan, &result);
 
     SDL_Log("[VULKAN] Error occured while getting device local data.");
 
     return false;
+}
+
+VkDeviceAddress vulkan_buffer_address_get(vulkan *vulkan, vulkan_buffer buffer)
+{
+    VkBufferDeviceAddressInfo addr_info = {
+        .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+        .buffer = buffer.handle,
+    };
+
+    return vkGetBufferDeviceAddress(vulkan->device, &addr_info);
 }
 
 void vulkan_buffer_destroy(vulkan *vulkan, vulkan_buffer *buffer)

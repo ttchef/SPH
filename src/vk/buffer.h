@@ -24,6 +24,12 @@ typedef struct vulkan_buffer
     {
         void *data;
     } host_visible;
+
+    struct
+    {
+        bool valid;
+        u32  offset;
+    } descriptor;
 } vulkan_buffer;
 
 // NOTE: automatically copies data into buffer
@@ -33,5 +39,7 @@ bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage,
 
 // NOTE: out_buffer is of type host visible
 bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, const char *name, vulkan_buffer *out_buffer);
+
+VkDeviceAddress vulkan_buffer_address_get(vulkan *vulkan, vulkan_buffer buffer);
 
 void vulkan_buffer_destroy(vulkan *vulkan, vulkan_buffer *buffer);

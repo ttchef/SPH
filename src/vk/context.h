@@ -22,7 +22,7 @@ typedef struct
 {
     PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
     PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT;
-    PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT;
+    PFN_vkCmdEndDebugUtilsLabelEXT   vkCmdEndDebugUtilsLabelEXT;
 } vulkan_debug_utils;
 #endif
 
@@ -30,22 +30,30 @@ struct vulkan
 {
 #if defined(DEBUG)
     VkDebugUtilsMessengerEXT debug_messenger;
-    vulkan_debug_utils debug;
+    vulkan_debug_utils       debug;
 #endif
 
     VkInstance       instance;
     VkSurfaceKHR     surface;
     VkPhysicalDevice physical_device;
+    usize            storage_buffer_descriptor_size;
 
     vulkan_queue graphics_queue;
     vulkan_queue present_queue;
 
     VkDevice device;
 
-    vulkan_swapchain        swapchain;
-    vulkan_command_handler  command_handler;
-    vulkan_pipeline_manager pipeline_manager;
-    vulkan_bindless         bindless;
+    vulkan_swapchain          swapchain;
+    vulkan_command_handler    command_handler;
+    vulkan_pipeline_manager   pipeline_manager;
+    vulkan_bindless           bindless;
+    vulkan_descriptor_buffers descriptor_buffers;
+
+    struct
+    {
+        PFN_vkGetDescriptorEXT            vkGetDescriptorEXT;
+        PFN_vkCmdBindDescriptorBuffersEXT vkCmdBindDescriptorBuffersEXT;
+    } ext;
 };
 
 bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size);

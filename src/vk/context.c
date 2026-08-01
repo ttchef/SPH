@@ -215,6 +215,18 @@ static bool physical_device_init(vulkan *vulkan)
 
     SDL_Log("[VULKAN] Picked GPU: %s", props.deviceName);
 
+    VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer = {
+          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT,  
+    };
+
+    VkPhysicalDeviceProperties2 props2 = {
+          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+          .pNext = &descriptor_buffer,
+    };
+    vkGetPhysicalDeviceProperties2(vulkan->physical_device, &props2);
+
+    vulkan->storage_buffer_descriptor_size = descriptor_buffer.storageBufferDescriptorSize;
+
     return true;
 }
 
@@ -246,29 +258,31 @@ static bool logical_device_init(vulkan *vulkan)
 
     const char *device_extensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
     };
 
     VkPhysicalDeviceFeatures features = {
         .fillModeNonSolid = VK_TRUE,
     };
 
-    VkPhysicalDeviceDescriptorIndexingFeatures indexing = {
-        .sType                                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor = {
+        .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
+        .descriptorBuffer = VK_TRUE,
+    };
+
+    VkPhysicalDeviceVulkan12Features features12 = {
+        .sType               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext               = &descriptor,
+        .bufferDeviceAddress = VK_TRUE,
+        // NOTE: indexing
         .descriptorBindingPartiallyBound              = VK_TRUE,
         .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
         .shaderSampledImageArrayNonUniformIndexing    = VK_TRUE,
     };
 
-    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor = {
-        .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
-        .pNext            = &indexing,
-        .descriptorBuffer = VK_TRUE,
-    };
-
     VkPhysicalDeviceVulkan13Features features13 = {
         .sType                          = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-        .pNext                          = &descriptor,
+        .pNext                          = &features12,
         .shaderDemoteToHelperInvocation = VK_TRUE,
         .dynamicRendering               = VK_TRUE,
     };
@@ -313,16 +327,21 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
 
     vulkan->debug.vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vulkan->instance, "vkSetDebugUtilsObjectNameEXT");
     vulkan->debug.vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdBeginDebugUtilsLabelEXT");
-    vulkan->debug.vkCmdEndDebugUtilsLabelEXT = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdEndDebugUtilsLabelEXT");
+    vulkan->debug.vkCmdEndDebugUtilsLabelEXT   = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdEndDebugUtilsLabelEXT");
 #endif
 
     CHECK(surface_init(window, vulkan));
     CHECK(physical_device_init(vulkan));
     CHECK(logical_device_init(vulkan));
+
+    vulkan->ext.vkGetDescriptorEXT            = (PFN_vkGetDescriptorEXT)vkGetInstanceProcAddr(vulkan->instance, "vkGetDescriptorEXT");
+    vulkan->ext.vkCmdBindDescriptorBuffersEXT = (PFN_vkCmdBindDescriptorBuffersEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdBindDescriptorBuffersEXT");
+
     CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
     CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
     CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
     CHECK(vulkan_bindless_create(vulkan, global_ubo_size, &vulkan->bindless));
+    CHECK(vulkan_descriptor_buffers_create(vulkan, &vulkan->descriptor_buffers));
 
 #undef CHECK
 
@@ -416,6 +435,7 @@ void vulkan_destroy(vulkan *vulkan)
 
     vkDeviceWaitIdle(vulkan->device);
 
+    vulkan_descriptor_buffers_destroy(vulkan, &vulkan->descriptor_buffers);
     vulkan_bindless_destroy(vulkan, &vulkan->bindless);
     vulkan_pipeline_manager_destroy(vulkan, &vulkan->pipeline_manager);
     vulkan_command_handler_destroy(vulkan, &vulkan->command_handler);

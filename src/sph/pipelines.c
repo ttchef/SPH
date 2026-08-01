@@ -31,6 +31,17 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .push_constant_size    = sizeof(cube_lines_pc),
         .push_constants_stages = VK_SHADER_STAGE_VERTEX_BIT,
     },
+    [PIPELINE_PARTICLE_RENDER] = {
+        .name                  = "particle_render",
+        .type                  = VULKAN_PIPELINE_TYPE_GRAPHICS,
+        .vertex_path           = "spv/particle_render.spv",
+        .fragment_path         = "spv/particle_render.spv",
+        .vertex_entry          = "vertexMain",
+        .fragment_entry        = "fragmentMain",
+        .topology              = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .depth_test            = VK_TRUE,
+        .depth_write           = VK_TRUE,
+    },
 };
 
 bool pipelines_create(vulkan *vulkan, vulkan_pipeline_id *pipelines, u32 count)
