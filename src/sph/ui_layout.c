@@ -1,5 +1,5 @@
 
-#include <sph/simulation.h>
+#include <sph/app.h>
 #include <sph/ui_layout.h>
 
 #define UI_COLOR0 color4gray(0.04, 1.0)
@@ -25,17 +25,17 @@ ui_layout_context ui_layout_create(void)
     return result;
 }
 
-static bool is_active(simulation *simulation, ui_id id)
+static bool is_active(app *app, ui_id id)
 {
-    return (simulation->ui_layout.active_id == id || simulation->ui_layout.active_id == UI_INVALID_ID);
+    return (app->ui_layout.active_id == id || app->ui_layout.active_id == UI_INVALID_ID);
 }
 
-static void set_active(simulation *simulation, ui_id id)
+static void set_active(app *app, ui_id id)
 {
-    simulation->ui_layout.active_id = id;
+    app->ui_layout.active_id = id;
 }
 
-static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const char *label)
+static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
 {
     const f32 bubble_size = 20;
 
@@ -61,10 +61,10 @@ static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const c
 
         if (size.x > FLT_EPSILON)
         {
-            if (HOVERED() && input_down(&simulation->input, INPUT_LMB) && is_active(simulation, CURRENT()->id))
+            if (HOVERED() && input_down(&app->input, INPUT_LMB) && is_active(app, CURRENT()->id))
             {
-                *value = (simulation->input.mouse_pos.x - world_pos.x) / size.x;
-                set_active(simulation, CURRENT()->id);
+                *value = (app->input.mouse_pos.x - world_pos.x) / size.x;
+                set_active(app, CURRENT()->id);
             }
         }
 
@@ -74,7 +74,7 @@ static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const c
             .text   = {
                 .chars     = label,
                 .font_size = 20,
-                .font      = &simulation->jet_brains,
+                .font      = &app->jet_brains,
             },
         });
 
@@ -104,7 +104,7 @@ static void slider(simulation *simulation, f32 *value, f32 min, f32 max, const c
     *value += min;
 }
 
-static void checkbox(simulation *simulation, bool *value, const char *label)
+static void checkbox(app *app, bool *value, const char *label)
 {
     UI({
         .width       = GROW(0),
@@ -125,7 +125,7 @@ static void checkbox(simulation *simulation, bool *value, const char *label)
         {
             CURRENT()->color = HOVERED() ? UI_COLOR4 : UI_COLOR3;
 
-            if (HOVERED() && input_pressed(&simulation->input, INPUT_LMB))
+            if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
             {
                 *value = !*value;
             }
@@ -147,14 +147,14 @@ static void checkbox(simulation *simulation, bool *value, const char *label)
             .text   = {
                 .chars     = label,
                 .font_size = 20,
-                .font      = &simulation->jet_brains,
+                .font      = &app->jet_brains,
             },
         });
     }
 }
 
 // NOTE: Returns true when pressed
-static bool button(simulation *simulation, const char *label)
+static bool button(app *app, const char *label)
 {
     bool result = false;
     
@@ -175,7 +175,7 @@ static bool button(simulation *simulation, const char *label)
         {
             CURRENT()->color = HOVERED() ? UI_COLOR4 : UI_COLOR3;
 
-            if (HOVERED() && input_pressed(&simulation->input, INPUT_LMB))
+            if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
             {
                 CURRENT()->color = UI_COLOR6;
                 result = true;
@@ -192,7 +192,7 @@ static bool button(simulation *simulation, const char *label)
                 .text   = {
                     .chars     = label,
                     .font_size = 20,
-                    .font      = &simulation->jet_brains,
+                    .font      = &app->jet_brains,
                 },
             });
 
@@ -206,11 +206,11 @@ static bool button(simulation *simulation, const char *label)
     return result;
 }
 
-void ui_layout_calculate(simulation *simulation)
+void ui_layout_calculate(app *app)
 {
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
-        .pos       = v2make(simulation->window.width - 400, 0.0f),
+        .pos       = v2make(app->window.width - 400, 0.0f),
         .width     = FIXED(400),
         .height    = PERCENT(1.0f),
         .color     = UI_COLOR0,
@@ -218,11 +218,11 @@ void ui_layout_calculate(simulation *simulation)
         .child_gap = 16,
     })
     {
-        slider(simulation, &simulation->bounding_box.size.x, 10, 1000, "Size X");
-        slider(simulation, &simulation->bounding_box.size.y, 10, 1000, "Size Y");
-        slider(simulation, &simulation->bounding_box.size.z, 10, 1000, "Size Z");
+        slider(app, &app->bounding_box.size.x, 10, 1000, "Size X");
+        slider(app, &app->bounding_box.size.y, 10, 1000, "Size Y");
+        slider(app, &app->bounding_box.size.z, 10, 1000, "Size Z");
 
-        checkbox(simulation, &simulation->render_bounding_box, "Render bounding box");
+        checkbox(app, &app->render_bounding_box, "Render bounding box");
 
         UI({
             .width  = GROW(0),
@@ -230,14 +230,14 @@ void ui_layout_calculate(simulation *simulation)
             .child_gap = 12,
         })
         {
-            simulation->paused_pressed = button(simulation, "Reset");
-            simulation->paused_pressed = button(simulation, simulation->paused ? "Resume" : "Pause");
+            app->paused_pressed = button(app, "Reset");
+            app->paused_pressed = button(app, app->paused ? "Resume" : "Pause");
         }
     }
 
     // NOTE: Reset current element id
-    if (input_released(&simulation->input, INPUT_LMB))
+    if (input_released(&app->input, INPUT_LMB))
     {
-        simulation->ui_layout.active_id = UI_INVALID_ID;
+        app->ui_layout.active_id = UI_INVALID_ID;
     }
 }

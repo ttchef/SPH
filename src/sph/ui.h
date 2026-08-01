@@ -5,6 +5,7 @@
 #include <sph/input.h>
 #include <sph/types.h>
 #include <sph/darray.h>
+#include <sph/ttf.h>
 #include <types.h>
 
 //
@@ -124,7 +125,7 @@ ui_element *ui_open(ui_element *parent, ui_element element);
 
 void ui_close(ui_element *element);
 
-void ui_draw(simulation *simulation);
+void ui_draw(app *app);
 
 ui_context *ui_context_get(void);
 

@@ -3,7 +3,6 @@
 
 #include <math/types.h>
 #include <types.h>
-#include <sph/types.h>
 #include <vk/image.h>
 #include <vk/types.h>
 
@@ -24,7 +23,7 @@ typedef struct
     f32 advance;
 } ttf_glyph;
 
-struct ttf_font
+typedef struct
 {
     ttf_pack     pack;
     ttf_glyph    glyphs[100];
@@ -33,7 +32,7 @@ struct ttf_font
     f32 descent;
     f32 line_gap;
     f32 size_px;
-};
+} ttf_font;
 
 bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font *out_font);
 
