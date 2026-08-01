@@ -227,6 +227,7 @@ bool simulation_create(simulation *simulation)
         return false;
     }
 
+    simulation->time      = time_create();
     simulation->camera    = camera_create();
     simulation->input     = input_create();
     simulation->ui_layout = ui_layout_create();
@@ -244,7 +245,7 @@ bool simulation_create(simulation *simulation)
     }
 
     simulation->render_bounding_box = true;
-    simulation->bounding_box = cubemake(v3zero(), v3make(100, 100, 100));
+    simulation->bounding_box        = cubemake(v3zero(), v3make(100, 100, 100));
 
     return true;
 }
@@ -297,7 +298,7 @@ void simulation_update(simulation *simulation)
     vulkan_command_label_end(vulkan);
 
     vulkan_command_label_begin(vulkan, "render_quads", BLUE);
-    draw_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.accumulated * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.accumulated * 2) * 400), v2make(200, 200), 0.0f, WHITE, &simulation->test_texture, &simulation->linear_sampler);
+    draw_quad(simulation, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->time.simulation_elapsed * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->time.simulation_elapsed * 2) * 400), v2make(200, 200), 0.0f, WHITE, &simulation->test_texture, &simulation->linear_sampler);
     vulkan_command_label_end(vulkan);
 
     vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
