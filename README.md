@@ -1,6 +1,6 @@
 # SPH
 
-Currently in development so i dont link sdl3 statically.
+Just for testing SDL3 is being chipped as a static library.
 
 Dependencies:
   - sdl3 shared lib

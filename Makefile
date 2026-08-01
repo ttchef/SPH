@@ -23,9 +23,9 @@ DEPFLAGS := -MMD -MP
 CFLAGS := -Wall -Wextra -pedantic -std=c11 $(INCLUDE_PATHS) $(DEPFLAGS) $(MODE_FLAGS)
 
 ifeq ($(OS),Windows_NT)
-LDFLAGS := -lSDL3 -lvulkan-1 -lm
+LDFLAGS := -Llib -lSDL3 -lvulkan-1 -lm
 else
-LDFLAGS := -lSDL3 -lvulkan -lm
+LDFLAGS := -Llib -lSDL3 -lvulkan -lm
 endif
 
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
