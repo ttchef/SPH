@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X 100
-#define PARTICLE_Y 100
-#define PARTICLE_Z 100
+#define PARTICLE_X 20
+#define PARTICLE_Y 20
+#define PARTICLE_Z 20
 
 bool simulation_create(vulkan *vulkan, simulation *out_simulation)
 {
@@ -20,13 +20,13 @@ bool simulation_create(vulkan *vulkan, simulation *out_simulation)
         {
             for (i32 x = -PARTICLE_X / 2; x < PARTICLE_X / 2; x++)
             {
-                v4 pos = v4make(x, y, z, 1.0f);
+                v4 pos = v4make(x * 5, y * 5, z * 5, 1.0f);
                 particle_positions[particle_index++] = pos;
             }
         }
     }
 
-    vulkan_buffer_device_local_create(vulkan, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, sizeof(v4) * PARTICLE_X * PARTICLE_Y * PARTICLE_Z, particle_positions, "particle_positions", &result.positions);
+    vulkan_buffer_device_local_create(vulkan, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, sizeof(v4) * PARTICLE_X * PARTICLE_Y * PARTICLE_Z, particle_positions, "particle_positions", &result.positions);
     SDL_free(particle_positions);
 
     *out_simulation = result;
@@ -41,10 +41,17 @@ void simulation_update(vulkan *vulkan, simulation *simulation)
 
 void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
 {
-    window *window = &app->window;
-
     vulkan_command_label_begin(vulkan, "render_quads", BLUE);
-    draw_quad(app, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->elapsed_time * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->elapsed_time * 2) * 400), v2make(200, 200), 0.0f, WHITE, &app->test_texture, &app->linear_sampler);
+    // draw_quad(app, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(simulation->elapsed_time * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(simulation->elapsed_time * 2) * 400), v2make(200, 200), 0.0f, WHITE, &app->test_texture, &app->linear_sampler);
+    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_RENDER]);
+
+    particle_render_pc pc = {
+          .positions_addr = vulkan_buffer_address_get(vulkan, simulation->positions),
+          .particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z,
+    };
+    
+    vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_PARTICLE_RENDER]);
+    vulkan_command_draw(vulkan, PARTICLE_X * PARTICLE_Y * PARTICLE_Z * 6);
     vulkan_command_label_end(vulkan);
 }
 

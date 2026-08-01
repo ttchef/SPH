@@ -215,18 +215,6 @@ static bool physical_device_init(vulkan *vulkan)
 
     SDL_Log("[VULKAN] Picked GPU: %s", props.deviceName);
 
-    VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer = {
-          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT,  
-    };
-
-    VkPhysicalDeviceProperties2 props2 = {
-          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-          .pNext = &descriptor_buffer,
-    };
-    vkGetPhysicalDeviceProperties2(vulkan->physical_device, &props2);
-
-    vulkan->storage_buffer_descriptor_size = descriptor_buffer.storageBufferDescriptorSize;
-
     return true;
 }
 
@@ -333,15 +321,10 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
     CHECK(surface_init(window, vulkan));
     CHECK(physical_device_init(vulkan));
     CHECK(logical_device_init(vulkan));
-
-    vulkan->ext.vkGetDescriptorEXT            = (PFN_vkGetDescriptorEXT)vkGetInstanceProcAddr(vulkan->instance, "vkGetDescriptorEXT");
-    vulkan->ext.vkCmdBindDescriptorBuffersEXT = (PFN_vkCmdBindDescriptorBuffersEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdBindDescriptorBuffersEXT");
-
     CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
     CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
     CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
     CHECK(vulkan_bindless_create(vulkan, global_ubo_size, &vulkan->bindless));
-    CHECK(vulkan_descriptor_buffers_create(vulkan, &vulkan->descriptor_buffers));
 
 #undef CHECK
 
@@ -435,7 +418,6 @@ void vulkan_destroy(vulkan *vulkan)
 
     vkDeviceWaitIdle(vulkan->device);
 
-    vulkan_descriptor_buffers_destroy(vulkan, &vulkan->descriptor_buffers);
     vulkan_bindless_destroy(vulkan, &vulkan->bindless);
     vulkan_pipeline_manager_destroy(vulkan, &vulkan->pipeline_manager);
     vulkan_command_handler_destroy(vulkan, &vulkan->command_handler);

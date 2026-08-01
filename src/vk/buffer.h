@@ -24,12 +24,6 @@ typedef struct vulkan_buffer
     {
         void *data;
     } host_visible;
-
-    struct
-    {
-        bool valid;
-        u32  offset;
-    } descriptor;
 } vulkan_buffer;
 
 // NOTE: automatically copies data into buffer

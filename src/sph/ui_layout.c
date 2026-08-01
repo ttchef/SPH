@@ -157,7 +157,7 @@ static void checkbox(app *app, bool *value, const char *label)
 static bool button(app *app, const char *label)
 {
     bool result = false;
-    
+
     UI({
         .width     = GROW(0),
         .height    = FIT(0),
@@ -178,7 +178,7 @@ static bool button(app *app, const char *label)
             if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
             {
                 CURRENT()->color = UI_COLOR6;
-                result = true;
+                result           = true;
             }
 
             UI({
@@ -225,8 +225,8 @@ void ui_layout_calculate(app *app)
         checkbox(app, &app->render_bounding_box, "Render bounding box");
 
         UI({
-            .width  = GROW(0),
-            .height = FIT(0),
+            .width     = GROW(0),
+            .height    = FIT(0),
             .child_gap = 12,
         })
         {

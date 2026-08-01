@@ -3,7 +3,7 @@
 
 #include <types.h>
 
-typedef struct v2
+typedef struct
 {
 	f32 x;
 	f32 y;
@@ -19,7 +19,7 @@ static inline v2 v2zero(void)
 	return v2make(0, 0);
 }
 
-typedef struct v2u
+typedef struct
 {
 	u32 x;
 	u32 y;
@@ -35,7 +35,7 @@ static inline v2u v2uzero(void)
 	return v2umake(0, 0);
 }
 
-typedef struct v3
+typedef struct
 {
 	f32 x;
 	f32 y;
@@ -62,7 +62,31 @@ static inline v3 v3up(void)
 	return v3make(0, 1, 0);
 }
 
-typedef struct v4
+typedef struct
+{
+	u32 x;
+	u32 y;
+	u32 z;
+} v3u;
+
+static inline v3u v3umake(u32 x, u32 y, u32 z)
+{
+	return (v3u){x, y, z};
+}
+
+typedef struct
+{
+	i32 x;
+	i32 y;
+	i32 z;
+} v3i;
+
+static inline v3i v3imake(i32 x, i32 y, i32 z)
+{
+	return (v3i){x, y, z};
+}
+
+typedef struct
 {
 	f32 x;
 	f32 y;
@@ -90,13 +114,13 @@ static inline v4 v4zero(void)
 	return v4make(0, 0, 0, 0);
 }
 
-typedef struct m4
+typedef struct
 {
 	f32 m[16];
 } m4;
 
 // NOTE: Origin in center
-typedef struct cube
+typedef struct
 {
 	v3 pos;
 	v3 size;

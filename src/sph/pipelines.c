@@ -41,6 +41,8 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .topology              = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         .depth_test            = VK_TRUE,
         .depth_write           = VK_TRUE,
+        .push_constant_size    = sizeof(particle_render_pc),
+        .push_constants_stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
     },
 };
 
@@ -57,10 +59,10 @@ bool pipelines_create(vulkan *vulkan, vulkan_pipeline_id *pipelines, u32 count)
         vulkan_pipeline_desc desc = table[i];
 
         // NOTE: Convert shader paths to aboslute paths
-        desc.vertex_path = path_abs(desc.vertex_path);
+        desc.vertex_path   = path_abs(desc.vertex_path);
         desc.fragment_path = path_abs(desc.fragment_path);
-        desc.compute_path = path_abs(desc.compute_path);
-        
+        desc.compute_path  = path_abs(desc.compute_path);
+
         pipelines[i] = vulkan_pipeline_create(vulkan, &desc);
 
         if (pipelines[i] == VULKAN_INVALID_PIPELINE)

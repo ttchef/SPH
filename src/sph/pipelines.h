@@ -26,6 +26,12 @@ typedef struct
     m4 model;
 } cube_lines_pc;
 
+typedef struct
+{
+    VkDeviceAddress positions_addr;
+    u32 particle_count;
+} particle_render_pc;
+
 enum
 {
     PIPELINE_TEXTURED_QUAD,

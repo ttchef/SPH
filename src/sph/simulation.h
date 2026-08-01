@@ -5,6 +5,7 @@
 #include <sph/types.h>
 #include <vk/types.h>
 #include <vk/buffer.h>
+#include <math/types.h>
 
 typedef struct 
 {

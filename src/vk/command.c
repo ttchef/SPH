@@ -105,8 +105,8 @@ typedef struct
 typedef struct
 {
     command_header header;
-    const char *name;
-    color4 color;
+    const char    *name;
+    color4         color;
 } command_label_begin;
 
 typedef struct
@@ -308,14 +308,14 @@ bool vulkan_command_set_viewport(vulkan *vulkan, f32 x, f32 y, f32 width, f32 he
 bool vulkan_command_label_begin(vulkan *vulkan, const char *name, color4 color)
 {
     command_header header = {
-          .type = COMMAND_LABEL_BEGIN,
-          .size = sizeof(command_label_begin),  
+        .type = COMMAND_LABEL_BEGIN,
+        .size = sizeof(command_label_begin),
     };
 
     command_label_begin label_begin = {
-          .header = header,
-          .name = name,
-          .color = color,  
+        .header = header,
+        .name   = name,
+        .color  = color,
     };
 
     return command_add(vulkan, &label_begin, header.size);
@@ -324,12 +324,12 @@ bool vulkan_command_label_begin(vulkan *vulkan, const char *name, color4 color)
 bool vulkan_command_label_end(vulkan *vulkan)
 {
     command_header header = {
-          .type = COMMAND_LABEL_END,
-          .size = sizeof(command_label_end),  
+        .type = COMMAND_LABEL_END,
+        .size = sizeof(command_label_end),
     };
 
     command_label_end label_end = {
-          .header = header,
+        .header = header,
     };
 
     return command_add(vulkan, &label_end, header.size);
@@ -474,8 +474,6 @@ static void render_queue(vulkan *vulkan)
             };
 
             vkCmdBeginRendering(frame_data->command_buffer, &render_info);
-
-            vulkan_descriptor_buffer_bind(vulkan, &vulkan->descriptor_buffers, frame_data->command_buffer);
         }
         break;
         case COMMAND_END_RENDERING:
@@ -559,13 +557,14 @@ static void render_queue(vulkan *vulkan)
             command_label_begin *label_begin = at;
 
             VkDebugUtilsLabelEXT label = {
-                  .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-                  .pLabelName = label_begin->name,
-                  .color = { label_begin->color.r, label_begin->color.g, label_begin->color.b, label_begin->color.a },
+                .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+                .pLabelName = label_begin->name,
+                .color      = {label_begin->color.r, label_begin->color.g, label_begin->color.b, label_begin->color.a},
             };
 
             vulkan->debug.vkCmdBeginDebugUtilsLabelEXT(frame_data->command_buffer, &label);
-        } break;
+        }
+        break;
         case COMMAND_LABEL_END:
         {
             if (!vulkan->debug.vkCmdEndDebugUtilsLabelEXT)
@@ -574,7 +573,8 @@ static void render_queue(vulkan *vulkan)
             }
 
             vulkan->debug.vkCmdEndDebugUtilsLabelEXT(frame_data->command_buffer);
-        } break;
+        }
+        break;
 #endif // DEBUG
         default:
         {

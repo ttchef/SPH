@@ -35,6 +35,9 @@ struct app
 	bool paused_pressed;
 
 	bool paused;
+
+	bool recreate;
+	v3i size;
 };
 
 

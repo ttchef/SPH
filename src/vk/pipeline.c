@@ -64,7 +64,7 @@ static bool pipeline_layout_create(vulkan *vulkan, vulkan_pipeline_desc *desc, v
         SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
         return false;
     }
-
+    
     return true;
 }
 
