@@ -1,54 +1,26 @@
 
+#pragma once
+
 #include <types.h>
 #include <sph/types.h>
-#include <sph/window.h>
-#include <sph/camera.h>
-#include <sph/input.h>
-#include <sph/time.h>
-#include <sph/ttf.h>
-#include <sph/ui_layout.h>
-#include <sph/pipelines.h>
-#include <vk/context.h>
+#include <vk/types.h>
+#include <vk/buffer.h>
 
-struct simulation
+typedef struct 
 {
-	window window;
-	input input;
-	camera camera;
-	time time;
-	vulkan vulkan;
-	ui_layout_context ui_layout;
+	vulkan_buffer densities;
+	vulkan_buffer velocities;
+	vulkan_buffer positions;
 
-	vulkan_pipeline_id pipelines[PIPELINE_COUNT];
+	f32 elapsed_time;
+} simulation;
 
-	vulkan_sampler linear_sampler;
-	vulkan_image test_texture;
-	ttf_font jet_brains;
+bool simulation_create(vulkan *vulkan, simulation *out_simulation);
 
-	bool render_bounding_box;
-	cube bounding_box;
+void simulation_update(vulkan *vulkan, simulation *simulation);
 
-	bool reset_pressed;
-	bool paused_pressed;
+// NOTE: app is only passed in for testing atm it will get removed later
+void simulation_draw(app *app, vulkan *vulkan, simulation *simulation);
 
-	bool paused;
-};
+void simulation_destroy(vulkan *vulkan, simulation *simulation);
 
-bool simulation_create(simulation *simulation);
-
-void simulation_event(simulation *simulation, SDL_Event *event);
-
-void simulation_update(simulation *simulation);
-
-void simulation_destroy(simulation *simulation);
-
-//
-// NOTE: Helpers
-//
-f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...);
-
-void draw_text(simulation *simulation, ttf_font *font, v2 pos, u32 font_size, const char *format, ...);
- 
-void draw_quad(simulation *simulation, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_image *image, vulkan_sampler *sampler);
-
-void draw_cube_lines(simulation *simulation, v3 pos, v3 scale);

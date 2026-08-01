@@ -2,7 +2,7 @@
 #pragma once
 
 //
-// NOTE: Used to make opaque pointers visible for some headers
+// NOTE: This file is used to make opaque pointers for strucs public
+// 
 
-typedef struct simulation simulation;
-typedef struct ttf_font ttf_font;
+typedef struct app app;

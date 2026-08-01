@@ -16,6 +16,6 @@ typedef struct
 
 ui_layout_context ui_layout_create(void);
 
-void ui_layout_calculate(simulation *simulation);
+void ui_layout_calculate(app *app);
 
 

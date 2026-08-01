@@ -1,7 +1,7 @@
 
 #include <sph/darray.h>
-#include <sph/simulation.h>
 #include <sph/ui.h>
+#include <sph/app.h>
 
 static ui_context ui_ctx;
 
@@ -395,21 +395,21 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
     }
 }
 
-static void ui_draw_helper(simulation *simulation, ui_element *root)
+static void ui_draw_helper(app *app, ui_element *root)
 {
     if (!root)
     {
         return;
     }
 
-    draw_quad(simulation, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
+    draw_quad(app, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
     if (root->text.chars)
     {
         // TODO: Fix this
         v2 text_pos = root->pos;
         text_pos.y -= root->text.font_size * 0.25f;
          
-        draw_text(simulation, root->text.font, text_pos, root->text.font_size, "%s", root->text.chars);
+        draw_text(app, root->text.font, text_pos, root->text.font_size, "%s", root->text.chars);
     }
 
     if (!root->children)
@@ -482,17 +482,17 @@ static void ui_draw_helper(simulation *simulation, ui_element *root)
             offset += child->height.min_max.min + root->child_gap;
         }
 
-        ui_draw_helper(simulation, child);
+        ui_draw_helper(app, child);
     }
 }
 
-void ui_draw(simulation *simulation)
+void ui_draw(app *app)
 {
     ui_element *root = ui_ctx.root;
 
-    ui_percent_resolve(root, simulation->window.width, simulation->window.height);
-    ui_grow_resolve(root, simulation->window.width, simulation->window.height);
-    ui_draw_helper(simulation, root);
+    ui_percent_resolve(root, app->window.width, app->window.height);
+    ui_grow_resolve(root, app->window.width, app->window.height);
+    ui_draw_helper(app, root);
 }
 
 ui_context *ui_context_get(void)

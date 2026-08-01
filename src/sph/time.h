@@ -13,9 +13,6 @@ typedef struct time
     f64 smooth_delta;
     // NOTE: Never gets resetted
     f64 elapsed;
-
-    f64 simulation_delta;
-    f64 simulation_elapsed;
 } time;
 
 static inline time time_create(void)
@@ -25,8 +22,6 @@ static inline time time_create(void)
     result.last               = SDL_GetPerformanceCounter();
     result.elapsed            = 0.0;
     result.delta              = 0.0;
-    result.simulation_elapsed = 0.0;
-    result.simulation_delta   = 0.0;
 
     return result;
 }
@@ -43,7 +38,4 @@ static inline void time_update(time *time)
     time->last         = now;
 
     time->elapsed += time->delta;
-
-    time->simulation_delta = 1.0 / 120;
-    time->simulation_elapsed += time->simulation_delta;
 }
