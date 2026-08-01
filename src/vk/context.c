@@ -246,7 +246,6 @@ static bool logical_device_init(vulkan *vulkan)
 
     const char *device_extensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
     };
 
     VkPhysicalDeviceFeatures features = {
@@ -353,7 +352,7 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
     vkResetFences(vulkan->device, 1, &frame_data->in_flight_fence);
 
     VkResult result = vkAcquireNextImageKHR(vulkan->device, vulkan->swapchain.handle, UINT64_MAX, frame_data->image_available, VK_NULL_HANDLE, &vulkan->swapchain.image_index);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
         vulkan_resize(vulkan, window_width, window_height);
         return;
