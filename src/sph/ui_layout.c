@@ -2,16 +2,16 @@
 #include <sph/app.h>
 #include <sph/ui_layout.h>
 
-#define UI_COLOR0 color4gray(0.04, 1.0)
-#define UI_COLOR1 color4gray(0.08, 1.0)
-#define UI_COLOR2 color4gray(0.12, 1.0)
-#define UI_COLOR3 color4gray(0.2, 1.0)
-#define UI_COLOR4 color4gray(0.27, 1.0)
-#define UI_COLOR5 color4gray(0.36, 1.0)
-#define UI_COLOR6 color4gray(0.48, 1.0)
-#define UI_COLOR7 color4gray(0.56, 1.0)
-#define UI_COLOR8 color4gray(0.68, 1.0)
-#define UI_COLOR9 color4gray(0.80, 1.0)
+#define UI_COLOR0 color4gray(0.20, 1.0)
+#define UI_COLOR1 color4gray(0.30, 1.0)
+#define UI_COLOR2 color4gray(0.40, 1.0)
+#define UI_COLOR3 color4gray(0.50, 1.0)
+#define UI_COLOR4 color4gray(0.60, 1.0)
+#define UI_COLOR5 color4gray(0.65, 1.0)
+#define UI_COLOR6 color4gray(0.70, 1.0)
+#define UI_COLOR7 color4gray(0.75, 1.0)
+#define UI_COLOR8 color4gray(0.80, 1.0)
+#define UI_COLOR9 color4gray(0.85, 1.0)
 
 const f32 STD_ROUNDNESS = 0.3f;
 
