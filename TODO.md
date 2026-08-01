@@ -1,6 +1,12 @@
 
 # TODOS
+  - [ ] srgb tonemapping in shaders
+  - [ ] get simulation back (with leapfrog integrator)
+  - [ ] grid based neigbourhood search
   - [ ] memory arenas
+  - [ ] volk vulkan loading
+  - [ ] cross platform build system
   - [ ] apparently you only need one depth image for the swapchain so change to that
   - [ ] shader reflections
+  - [ ] fast ocrtee neighbourhood search
   - [ ] assets folder doesnt copy when new assets are loaded
