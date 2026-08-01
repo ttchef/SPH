@@ -30,7 +30,7 @@ typedef struct
 
 bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image);
 
-void vulkan_image_destroy(vulkan *vulkan, vulkan_image image);
+void vulkan_image_destroy(vulkan *vulkan, vulkan_image *image);
 
 bool vulkan_image_transition(vulkan *vulkan, vulkan_image *image, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkImageAspectFlags aspect_mask);
 

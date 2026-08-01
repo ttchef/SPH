@@ -184,155 +184,41 @@ error:
 
 bool vulkan_swapchain_create(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h)
 {
-	assert(vulkan);
-	assert(swapchain);
-
 	return swapchain_build(vulkan, swapchain, w, h, VK_NULL_HANDLE);	
 }
 
-static void zoombie_destroy(vulkan *vulkan, vulkan_swapchain_zombie *zombie)
+bool vulkan_swapchain_recreate(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h)
 {
-	for (u32 i = 0; i < zombie->image_count; i++)
-	{
-		vkDestroyImageView(vulkan->device, zombie->image_views[i], NULL);
-		vkDestroySemaphore(vulkan->device, zombie->finished[i], NULL);
-		vulkan_image_destroy(vulkan, zombie->depth_images[i]);
-	}
-
-	vkDestroySwapchainKHR(vulkan->device, zombie->handle, NULL);
-
-	assert(zombie->finished);
-	assert(zombie->image_views);
-	assert(zombie->images);
-	assert(zombie->depth_images);
-
-	SDL_free(zombie->finished);
-	SDL_free(zombie->image_views);
-	SDL_free(zombie->images);
-	SDL_free(zombie->depth_images);
-
-	zombie->finished = NULL;
-	zombie->image_views = NULL;
-	zombie->images = NULL;
-	zombie->depth_images = NULL;
-	
-	zombie->valid = false;
-}
-
-void vulkan_swapchain_drain(vulkan *vulkan, vulkan_swapchain *swapchain, u64 accumulated_frame_index)
-{
-	assert(vulkan);
-	assert(swapchain);
-
-	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
-	{
-		vulkan_swapchain_zombie *zombie = &swapchain->graveyard[i];
-		assert(zombie);
-
-		if (!zombie->valid)
-		{
-			continue;
-		}
-
-		if (accumulated_frame_index - zombie->frame_retired < FRAMES_IN_FLIGHT)
-		{
-			continue;
-		}
-
-		zoombie_destroy(vulkan, zombie);
-	}
-}
-
-bool vulkan_swapchain_recreate(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h, u64 accumulated_frame_index)
-{
-	assert(vulkan);
-	assert(swapchain);
-
-	i32 zoombie_index = -1;
-	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
-	{
-		vulkan_swapchain_zombie *zombie = &swapchain->graveyard[i];
-		assert(zombie);
-
-		if (!zombie->valid)
-		{
-			zoombie_index = i;
-			break;
-		}
-	}
-
-	if (zoombie_index == -1)
-	{
-		SDL_Log("[VULKAN] Swapchain graveyard is full.");
-		
-		vulkan_swapchain_destroy(vulkan, swapchain);
-
-		return swapchain_build(vulkan, swapchain, w, h, VK_NULL_HANDLE);
-	}
-
-	vulkan_swapchain_zombie *zombie = &swapchain->graveyard[zoombie_index];
-	assert(zombie);
-
-	zombie->handle = swapchain->handle;
-	zombie->image_views = swapchain->image_views;
-	zombie->depth_images = swapchain->depth_images;
-	zombie->images = swapchain->images;
-	zombie->finished = swapchain->finished;
-	zombie->image_count = swapchain->image_count;
-	zombie->frame_retired = accumulated_frame_index;
-
-	zombie->valid = true;	
-
-	swapchain->handle = VK_NULL_HANDLE;
-	swapchain->image_views = NULL;
-	swapchain->images = NULL;
-	swapchain->depth_images = NULL;
-	swapchain->finished = NULL;
-
+	vulkan_object_destroy(vulkan, sizeof(*swapchain), swapchain, (vulkan_destroy_func)vulkan_swapchain_destroy);
 	SDL_Log("[VULKAN] Swapchain recreated (%ux%u)", w, h);
 
-	return swapchain_build(vulkan, swapchain, w, h, zombie->handle);
+	return swapchain_build(vulkan, swapchain, w, h, swapchain->handle);
+}
+
+// NOTE: Wrappers for vulkan_destroy_queue maybe move them somewhere else
+void vulkan_image_view_destroy(vulkan *vulkan, VkImageView *view)
+{
+	vkDestroyImageView(vulkan->device, *view, NULL);
+}
+
+void vulkan_semaphore_destroy(vulkan *vulkan, VkSemaphore *sem)
+{
+	vkDestroySemaphore(vulkan->device, *sem, NULL);
 }
 
 void vulkan_swapchain_destroy(vulkan *vulkan, vulkan_swapchain *swapchain)
-{
-	assert(vulkan);
-	assert(swapchain);
-
-	for (u32 i = 0; i < SWAPCHAIN_GRAVEYARD_SIZE; i++)
-	{
-		vulkan_swapchain_zombie *zombie = &swapchain->graveyard[i];
-		assert(zombie);
-
-		if (!zombie->valid)
-		{
-			continue;
-		}
-
-		zoombie_destroy(vulkan, zombie);
-	}
-	
+{	
 	for (u32 i = 0; i < swapchain->image_count; i++)
 	{
 		vkDestroyImageView(vulkan->device, swapchain->image_views[i], NULL);
 		vkDestroySemaphore(vulkan->device, swapchain->finished[i], NULL);
-		vulkan_image_destroy(vulkan, swapchain->depth_images[i]);
+		vulkan_image_destroy(vulkan, &swapchain->depth_images[i]);
 	}
 
 	vkDestroySwapchainKHR(vulkan->device, swapchain->handle, NULL);
-
-	assert(swapchain->finished);
-	assert(swapchain->image_views);
-	assert(swapchain->images);
-	assert(swapchain->depth_images);
 
 	SDL_free(swapchain->finished);
 	SDL_free(swapchain->image_views);
 	SDL_free(swapchain->images);
 	SDL_free(swapchain->depth_images);
-
-	swapchain->finished = NULL;
-	swapchain->image_views = NULL;
-	swapchain->images = NULL;
-	swapchain->depth_images = NULL;
 }

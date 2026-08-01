@@ -354,7 +354,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     }
     if (app->reset_pressed)
     {
-        SDL_Log("Wsp");
         simulation_destroy(vulkan, &app->simulation);
         simulation_create(vulkan, &app->simulation);
     }
@@ -384,8 +383,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     simulation_destroy(vulkan, &app->simulation);
     ttf_destroy(vulkan, &app->jet_brains);
 
-    vulkan_sampler_destroy(vulkan, &app->linear_sampler);
-    vulkan_image_destroy(vulkan, app->test_texture);
+    vulkan_object_destroy(vulkan, sizeof(app->test_texture), &app->test_texture, (vulkan_destroy_func)vulkan_image_destroy);
+    vulkan_object_destroy(vulkan, sizeof(app->linear_sampler), &app->linear_sampler, (vulkan_destroy_func)vulkan_sampler_destroy);
 
     vulkan_destroy(vulkan);
     window_destroy(&app->window);

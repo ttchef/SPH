@@ -4,6 +4,7 @@
 #include <sph/memory.h>
 #include <sph/ttf.h>
 #include <types.h>
+#include <vk/destroy_queue.h>
 
 #include <SDL3/SDL_endian.h>
 #include <SDL3/SDL_log.h>
@@ -1540,5 +1541,5 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
 void ttf_destroy(vulkan *vulkan, ttf_font *font)
 {
     pack_destroy(&font->pack);
-    vulkan_image_destroy(vulkan, font->atlas);
+    vulkan_object_destroy(vulkan, sizeof(font->atlas), &font->atlas, (vulkan_destroy_func)vulkan_image_destroy);
 }

@@ -321,6 +321,9 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
     CHECK(surface_init(window, vulkan));
     CHECK(physical_device_init(vulkan));
     CHECK(logical_device_init(vulkan));
+
+    vulkan->destroy_queue = vulkan_destroy_queue_create();
+    
     CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
     CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
     CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
@@ -333,12 +336,14 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
 
 void vulkan_resize(vulkan *vulkan, u32 w, u32 h)
 {
-    vulkan_swapchain_recreate(vulkan, &vulkan->swapchain, (u32)w, (u32)h, vulkan->command_handler.accumulated_frame_index);
+    vulkan_swapchain_recreate(vulkan, &vulkan->swapchain, (u32)w, (u32)h);
 }
 
 void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
 {
     assert(vulkan);
+
+    vulkan_destroy_queue_flush(vulkan, &vulkan->destroy_queue);
 
     u32                frame_index = vulkan->command_handler.frame_index;
     vulkan_frame_data *frame_data  = &vulkan->command_handler.frame_data[frame_index];
@@ -346,8 +351,6 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
 
     vkWaitForFences(vulkan->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
     vkResetFences(vulkan->device, 1, &frame_data->in_flight_fence);
-
-    vulkan_swapchain_drain(vulkan, &vulkan->swapchain, vulkan->command_handler.accumulated_frame_index);
 
     VkResult result = vkAcquireNextImageKHR(vulkan->device, vulkan->swapchain.handle, UINT64_MAX, frame_data->image_available, VK_NULL_HANDLE, &vulkan->swapchain.image_index);
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -422,6 +425,7 @@ void vulkan_destroy(vulkan *vulkan)
     vulkan_pipeline_manager_destroy(vulkan, &vulkan->pipeline_manager);
     vulkan_command_handler_destroy(vulkan, &vulkan->command_handler);
     vulkan_swapchain_destroy(vulkan, &vulkan->swapchain);
+    vulkan_destroy_queue_destroy(vulkan, &vulkan->destroy_queue);
 
     vkDestroySurfaceKHR(vulkan->instance, vulkan->surface, NULL);
     vkDestroyDevice(vulkan->device, NULL);

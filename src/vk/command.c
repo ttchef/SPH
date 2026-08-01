@@ -589,7 +589,6 @@ static void render_queue(vulkan *vulkan)
     queue->available = queue->size;
 }
 
-// TODO: not hardcode vertex buffer
 bool vulkan_command_handler_record(vulkan *vulkan, vulkan_command_handler *handler)
 {
     assert(vulkan);

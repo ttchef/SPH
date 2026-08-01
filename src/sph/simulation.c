@@ -71,8 +71,5 @@ void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
 
 void simulation_destroy(vulkan *vulkan, simulation *simulation)
 {
-    // TODO: Destroy queue
-    // vkDeviceWaitIdle(vulkan->device);
-
-    // vulkan_buffer_destroy(vulkan, &simulation->positions);
+    vulkan_object_destroy(vulkan, sizeof(simulation->positions), &simulation->positions, (vulkan_destroy_func)vulkan_buffer_destroy);
 }

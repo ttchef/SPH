@@ -85,11 +85,11 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
 	return true;
 }
 
-void vulkan_image_destroy(vulkan *vulkan, vulkan_image image)
+void vulkan_image_destroy(vulkan *vulkan, vulkan_image *image)
 {
-	vkDestroyImageView(vulkan->device, image.view, NULL);
-	vkDestroyImage(vulkan->device, image.handle, NULL);
-	vkFreeMemory(vulkan->device, image.memory, NULL);
+	vkDestroyImageView(vulkan->device, image->view, NULL);
+	vkDestroyImage(vulkan->device, image->handle, NULL);
+	vkFreeMemory(vulkan->device, image->memory, NULL);
 }
 
 bool vulkan_image_transition(vulkan *vulkan, vulkan_image *image, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkImageAspectFlags aspect_mask)

@@ -4,6 +4,7 @@
 #include <types.h>
 #include <vk/command.h>
 #include <vk/descriptor.h>
+#include <vk/destroy_queue.h>
 #include <vk/pipeline.h>
 #include <vk/swapchain.h>
 #include <vk/types.h>
@@ -42,10 +43,11 @@ struct vulkan
 
     VkDevice device;
 
-    vulkan_swapchain          swapchain;
-    vulkan_command_handler    command_handler;
-    vulkan_pipeline_manager   pipeline_manager;
-    vulkan_bindless           bindless;
+    vulkan_destroy_queue    destroy_queue;
+    vulkan_swapchain        swapchain;
+    vulkan_command_handler  command_handler;
+    vulkan_pipeline_manager pipeline_manager;
+    vulkan_bindless         bindless;
 };
 
 bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size);
