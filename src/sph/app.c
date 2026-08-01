@@ -267,7 +267,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     app->render_bounding_box = true;
     app->bounding_box        = cubemake(v3zero(), v3make(100, 100, 100));
 
-    if (!simulation_create(&app->simulation))
+    if (!simulation_create(&app->vulkan, &app->simulation))
     {
         SDL_Log("[ENGINE] Failed to initialize simulation.");
         return SDL_APP_FAILURE;
@@ -314,17 +314,18 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     app *app = appstate;
     assert(app);
 
-     if (!app->paused)
-    {
-        time_update(&app->time);
-    }
-
+    time_update(&app->time);
     camera_update(&app->camera, &app->window, &app->input, app->time.delta);
     global_ubo_update(app);
 
     window *window = &app->window;
     vulkan *vulkan = &app->vulkan;
     input  *input  = &app->input;
+
+    if (!app->paused)
+    {
+        simulation_update(vulkan, &app->simulation);
+    }
 
     vulkan_command_begin_rendering(vulkan);
     vulkan_command_set_viewport(vulkan, 0, 0, MAX(window->width, app->ui_layout.width + 1) - app->ui_layout.width, window->height);
@@ -336,9 +337,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     }
     vulkan_command_label_end(vulkan);
 
-    vulkan_command_label_begin(vulkan, "render_quads", BLUE);
-    draw_quad(app, v2make(window->width * 0.5 - 200 * 0.5 + SDL_sinf(app->time.simulation_elapsed * 2) * 400, window->height * 0.5 - 200 * 0.5 + SDL_cosf(app->time.simulation_elapsed * 2) * 400), v2make(200, 200), 0.0f, WHITE, &app->test_texture, &app->linear_sampler);
-    vulkan_command_label_end(vulkan);
+    simulation_draw(app, vulkan, &app->simulation);
 
     vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
     ui_update(input);
@@ -376,9 +375,9 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     vulkan *vulkan = &app->vulkan;
     vkDeviceWaitIdle(vulkan->device);
 
-    simulation_destroy(&app->simulation);
-
+    simulation_destroy(vulkan, &app->simulation);
     ttf_destroy(vulkan, &app->jet_brains);
+
     vulkan_sampler_destroy(vulkan, &app->linear_sampler);
     vulkan_image_destroy(vulkan, app->test_texture);
 
