@@ -404,7 +404,13 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
         .pWaitSemaphores    = signal_semaphores,
     };
 
-    if (vkQueuePresentKHR(vulkan->present_queue.handle, &present_info) != VK_SUCCESS)
+    result = vkQueuePresentKHR(vulkan->present_queue.handle, &present_info);
+    if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        vulkan_resize(vulkan, window_width, window_height);
+        return;
+    }
+    else if (result != VK_SUCCESS)
     {
         SDL_Log("[VULKAN] Failed to present.");
         return;
