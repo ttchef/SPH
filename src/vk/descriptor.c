@@ -235,4 +235,3 @@ void vulkan_bindless_sampler_release(vulkan_bindless *bindless, vulkan_bindless_
 {
     bindless->free_samplers[bindless->free_sampler_count++] = handle;
 }
-

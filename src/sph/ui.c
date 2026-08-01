@@ -1,7 +1,7 @@
 
+#include <sph/app.h>
 #include <sph/darray.h>
 #include <sph/ui.h>
-#include <sph/app.h>
 
 static ui_context ui_ctx;
 
@@ -61,9 +61,9 @@ static void ui_data_collect(ui_element *root, ui_previous_data **world_positions
     }
 
     ui_previous_data pos = {
-          .id = root->id,
-          .pos = v2make(root->pos.x, root->pos.y),
-          .size = v2make(root->width.min_max.min, root->height.min_max.min),  
+        .id   = root->id,
+        .pos  = v2make(root->pos.x, root->pos.y),
+        .size = v2make(root->width.min_max.min, root->height.min_max.min),
     };
 
     darray_push((void **)world_positions, &pos);
@@ -408,7 +408,7 @@ static void ui_draw_helper(app *app, ui_element *root)
         // TODO: Fix this
         v2 text_pos = root->pos;
         text_pos.y -= root->text.font_size * 0.25f;
-         
+
         draw_text(app, root->text.font, text_pos, root->text.font_size, "%s", root->text.chars);
     }
 

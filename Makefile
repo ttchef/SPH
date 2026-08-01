@@ -1,4 +1,4 @@
-.PHONY: folders debug release clean run
+.PHONY: folders debug release clean run format
 
 CC := clang
 SHADERC := slangc
@@ -59,6 +59,9 @@ release: folders $(ASSETS_DIR) $(SPV_FILES) $(OBJ_FILES)
 run: debug
 	@# Mainly for developing
 	@./$(EXE)
+
+format: $(SRC_FILES)
+	@clang-format -i $^
 
 clean:
 	@rm -rf build

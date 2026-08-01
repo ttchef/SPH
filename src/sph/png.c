@@ -1,5 +1,5 @@
-#include <sph/png.h>
 #include <SDL3/SDL.h>
+#include <sph/png.h>
 
 bool png_create(u32 size, void *data, image_raw *out_image)
 {
@@ -10,7 +10,7 @@ bool png_create(u32 size, void *data, image_raw *out_image)
         return false;
     }
 
-    SDL_Surface *surface = SDL_LoadPNG_IO(io, true); 
+    SDL_Surface *surface = SDL_LoadPNG_IO(io, true);
     if (!surface)
     {
         SDL_Log("[PNG] Failed to load PNG: %s", SDL_GetError());
@@ -27,8 +27,8 @@ bool png_create(u32 size, void *data, image_raw *out_image)
     }
 
     size_t buffer_size = (size_t)rgba->pitch * rgba->h;
-    u8 *pixel_data = (u8 *)SDL_malloc(buffer_size);
-    
+    u8    *pixel_data  = (u8 *)SDL_malloc(buffer_size);
+
     if (!pixel_data)
     {
         SDL_Log("[PNG] Failed to allocate pixel buffer");
@@ -38,13 +38,13 @@ bool png_create(u32 size, void *data, image_raw *out_image)
 
     SDL_memcpy(pixel_data, rgba->pixels, buffer_size);
 
-    out_image->width = (u32)rgba->w;
+    out_image->width  = (u32)rgba->w;
     out_image->height = (u32)rgba->h;
-    out_image->data = pixel_data;
+    out_image->data   = pixel_data;
 
     SDL_DestroySurface(rgba);
 
-    return true;    
+    return true;
 }
 
 void png_destroy(image_raw *image)

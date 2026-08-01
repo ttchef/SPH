@@ -1,9 +1,9 @@
 
 
+#include <math/core.h>
 #include <sph/app.h>
 #include <sph/png.h>
 #include <sph/utils.h>
-#include <math/core.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
@@ -184,7 +184,6 @@ void draw_cube_lines(app *app, v3 pos, v3 scale)
     vulkan_command_draw(vulkan, 24);
 }
 
-
 static bool resources_create(app *app)
 {
     vulkan *vulkan = &app->vulkan;
@@ -295,7 +294,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     }
     return SDL_APP_CONTINUE;
 }
-
 
 static void global_ubo_update(app *app)
 {

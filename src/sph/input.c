@@ -48,7 +48,7 @@ static u32 mouse_button_to_enum(u32 button)
 }
 
 void input_update(input *input, SDL_Event *event)
-{    
+{
     for (u32 i = 0; i < INPUT_COUNT; i++)
     {
         input->actions[i].pressed  = false;

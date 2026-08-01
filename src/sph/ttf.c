@@ -209,7 +209,7 @@ typedef struct
     i16 y_max;
 
     // NOTE: darray.h
-    glyf_simple   *glyphs;
+    glyf_simple *glyphs;
 } glyf;
 
 enum
@@ -900,7 +900,7 @@ static void glyf_simple_coordinates_read(memory_stream *stream, u32 point_count,
 
 static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
 {
-    out_glyf->type = GLYF_TYPE_SIMPLE;
+    out_glyf->type   = GLYF_TYPE_SIMPLE;
     out_glyf->glyphs = darray_create(sizeof(glyf_simple));
 
     glyf_simple simple = {0};
@@ -917,7 +917,7 @@ static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
     memory_stream_consume(stream, instruction_length);
 
     simple.contour_count = out_glyf->number_of_contours;
-    simple.point_count = simple.end_pts_of_contours[out_glyf->number_of_contours - 1] + 1;
+    simple.point_count   = simple.end_pts_of_contours[out_glyf->number_of_contours - 1] + 1;
     if (simple.point_count > 0xFFFF)
     {
         SDL_Log("[TTF] Invalid glyf point count: %u.", simple.point_count);
@@ -933,7 +933,7 @@ static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
 
     for (u32 i = 0; i < simple.point_count; i++)
     {
-        u8 flag          = memory_stream_read_u8(stream);
+        u8 flag         = memory_stream_read_u8(stream);
         simple.flags[i] = flag;
 
         if (IS_BIT_SET(flag, GLYF_FLAG_REPEAT))
@@ -959,7 +959,7 @@ static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph
 
 static bool glyf_compound_parse(u32 size, void *data, table *table, loca *loca, memory_stream *stream, glyf *out_glyf)
 {
-    out_glyf->type = GLYF_TYPE_COMPOUND;
+    out_glyf->type   = GLYF_TYPE_COMPOUND;
     out_glyf->glyphs = darray_create(sizeof(glyf_simple));
 
     u16 flags = 1u << COMPOUND_FLAG_MORE_COMPONENTS;
@@ -992,8 +992,8 @@ static bool glyf_compound_parse(u32 size, void *data, table *table, loca *loca, 
         if (IS_BIT_SET(flags, COMPOUND_FLAG_WE_HAVE_A_TWO_BY_TWO))
         {
             part.scale_x = memory_stream_read_f2dot14(stream);
-            part.scale0 = memory_stream_read_f2dot14(stream);
-            part.scale1 = memory_stream_read_f2dot14(stream);
+            part.scale0  = memory_stream_read_f2dot14(stream);
+            part.scale1  = memory_stream_read_f2dot14(stream);
             part.scale_y = memory_stream_read_f2dot14(stream);
         }
         else if (IS_BIT_SET(flags, COMPOUND_FLAG_WE_HAVE_AN_X_AND_Y_SCALE))

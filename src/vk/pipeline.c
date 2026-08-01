@@ -64,7 +64,7 @@ static bool pipeline_layout_create(vulkan *vulkan, vulkan_pipeline_desc *desc, v
         SDL_Log("[VULKAN] Failed to create graphics pipeline layout.");
         return false;
     }
-    
+
     return true;
 }
 
@@ -206,7 +206,7 @@ static bool graphics_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc,
 static bool compute_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline)
 {
     out_pipeline->type = VULKAN_PIPELINE_TYPE_COMPUTE;
-    
+
     VkShaderModule shader_module = shader_module_create(vulkan, desc->compute_path);
 
     VkPipelineShaderStageCreateInfo stage = {
@@ -283,7 +283,7 @@ vulkan_pipeline_id vulkan_pipeline_create(vulkan *vulkan, vulkan_pipeline_desc *
         return VULKAN_INVALID_PIPELINE;
     }
 
-    pipeline_create_func pipeline_create = desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? graphics_pipeline_create : compute_pipeline_create;    
+    pipeline_create_func pipeline_create = desc->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? graphics_pipeline_create : compute_pipeline_create;
     if (!pipeline_create(vulkan, desc, pipeline))
     {
         vkDestroyPipelineLayout(vulkan->device, pipeline->layout, NULL);
