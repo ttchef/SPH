@@ -46,8 +46,10 @@ typedef struct
 
 typedef struct
 {
-    VkDeviceAddress densities_read_addr;
-    VkDeviceAddress densities_write_addr;
+    VkDeviceAddress densities_addr;
+    VkDeviceAddress positions_read_addr;
+    VkDeviceAddress padding;
+    u32 particle_count;
 } particle_density_pc;
 
 enum

@@ -11,7 +11,7 @@
 
 typedef struct
 {
-    vulkan_buffer densities[PING_PONG_COUNT];
+    vulkan_buffer densities;
     vulkan_buffer velocities[PING_PONG_COUNT];
     vulkan_buffer positions[PING_PONG_COUNT];
 
