@@ -1,22 +1,6 @@
 
 import utils;
 
-struct GlobalUBO
-{
-    float4x4 view;
-    float4x4 perspective;
-    float4x4 orthographic;
-};
-
-[[vk::binding(0, 0)]]
-ConstantBuffer<GlobalUBO> ubo;
-
-[[vk::binding(1, 0)]]
-Texture2D<float4> textures[256];
-
-[[vk::binding(2, 0)]]
-SamplerState samplers[256];
-
 struct PushConstant
 {
 	float4x4 model;	

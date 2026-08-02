@@ -34,10 +34,12 @@ typedef struct
 
 typedef struct
 {
-    VkDeviceAddress positions_addr;
-    VkDeviceAddress velocities_addr;
-    v4 box_pos;
-    v4 box_size;
+    VkDeviceAddress positions_read_addr;
+    VkDeviceAddress positions_write_addr;
+    VkDeviceAddress velocities_read_addr;
+    VkDeviceAddress velocities_write_addr;
+    v4              box_pos;
+    v4              box_size;
 } particle_update_pc;
 
 enum

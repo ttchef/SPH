@@ -17,8 +17,10 @@ SamplerState samplers[256];
 
 struct PushConstant
 {
-	float4 *positions;
-	float4 *velocities;
+	float4 *positions_read;
+	float4 *positions_write;
+	float4 *velocities_read;
+	float4 *velocities_write;
 	float4 box_pos;
 	float4 box_size;
 };
@@ -30,13 +32,20 @@ PushConstant pc;
 [numthreads(256, 1, 1)]
 void computeMain(uint index: SV_DispatchThreadID)
 {
-	pc.positions[index].y -= 0.01;
+	float4 pos = pc.positions_read[index];
+	float4 new_pos = pos;
+	float4 vel = pc.velocities_read[index];
+	float4 new_vel = vel;
 
-	// pos.y -= 100;
+	new_vel.y -= 0.0001;
+	new_pos += new_vel;	
 
-	// if (pos.y < pc.box_pos.y - pc.box_size.y * 0.5)
-	// {
-		// pos.y = pc.box_pos.y - pc.box_size.y * 0.5;
-	// }	
+	if (new_pos.y < pc.box_pos.y - pc.box_size.y * 0.5)
+	{
+		new_vel.y = -new_vel.y * 0.9;
+		new_pos.y = pc.box_pos.y - pc.box_size.y * 0.5;
+	}
 
+	pc.positions_write[index] = new_pos;
+	pc.velocities_write[index] = new_vel;
 }

@@ -1,6 +1,6 @@
 
 # TODOS
-  - [ ] srgb tonemapping in shaders
+  - [X] srgb gamma correction in shaders
   - [ ] get simulation back (with leapfrog integrator)
   - [ ] grid based neigbourhood search
   - [ ] memory arenas

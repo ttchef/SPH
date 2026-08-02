@@ -1,19 +1,23 @@
 
 #pragma once
 
-#include <types.h>
-#include <sph/types.h>
-#include <vk/types.h>
-#include <vk/buffer.h>
 #include <math/types.h>
+#include <sph/types.h>
+#include <types.h>
+#include <vk/buffer.h>
+#include <vk/types.h>
 
-typedef struct 
+#define PING_PONG_COUNT 2
+
+typedef struct
 {
-	vulkan_buffer densities;
-	vulkan_buffer velocities;
-	vulkan_buffer positions;
+    vulkan_buffer densities[PING_PONG_COUNT];
+    vulkan_buffer velocities[PING_PONG_COUNT];
+    vulkan_buffer positions[PING_PONG_COUNT];
 
-	f32 elapsed_time;
+    u32 read_index;
+    u32 write_index;
+    f32 elapsed_time;
 } simulation;
 
 bool simulation_create(vulkan *vulkan, simulation *out_simulation);
@@ -24,4 +28,3 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation);
 void simulation_draw(app *app, vulkan *vulkan, simulation *simulation);
 
 void simulation_destroy(vulkan *vulkan, simulation *simulation);
-
