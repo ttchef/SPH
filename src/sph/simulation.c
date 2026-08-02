@@ -13,6 +13,7 @@ bool simulation_create(vulkan *vulkan, simulation *out_simulation)
 
     result.read_index  = 0;
     result.write_index = 1;
+    result.first_loop  = true;
 
     v4 *particle_positions = SDL_calloc(PARTICLE_X * PARTICLE_Y * PARTICLE_Z, sizeof(v4));
 
@@ -55,7 +56,8 @@ bool simulation_create(vulkan *vulkan, simulation *out_simulation)
 
 void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
 {
-    simulation->elapsed_time += 1.0f / 360.0f;
+    const f32 dt = 1.0f / 360.0f;
+    simulation->elapsed_time += dt;
 
     vulkan_command_label_begin(vulkan, "update_particles", YELLOW);
     vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
@@ -67,6 +69,8 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
         .velocities_write_addr = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->write_index]),
         .box_pos               = v4fromv3(app->bounding_box.pos, 1.0f),
         .box_size              = v4fromv3(app->bounding_box.size, 0.0f),
+        .dt                    = dt,
+        .first_run             = simulation->first_loop ? 1.0f : 0.0f,
     };
 
     vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_UPDATE]);

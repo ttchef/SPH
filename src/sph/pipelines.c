@@ -52,6 +52,14 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .push_constant_size    = sizeof(particle_update_pc),
         .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
     },
+    [PIPELINE_PARTICLE_DENSITY] = {
+        .name                  = "particle_density",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/particle_density.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(particle_density_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
 };
 
 bool pipelines_create(vulkan *vulkan, vulkan_pipeline_id *pipelines, u32 count)

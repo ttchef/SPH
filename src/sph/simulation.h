@@ -15,6 +15,7 @@ typedef struct
     vulkan_buffer velocities[PING_PONG_COUNT];
     vulkan_buffer positions[PING_PONG_COUNT];
 
+    bool first_loop;
     u32 read_index;
     u32 write_index;
     f32 elapsed_time;

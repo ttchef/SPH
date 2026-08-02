@@ -40,7 +40,15 @@ typedef struct
     VkDeviceAddress velocities_write_addr;
     v4              box_pos;
     v4              box_size;
+    f32             dt;
+    f32             first_run;
 } particle_update_pc;
+
+typedef struct
+{
+    VkDeviceAddress densities_read_addr;
+    VkDeviceAddress densities_write_addr;
+} particle_density_pc;
 
 enum
 {
@@ -48,6 +56,7 @@ enum
     PIPELINE_CUBE_LINES,
     PIPELINE_PARTICLE_RENDER,
     PIPELINE_PARTICLE_UPDATE,
+    PIPELINE_PARTICLE_DENSITY,
     PIPELINE_COUNT,
 };
 
