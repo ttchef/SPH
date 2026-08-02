@@ -7,7 +7,23 @@
 #define PARTICLE_Y 20
 #define PARTICLE_Z 20
 
-bool simulation_create(vulkan *vulkan, simulation *out_simulation)
+static void simulation_compute_densities(app *app, vulkan *vulkan, simulation *simulation, u32 particle_count)
+{
+    vulkan_command_label_begin(vulkan, "compute densities", CYAN);
+    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
+
+    particle_density_pc density_pc = {
+        .densities_addr      = vulkan_buffer_address_get(vulkan, simulation->densities),
+        .positions_read_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
+        .particle_count      = particle_count,
+    };
+    vulkan_command_push_constants(vulkan, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
+    vulkan_command_dispatch(vulkan, (particle_count + 255) / 256, 1, 1);
+
+    vulkan_command_label_end(vulkan);
+}
+
+bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
 {
     simulation result = {0};
 
@@ -40,15 +56,32 @@ bool simulation_create(vulkan *vulkan, simulation *out_simulation)
     };
     u32                   string_index   = 0;
     u32                   particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
-    VkBufferUsageFlagBits usage          = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkBufferUsageFlagBits usage          = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, particle_positions, buffer_strings[string_index++], &result.positions[0]);
     vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.positions[1]);
     vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[0]);
     vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[1]);
-    vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
+    vulkan_buffer_device_local_create(vulkan, usage, sizeof(f32) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
 
     SDL_free(particle_positions);
+    
+    simulation_compute_densities(app, vulkan, &result, particle_count);
+    vulkan_draw(vulkan, app->window.width, app->window.height);
+
+    vulkan_buffer target_densities;
+    if (!vulkan_buffer_device_local_get_data(vulkan, result.densities, "target densities", &target_densities))
+    {
+        return false;
+    }
+
+    for (u32 i = 0; i < particle_count; i++)
+    {
+        f32 density = ((f32 *)target_densities.host_visible.data)[i];
+        SDL_Log("Density %u: %.4f", i, density);
+    }
+
+    vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
 
     *out_simulation = result;
 
@@ -62,18 +95,7 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
 
     const u32 particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
 
-    vulkan_command_label_begin(vulkan, "compute densities", CYAN);
-    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
-
-    particle_density_pc density_pc = {
-        .densities_addr  = vulkan_buffer_address_get(vulkan, simulation->densities),
-        .positions_read_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
-        .particle_count       = particle_count,
-    };
-    vulkan_command_push_constants(vulkan, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
-    vulkan_command_dispatch(vulkan, (particle_count + 255) / 256, 1, 1);
-
-    vulkan_command_label_end(vulkan);
+    simulation_compute_densities(app, vulkan, simulation, particle_count);
 
     vulkan_command_label_begin(vulkan, "update_particles", YELLOW);
     vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_UPDATE]);

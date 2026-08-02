@@ -264,7 +264,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     app->render_bounding_box = true;
     app->bounding_box        = cubemake(v3zero(), v3make(100, 100, 100));
 
-    if (!simulation_create(&app->vulkan, &app->simulation))
+    if (!simulation_create(app, &app->vulkan, &app->simulation))
     {
         SDL_Log("[ENGINE] Failed to initialize simulation.");
         return SDL_APP_FAILURE;
@@ -351,7 +351,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     if (app->reset_pressed)
     {
         simulation_destroy(vulkan, &app->simulation);
-        simulation_create(vulkan, &app->simulation);
+        simulation_create(app, vulkan, &app->simulation);
     }
 
     vulkan_command_label_begin(vulkan, "ui", RED);

@@ -16,6 +16,33 @@ struct PushConstant
 [[vk::push_constant]]
 PushConstant pc;
 
+float4 W_spiky_gradient(float4 p_i, float4 p_j)
+{
+	float4 delta = p_i - p_j;
+	float d = dot(delta, delta);
+
+	if (d <= 0.0001 || d > SMOOTHING_RADIUS * SMOOTHING_RADIUS)
+	{
+		return float4(0).xxxx; 
+	}
+	d = sqrt(d);
+
+	const float normalization = -45.0 / (PI * pow(SMOOTHING_RADIUS, 6));
+	float shape_func = (SMOOTHING_RADIUS - d) / d;
+
+	return delta * normalization * shape_func;
+}
+
+float pressure(float density)
+{
+	const float k = 500.0;
+
+	float term = pow(density / TARGET_DENSITY, 7);
+	float pressure = k * (term - 1);
+
+	return pressure;
+}
+
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void computeMain(uint index: SV_DispatchThreadID)

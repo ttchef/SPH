@@ -3,7 +3,7 @@ import utils;
 
 struct PushConstant
 {
-	float4 *densities;
+	float *densities;
 	float4 *positions_read;
 	float4 *padding;
 	uint particle_count;

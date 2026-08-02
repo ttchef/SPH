@@ -21,7 +21,7 @@ typedef struct
     f32 elapsed_time;
 } simulation;
 
-bool simulation_create(vulkan *vulkan, simulation *out_simulation);
+bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation);
 
 void simulation_update(app *app, vulkan *vulkan, simulation *simulation);
 
