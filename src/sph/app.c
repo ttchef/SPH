@@ -251,8 +251,6 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     app->input     = input_create();
     app->ui_layout = ui_layout_create();
 
-    window_min_size_set(&app->window, app->ui_layout.width, 0);
-
     if (!pipelines_create(&app->vulkan, app->pipelines, PIPELINE_COUNT))
     {
         return false;

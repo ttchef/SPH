@@ -1,4 +1,6 @@
 
+import utils;
+
 struct GlobalUBO
 {
     float4x4 view;
@@ -77,11 +79,13 @@ float sdfRoundedBox(float2 p, float2 b, float r)
 [shader("fragment")]
 float4 fragmentMain(VSOutput input)
 {
+    float4 color = pc.color;
+    
     if (pc.texture != 0)
     {
-        return textures[pc.texture].Sample(samplers[pc.sampler], input.uv);
+        color = textures[pc.texture].Sample(samplers[pc.sampler], input.uv);
     }
-    if (pc.roundness != 0.0)
+    else if (pc.roundness != 0.0)
     {
         float2 remapped_uv = (input.uv * 2) - 1;
         remapped_uv.x *= pc.aspect_ratio;
@@ -90,7 +94,8 @@ float4 fragmentMain(VSOutput input)
         float pd = fwidth(sdf);
         float mask = 1.0 - saturate(sdf / pd);
         
-        return mask * pc.color;
+        color = mask * pc.color;
     }
-    return pc.color;
+
+    return float4(gamma_correct(color.xyz), color.w);
 }

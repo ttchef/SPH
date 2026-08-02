@@ -1,4 +1,6 @@
 
+import utils;
+
 struct GlobalUBO
 {
     float4x4 view;
@@ -60,5 +62,5 @@ float4 fragmentMain(VSOutput input)
 	float r = float(input.index % 20) / 20.0;
 	float g = float((input.index / 20) % 20) / 20.0;
 	float b = float(input.index / (20 * 20)) / 20.0;
-	return float4(r, g, b, 1.0);
+	return float4(gamma_correct(float3(r, g, b)), 1.0);
 }

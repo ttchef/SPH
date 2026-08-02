@@ -1,4 +1,6 @@
 
+import utils;
+
 struct GlobalUBO
 {
     float4x4 view;
@@ -59,5 +61,5 @@ VSOutput vertexMain(uint index : SV_VulkanVertexID)
 [[shader("fragment")]]
 float4 fragmentMain(VSOutput input)
 {
-	return float4(1.0, 0.0, 0.0, 1.0);
+	return float4(gamma_correct(float3(1.0, 0.0, 0.0)), 1.0);
 }

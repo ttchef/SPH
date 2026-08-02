@@ -19,5 +19,3 @@ bool window_create(window *window, u32 width, u32 height);
 void window_resize(window *window);
 
 void window_destroy(window *window);
-
-void window_min_size_set(window *window, u32 width, u32 height);

@@ -33,7 +33,8 @@ rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2
 SRC_FILES := $(call rwildcard,src/,*.c)
 OBJ_FILES := $(patsubst src/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
-SHADER_FILES := $(call rwildcard,src/shaders/,*.slang)
+# NOTE: Use of wildcard not rwildcard
+SHADER_FILES := $(wildcard src/shaders/*.slang)
 SPV_FILES := $(patsubst src/shaders/%.slang,$(SPV_DIR)/%.spv,$(SHADER_FILES))
 
 all: debug
@@ -73,7 +74,7 @@ $(OBJ_DIR)/%.o: src/%.c
 
 $(SPV_DIR)/%.spv: src/shaders/%.slang
 	@mkdir -p $(dir $@)
-	@$(SHADERC) $< -o $@
+	@$(SHADERC) -Isrc/shaders/modules $< -o $@
 	@echo "Shader: $<"
 
 DEP_FILES := $(OBJ_FILES:.o=.d)
