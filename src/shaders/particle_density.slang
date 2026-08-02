@@ -33,6 +33,11 @@ float W_poly6(float4 p_i, float4 p_j)
 [numthreads(256, 1, 1)]
 void computeMain(uint index: SV_DispatchThreadID)
 {
+	if (index >= pc.particle_count)
+	{
+		return;
+	}
+
 	float density = 0.0;
 
 	float4 p_i = pc.positions_read[index];

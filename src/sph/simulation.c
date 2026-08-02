@@ -92,12 +92,14 @@ bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
 
 void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
 {
-    const f32 dt = 1.0f / 360.0f;
+    const f32 dt = 1.0f / 250.0f;
     simulation->elapsed_time += dt;
 
     const u32 particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
 
     simulation_compute_densities(app, vulkan, simulation, particle_count);
+
+    vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
     vulkan_command_label_begin(vulkan, "update_particles", YELLOW);
     vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
@@ -112,7 +114,7 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
         .box_size              = v4fromv3(app->bounding_box.size, 0.0f),
         .dt                    = dt,
         .first_run             = simulation->first_loop ? 1.0f : 0.0f,
-        .particle_count = particle_count,
+        .particle_count        = particle_count,
     };
 
     vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_UPDATE]);

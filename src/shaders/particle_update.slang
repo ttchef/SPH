@@ -31,7 +31,7 @@ float4 W_spiky_gradient(float4 p_i, float4 p_j)
 	d = sqrt(d);
 
 	const float normalization = -45.0 / (PI * pow(SMOOTHING_RADIUS, 6));
-	float shape_func = (SMOOTHING_RADIUS - d) / d;
+	float shape_func = (SMOOTHING_RADIUS - d) * (SMOOTHING_RADIUS - d) / d;
 
 	return delta * normalization * shape_func;
 }
@@ -116,10 +116,15 @@ float4 calc_force(uint particle_index)
 [numthreads(256, 1, 1)]
 void computeMain(uint index: SV_DispatchThreadID)
 {
+	if (index >= pc.particle_count)
+	{
+		return;
+	}
+
 	float4 pos = pc.positions_read[index];
 	float4 vel = pc.velocities_read[index];
 
-	float4 acc = float4(0, -3, 0, 0);
+	float4 acc = float4(0, -4, 0, 0);
 	acc += calc_force(index);
 
 	if (pc.first_run == 1.0)
@@ -137,6 +142,31 @@ void computeMain(uint index: SV_DispatchThreadID)
 	{
 		vel.y = -vel.y * 0.9;
 		pos.y = pc.box_pos.y - pc.box_size.y * 0.5;
+	}
+	if (pos.y > pc.box_pos.y + pc.box_size.y * 0.5)
+	{
+		vel.y = -vel.y * 0.9;
+		pos.y = pc.box_pos.y + pc.box_size.y * 0.5;
+	}
+	if (pos.x < pc.box_pos.x - pc.box_size.x * 0.5)
+	{
+		vel.x = -vel.x * 0.9;
+		pos.x = pc.box_pos.x - pc.box_size.x * 0.5;
+	}
+	if (pos.x > pc.box_pos.x + pc.box_size.x * 0.5)
+	{
+		vel.x = -vel.x * 0.9;
+		pos.x = pc.box_pos.x + pc.box_size.x * 0.5;
+	}
+	if (pos.z < pc.box_pos.z - pc.box_size.z * 0.5)
+	{
+		vel.z = -vel.z * 0.9;
+		pos.z = pc.box_pos.z - pc.box_size.z * 0.5;
+	}
+	if (pos.z > pc.box_pos.z + pc.box_size.z * 0.5)
+	{
+		vel.z = -vel.z * 0.9;
+		pos.z = pc.box_pos.z + pc.box_size.z * 0.5;
 	}
 
 	pc.positions_write[index] = pos;
