@@ -65,8 +65,10 @@ bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, usage, sizeof(f32) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
 
     SDL_free(particle_positions);
-    
+
+    /*
     simulation_compute_densities(app, vulkan, &result, particle_count);
+    // NOTE: Currently very hacky way change that later
     vulkan_draw(vulkan, app->window.width, app->window.height);
 
     vulkan_buffer target_densities;
@@ -82,7 +84,7 @@ bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
     }
 
     vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
-
+*/
     *out_simulation = result;
 
     return true;
@@ -105,10 +107,12 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
         .positions_write_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->write_index]),
         .velocities_read_addr  = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->read_index]),
         .velocities_write_addr = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->write_index]),
+        .densities_addr        = vulkan_buffer_address_get(vulkan, simulation->densities),
         .box_pos               = v4fromv3(app->bounding_box.pos, 1.0f),
         .box_size              = v4fromv3(app->bounding_box.size, 0.0f),
         .dt                    = dt,
         .first_run             = simulation->first_loop ? 1.0f : 0.0f,
+        .particle_count = particle_count,
     };
 
     vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_UPDATE]);

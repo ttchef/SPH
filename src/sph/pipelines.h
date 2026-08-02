@@ -38,10 +38,13 @@ typedef struct
     VkDeviceAddress positions_write_addr;
     VkDeviceAddress velocities_read_addr;
     VkDeviceAddress velocities_write_addr;
+    VkDeviceAddress densities_addr;
+    VkDeviceAddress padding;
     v4              box_pos;
     v4              box_size;
     f32             dt;
     f32             first_run;
+    u32 particle_count;
 } particle_update_pc;
 
 typedef struct

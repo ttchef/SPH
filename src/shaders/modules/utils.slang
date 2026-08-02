@@ -6,6 +6,7 @@ public static const float PI = 3.1415926538;
 // NOTE: Smoothing radius
 public static const float SMOOTHING_RADIUS = 15.0;
 public static const float TARGET_DENSITY = 0.008;
+public static const float VISCOSITY_COEFF = 5000.0;
 
 public struct GlobalUBO
 {
