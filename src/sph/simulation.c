@@ -77,11 +77,9 @@ bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
         return false;
     }
 
-    for (u32 i = 0; i < particle_count; i++)
-    {
-        f32 density = ((f32 *)target_densities.host_visible.data)[i];
-        SDL_Log("Density %u: %.4f", i, density);
-    }
+    u32 middle_index = (PARTICLE_X / 2) * (PARTICLE_Y / 2) * (PARTICLE_Z / 2);
+    f32 density = ((f32 *)target_densities.host_visible.data)[middle_index];
+    SDL_Log("Density %u: %.4f", middle_index, density);
 
     vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
 */
@@ -92,7 +90,7 @@ bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
 
 void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
 {
-    const f32 dt = 1.0f / 250.0f;
+    const f32 dt = 1.0f / 240.0f;
     simulation->elapsed_time += dt;
 
     const u32 particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
@@ -122,8 +120,12 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
     vulkan_command_dispatch(vulkan, (particle_count + 255) / 256, 1, 1);
     vulkan_command_label_end(vulkan);
 
+    // TODO: Only maybe?
+    // vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
     simulation->read_index  = (simulation->read_index + 1) % PING_PONG_COUNT;
     simulation->write_index = (simulation->write_index + 1) % PING_PONG_COUNT;
+    simulation->first_loop = false;
 }
 
 void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
@@ -132,7 +134,7 @@ void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
     vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_RENDER]);
 
     particle_render_pc pc = {
-        .positions_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->write_index]),
+        .positions_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
         .particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z,
     };
 

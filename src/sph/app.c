@@ -262,7 +262,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     }
 
     app->render_bounding_box = true;
-    app->bounding_box        = cubemake(v3zero(), v3make(100, 100, 100));
+    app->bounding_box        = cubemake(v3zero(), v3make(200, 200, 200));
 
     if (!simulation_create(app, &app->vulkan, &app->simulation))
     {

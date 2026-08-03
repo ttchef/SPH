@@ -38,7 +38,7 @@ float4 W_spiky_gradient(float4 p_i, float4 p_j)
 
 float calc_pressure(float density)
 {
-	const float k = 500.0;
+	const float k = 2.0;
 
 	float term = pow(density / TARGET_DENSITY, 7);
 	float pressure = k * (term - 1);
@@ -124,7 +124,7 @@ void computeMain(uint index: SV_DispatchThreadID)
 	float4 pos = pc.positions_read[index];
 	float4 vel = pc.velocities_read[index];
 
-	float4 acc = float4(0, -4, 0, 0);
+	float4 acc = float4(0, -9, 0, 0);
 	acc += calc_force(index);
 
 	if (pc.first_run == 1.0)
@@ -136,36 +136,37 @@ void computeMain(uint index: SV_DispatchThreadID)
 		vel += acc * pc.dt;
 	}
 
-	pos += vel * pc.dt;	
+	pos += vel * pc.dt;
+	float damping = 0.1;
 
 	if (pos.y < pc.box_pos.y - pc.box_size.y * 0.5)
 	{
-		vel.y = -vel.y * 0.9;
+		vel.y = -vel.y * damping;
 		pos.y = pc.box_pos.y - pc.box_size.y * 0.5;
 	}
 	if (pos.y > pc.box_pos.y + pc.box_size.y * 0.5)
 	{
-		vel.y = -vel.y * 0.9;
+		vel.y = -vel.y * damping;
 		pos.y = pc.box_pos.y + pc.box_size.y * 0.5;
 	}
 	if (pos.x < pc.box_pos.x - pc.box_size.x * 0.5)
 	{
-		vel.x = -vel.x * 0.9;
+		vel.x = -vel.x * damping;
 		pos.x = pc.box_pos.x - pc.box_size.x * 0.5;
 	}
 	if (pos.x > pc.box_pos.x + pc.box_size.x * 0.5)
 	{
-		vel.x = -vel.x * 0.9;
+		vel.x = -vel.x * damping;
 		pos.x = pc.box_pos.x + pc.box_size.x * 0.5;
 	}
 	if (pos.z < pc.box_pos.z - pc.box_size.z * 0.5)
 	{
-		vel.z = -vel.z * 0.9;
+		vel.z = -vel.z * damping;
 		pos.z = pc.box_pos.z - pc.box_size.z * 0.5;
 	}
 	if (pos.z > pc.box_pos.z + pc.box_size.z * 0.5)
 	{
-		vel.z = -vel.z * 0.9;
+		vel.z = -vel.z * damping;
 		pos.z = pc.box_pos.z + pc.box_size.z * 0.5;
 	}
 
