@@ -23,7 +23,7 @@ static void simulation_compute_densities(app *app, vulkan *vulkan, simulation *s
     vulkan_command_label_end(vulkan);
 }
 
-bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
+bool simulation_create(vulkan *vulkan, simulation *out_simulation)
 {
     simulation result = {0};
 
@@ -124,7 +124,7 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation, f32 dt)
 
     simulation->read_index  = (simulation->read_index + 1) % PING_PONG_COUNT;
     simulation->write_index = (simulation->write_index + 1) % PING_PONG_COUNT;
-    simulation->first_loop = false;
+    simulation->first_loop  = false;
 }
 
 void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
@@ -133,9 +133,9 @@ void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
     vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_RENDER]);
 
     particle_render_pc pc = {
-        .positions_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
+        .positions_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
         .velocities_addr = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->read_index]),
-        .particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z,
+        .particle_count  = PARTICLE_X * PARTICLE_Y * PARTICLE_Z,
         .particle_radius = app->particle_radius,
     };
 

@@ -1,6 +1,60 @@
 
 #include <sph/memory.h>
 
+#include <SDL3/SDL_log.h>
+#include <SDL3/SDL_stdinc.h>
+
+memory_arena memory_arena_create(u32 capacity)
+{
+    memory_arena result = {0};
+
+    result.capacity = capacity;
+    result.free = capacity;
+    result.base = SDL_malloc(capacity);
+    assert(result.base);
+
+    return result;
+}
+
+void *memory_arena_alloc(memory_arena *arena, u32 size)
+{
+    if (!arena->base)
+    {
+        SDL_Log("[MEMORY] Arena alloc failed arena data is NULL.");
+        return NULL;
+    }
+    if (arena->free > arena->capacity)
+    {
+        SDL_Log("[MEMROY] Arena more free than capacity bro what happend :sob:");
+        return NULL;
+    }
+    if (arena->free < size)
+    {
+        SDL_Log("[MEMORY] Arena alloc failed not enough space left.");
+        return NULL;
+    }
+
+    void *p = arena->base + (arena->capacity - arena->free);
+    arena->free -= size;
+
+    return p;
+}
+
+void *memory_arena_calloc(memory_arena *arena, u32 n, u32 size)
+{
+    void *data = memory_arena_alloc(arena, n * size);
+    SDL_memset(data, 0, n * size);
+    return data;
+}
+
+void memory_arena_destroy(memory_arena *arena)
+{
+    if (arena->base)
+    {
+        SDL_free(arena->base);
+    }
+}
+
 memory_stream memory_stream_reader(u32 size, void *data)
 {
     memory_stream result = {0};

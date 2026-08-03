@@ -188,6 +188,8 @@ static bool resources_create(app *app)
 {
     vulkan *vulkan = &app->vulkan;
 
+    memory_arena resource_arena = memory_arena_create(MEGABYTES(20));
+
     usize jet_brains_size;
     u8   *jet_brains_data = SDL_LoadFile(path_abs("assets/fonts/jet-brains.ttf"), &jet_brains_size);
     if (!ttf_create(vulkan, jet_brains_size, jet_brains_data, "jet-brains", &app->jet_brains))
@@ -201,7 +203,7 @@ static bool resources_create(app *app)
     u8   *test_data = SDL_LoadFile(path_abs("assets/textures/watermelon.png"), &test_size);
 
     image_raw test_image;
-    if (!png_create(test_size, test_data, &test_image))
+    if (!png_create(&resource_arena, test_size, test_data, &test_image))
     {
         return false;
     }
@@ -209,9 +211,10 @@ static bool resources_create(app *app)
     vulkan_image_create(vulkan, v2umake(test_image.width, test_image.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, "watermelon", &app->test_texture);
     vulkan_image_data_upload(vulkan, &app->test_texture, test_image.width * test_image.height * 4, test_image.data, v2umake(test_image.width, test_image.height), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
 
-    SDL_free(test_image.data);
     SDL_free(test_data);
     SDL_free(jet_brains_data);
+
+    memory_arena_destroy(&resource_arena);
 
     return true;
 }
@@ -263,10 +266,10 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
 
     app->render_bounding_box = true;
     app->bounding_box        = cubemake(v3zero(), v3make(200, 200, 200));
-    app->particle_radius = 1.0f;
-    app->simulation_speed = 1.0f;
+    app->particle_radius     = 1.0f;
+    app->simulation_speed    = 1.0f;
 
-    if (!simulation_create(app, &app->vulkan, &app->simulation))
+    if (!simulation_create(&app->vulkan, &app->simulation))
     {
         SDL_Log("[ENGINE] Failed to initialize simulation.");
         return SDL_APP_FAILURE;
@@ -354,7 +357,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     if (app->reset_pressed)
     {
         simulation_destroy(vulkan, &app->simulation);
-        simulation_create(app, vulkan, &app->simulation);
+        simulation_create(vulkan, &app->simulation);
     }
 
     vulkan_command_label_begin(vulkan, "ui", RED);

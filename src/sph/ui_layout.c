@@ -233,7 +233,7 @@ void ui_layout_calculate(app *app)
             app->reset_pressed  = button(app, "Reset");
             app->paused_pressed = button(app, app->paused ? "Resume" : "Pause");
         }
-        
+
         slider(app, &app->particle_radius, 1, 10, "Particle radius");
         slider(app, &app->simulation_speed, 0.01, 1, "Speed");
     }

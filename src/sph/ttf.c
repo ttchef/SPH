@@ -418,7 +418,7 @@ static table *table_find(directory *directory, u32 table)
     return NULL;
 }
 
-static bool directory_parse(u32 size, void *data, directory *out_directory)
+static bool directory_parse(memory_arena *arena, u32 size, void *data, directory *out_directory)
 {
     memory_stream stream = memory_stream_reader(size, data);
 
@@ -434,7 +434,7 @@ static bool directory_parse(u32 size, void *data, directory *out_directory)
         return false;
     }
 
-    out_directory->tables = SDL_calloc(out_directory->num_tables, sizeof(table));
+    out_directory->tables = memory_arena_alloc(arena, out_directory->num_tables *sizeof(table));
     assert(out_directory->tables);
 
     for (u16 i = 0; i < out_directory->num_tables; i++)
@@ -510,7 +510,7 @@ static bool maxp_parse(u32 size, void *data, table *table, maxp *out_maxp)
     return true;
 }
 
-static bool cmap_format_12_parse(memory_stream *stream, cmap_format_12 *out_format)
+static bool cmap_format_12_parse(memory_arena *arena, memory_stream *stream, cmap_format_12 *out_format)
 {
     out_format->reserved    = memory_stream_read_u16_be(stream);
     out_format->length      = memory_stream_read_u32_be(stream);
@@ -529,7 +529,8 @@ static bool cmap_format_12_parse(memory_stream *stream, cmap_format_12 *out_form
         return false;
     }
 
-    out_format->groups = SDL_calloc(out_format->group_count, sizeof(cmap_format_12_group));
+    out_format->groups = memory_arena_alloc(arena, out_format->group_count * sizeof(cmap_format_12_group));
+
     assert(out_format->groups);
 
     for (u32 i = 0; i < out_format->group_count; i++)
@@ -544,7 +545,7 @@ static bool cmap_format_12_parse(memory_stream *stream, cmap_format_12 *out_form
     return true;
 }
 
-static bool cmap_format_4_parse(memory_stream *stream, cmap_format_4 *out_format)
+static bool cmap_format_4_parse(memory_arena *arena, memory_stream *stream, cmap_format_4 *out_format)
 {
     out_format->length         = memory_stream_read_u16_be(stream);
     out_format->language       = memory_stream_read_u16_be(stream);
@@ -553,7 +554,7 @@ static bool cmap_format_4_parse(memory_stream *stream, cmap_format_4 *out_format
     out_format->entry_selector = memory_stream_read_u16_be(stream);
     out_format->range_shift    = memory_stream_read_u16_be(stream);
 
-    out_format->entries = SDL_calloc(out_format->segment_count, sizeof(cmap_format_4_entry));
+    out_format->entries = memory_arena_alloc(arena, out_format->segment_count * sizeof(cmap_format_4_entry));
     assert(out_format->entries);
 
     for (u32 i = 0; i < out_format->segment_count; i++)
@@ -594,7 +595,7 @@ static bool cmap_format_4_parse(memory_stream *stream, cmap_format_4 *out_format
     return true;
 }
 
-static bool cmap_parse(u32 size, void *data, table *table, cmap *out_cmap)
+static bool cmap_parse(memory_arena *arena, u32 size, void *data, table *table, cmap *out_cmap)
 {
     // NOTE: table_find can fail
     assert(table);
@@ -624,7 +625,7 @@ static bool cmap_parse(u32 size, void *data, table *table, cmap *out_cmap)
 
         if (format == 12)
         {
-            if (!cmap_format_12_parse(&format_stream, &out_cmap->format_12))
+            if (!cmap_format_12_parse(arena, &format_stream, &out_cmap->format_12))
             {
                 SDL_Log("[TTF] Failed to parse format 12.");
                 return false;
@@ -632,7 +633,7 @@ static bool cmap_parse(u32 size, void *data, table *table, cmap *out_cmap)
         }
         else if (format == 4)
         {
-            if (!cmap_format_4_parse(&format_stream, &out_cmap->format_4))
+            if (!cmap_format_4_parse(arena, &format_stream, &out_cmap->format_4))
             {
                 SDL_Log("[TTF] Failed to parse format 4.");
                 return false;
@@ -732,7 +733,7 @@ static u16 cmap_lookup(cmap *cmap, u32 codepoint)
     return cmap_format_12_lookup(&cmap->format_12, codepoint);
 }
 
-static bool loca_parse(u32 size, void *data, table *table, head *head, maxp *maxp, loca *out_loca)
+static bool loca_parse(memory_arena *arena, u32 size, void *data, table *table, head *head, maxp *maxp, loca *out_loca)
 {
     // NOTE: table_find can fail
     assert(table);
@@ -746,7 +747,7 @@ static bool loca_parse(u32 size, void *data, table *table, head *head, maxp *max
     }
 
     out_loca->num_glyphs = maxp->num_glyphs;
-    out_loca->offsets    = SDL_calloc(maxp->num_glyphs + 1, sizeof(u32));
+    out_loca->offsets    = memory_arena_alloc(arena, (maxp->num_glyphs + 1) * sizeof(u32));
     assert(out_loca->offsets);
 
     if (head->index_to_loc_format == 0)
@@ -819,7 +820,7 @@ static bool hhea_parse(u32 size, void *data, table *table, hhea *out_hhea)
     return true;
 }
 
-static bool hmtx_parse(u32 size, void *data, table *table, maxp *maxp, hhea *hhea, hmtx *out_hmtx)
+static bool hmtx_parse(memory_arena *arena, u32 size, void *data, table *table, maxp *maxp, hhea *hhea, hmtx *out_hmtx)
 {
     // NOTE: table_find can fail
     assert(table);
@@ -827,7 +828,7 @@ static bool hmtx_parse(u32 size, void *data, table *table, maxp *maxp, hhea *hhe
     memory_stream stream = stream_make(size, data, table);
 
     out_hmtx->num_glyphs = maxp->num_glyphs;
-    out_hmtx->metrics    = SDL_calloc(maxp->num_glyphs, sizeof(hmtx_glyph_metric));
+    out_hmtx->metrics    = memory_arena_alloc(arena, maxp->num_glyphs * sizeof(hmtx_glyph_metric));
     assert(out_hmtx->metrics);
 
     u16 last_advance;
@@ -898,14 +899,14 @@ static void glyf_simple_coordinates_read(memory_stream *stream, u32 point_count,
     }
 }
 
-static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
+static bool glyf_simple_parse(memory_arena *arena, memory_stream *stream, glyf *out_glyf)
 {
     out_glyf->type   = GLYF_TYPE_SIMPLE;
     out_glyf->glyphs = darray_create(sizeof(glyf_simple));
 
     glyf_simple simple = {0};
 
-    simple.end_pts_of_contours = SDL_calloc(out_glyf->number_of_contours, sizeof(u16));
+    simple.end_pts_of_contours = memory_arena_alloc(arena, out_glyf->number_of_contours * sizeof(u16));
     assert(simple.end_pts_of_contours);
 
     for (i16 i = 0; i < out_glyf->number_of_contours; i++)
@@ -924,9 +925,9 @@ static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
         return false;
     }
 
-    simple.flags = SDL_calloc(simple.point_count, sizeof(u8));
-    simple.x     = SDL_calloc(simple.point_count, sizeof(i16));
-    simple.y     = SDL_calloc(simple.point_count, sizeof(i16));
+    simple.flags = memory_arena_alloc(arena, simple.point_count * sizeof(u8));
+    simple.x     = memory_arena_alloc(arena, simple.point_count * sizeof(i16));
+    simple.y     = memory_arena_alloc(arena, simple.point_count * sizeof(i16));
     assert(simple.flags);
     assert(simple.x);
     assert(simple.y);
@@ -955,9 +956,9 @@ static bool glyf_simple_parse(memory_stream *stream, glyf *out_glyf)
 }
 
 // NOTE: Forward declaration
-static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph_index, glyf *out_glyf);
+static bool glyf_parse(memory_arena *arena, u32 size, void *data, table *table, loca *loca, u16 glyph_index, glyf *out_glyf);
 
-static bool glyf_compound_parse(u32 size, void *data, table *table, loca *loca, memory_stream *stream, glyf *out_glyf)
+static bool glyf_compound_parse(memory_arena *arena, u32 size, void *data, table *table, loca *loca, memory_stream *stream, glyf *out_glyf)
 {
     out_glyf->type   = GLYF_TYPE_COMPOUND;
     out_glyf->glyphs = darray_create(sizeof(glyf_simple));
@@ -1013,7 +1014,7 @@ static bool glyf_compound_parse(u32 size, void *data, table *table, loca *loca, 
         }
 
         glyf glyph;
-        if (!glyf_parse(size, data, table, loca, part.glyph_index, &glyph))
+        if (!glyf_parse(arena, size, data, table, loca, part.glyph_index, &glyph))
         {
             SDL_Log("[TTF] Failed to parse compound glyph sub glyph.");
             return false;
@@ -1050,7 +1051,7 @@ static bool glyf_compound_parse(u32 size, void *data, table *table, loca *loca, 
     return true;
 }
 
-static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph_index, glyf *out_glyf)
+static bool glyf_parse(memory_arena *arena, u32 size, void *data, table *table, loca *loca, u16 glyph_index, glyf *out_glyf)
 {
     assert(table);
 
@@ -1101,11 +1102,11 @@ static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph
     }
     else if (out_glyf->number_of_contours > 0)
     {
-        return glyf_simple_parse(&stream, out_glyf);
+        return glyf_simple_parse(arena, &stream, out_glyf);
     }
     else
     {
-        return glyf_compound_parse(size, data, table, loca, &stream, out_glyf);
+        return glyf_compound_parse(arena, size, data, table, loca, &stream, out_glyf);
     }
 
     return true;
@@ -1113,28 +1114,6 @@ static bool glyf_parse(u32 size, void *data, table *table, loca *loca, u16 glyph
 
 static void glyf_destroy(glyf *glyf)
 {
-    for (u32 i = 0; i < darray_len(glyf->glyphs); i++)
-    {
-        glyf_simple *simple = &glyf->glyphs[i];
-
-        if (simple->end_pts_of_contours)
-        {
-            SDL_free(simple->end_pts_of_contours);
-        }
-        if (simple->flags)
-        {
-            SDL_free(simple->flags);
-        }
-        if (simple->x)
-        {
-            SDL_free(simple->x);
-        }
-        if (simple->y)
-        {
-            SDL_free(simple->y);
-        }
-    }
-
     darray_destroy(glyf->glyphs);
 }
 
@@ -1271,13 +1250,13 @@ static line_segment *glyph_segments_generate(glyf *glyf)
     return seg;
 }
 
-static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
+static image_raw glyph_rasterize(memory_arena *arena, glyf *glyf, u32 width, u32 height)
 {
     image_raw result = {0};
 
     result.width  = width;
     result.height = height;
-    result.data   = SDL_calloc(width * height, sizeof(u32));
+    result.data   = memory_arena_calloc(arena, width * height, sizeof(u32));
     assert(result.data);
 
     u32 *pixels = (u32 *)result.data;
@@ -1358,8 +1337,10 @@ static image_raw glyph_rasterize(glyf *glyf, u32 width, u32 height)
 
 bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font *out_font)
 {
+    memory_arena arena = memory_arena_create(MEGABYTES(4));
+    
     directory directory;
-    if (!directory_parse(size, data, &directory))
+    if (!directory_parse(&arena, size, data, &directory))
     {
         SDL_Log("[TTF] Failed to parse directory.");
         return false;
@@ -1380,14 +1361,14 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
     }
 
     cmap cmap;
-    if (!cmap_parse(size, data, table_find(&directory, TAG_CMAP), &cmap))
+    if (!cmap_parse(&arena, size, data, table_find(&directory, TAG_CMAP), &cmap))
     {
         SDL_Log("[TTF] Failed to parse cmap.");
         return false;
     }
 
     loca loca;
-    if (!loca_parse(size, data, table_find(&directory, TAG_LOCA), &head, &maxp, &loca))
+    if (!loca_parse(&arena, size, data, table_find(&directory, TAG_LOCA), &head, &maxp, &loca))
     {
         SDL_Log("[TTF] Failed to parse loca.");
         return false;
@@ -1401,7 +1382,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
     }
 
     hmtx hmtx;
-    if (!hmtx_parse(size, data, table_find(&directory, TAG_HMTX), &maxp, &hhea, &hmtx))
+    if (!hmtx_parse(&arena, size, data, table_find(&directory, TAG_HMTX), &maxp, &hhea, &hmtx))
     {
         SDL_Log("[TTF] Failed to parse hmtx.");
         return false;
@@ -1413,7 +1394,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
     image_raw atlas_raw = {
         .width  = atlas_width,
         .height = atlas_height,
-        .data   = SDL_calloc(atlas_width * atlas_height, sizeof(u32)),
+        .data   = memory_arena_alloc(&arena, atlas_width * atlas_height *sizeof(u32)),
     };
 
     out_font->size_px = 64.0f;
@@ -1441,7 +1422,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
         }
 
         glyf glyf;
-        if (!glyf_parse(size, data, glyf_table, &loca, glyph_index, &glyf))
+        if (!glyf_parse(&arena, size, data, glyf_table, &loca, glyph_index, &glyf))
         {
             SDL_Log("[TTF] Failed to parse glyf for '%c'.", c);
             continue;
@@ -1461,7 +1442,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
 
         f32       aspect_ratio = glyph_width_px / glyph_height_px;
         f32       new_width    = glyph_height_px * aspect_ratio;
-        image_raw glyph_data   = glyph_rasterize(&glyf, (u32)new_width, (u32)glyph_height_px);
+        image_raw glyph_data   = glyph_rasterize(&arena, &glyf, (u32)new_width, (u32)glyph_height_px);
 
         ttf_glyph glyph = {
             .size_px.x = (u32)new_width,
@@ -1498,7 +1479,6 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
 
         out_font->glyphs[c - '!'] = glyph;
 
-        SDL_free(glyph_data.data);
         glyf_destroy(&glyf);
     }
 
@@ -1510,30 +1490,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
     }
     vulkan_image_data_upload(vulkan, &out_font->atlas, atlas_raw.width * atlas_raw.height * 4, atlas_raw.data, v2umake(atlas_raw.width, atlas_raw.height), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
 
-    if (atlas_raw.data)
-    {
-        SDL_free(atlas_raw.data);
-    }
-    if (loca.offsets)
-    {
-        SDL_free(loca.offsets);
-    }
-    if (cmap.format_12.groups)
-    {
-        SDL_free(cmap.format_12.groups);
-    }
-    if (cmap.format_4.entries)
-    {
-        SDL_free(cmap.format_4.entries);
-    }
-    if (hmtx.metrics)
-    {
-        SDL_free(hmtx.metrics);
-    }
-    if (directory.tables)
-    {
-        SDL_free(directory.tables);
-    }
+    memory_arena_destroy(&arena);
 
     return true;
 }

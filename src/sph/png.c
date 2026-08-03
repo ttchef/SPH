@@ -1,7 +1,7 @@
 #include <SDL3/SDL.h>
 #include <sph/png.h>
 
-bool png_create(u32 size, void *data, image_raw *out_image)
+bool png_create(memory_arena *arena, u32 size, void *data, image_raw *out_image)
 {
     SDL_IOStream *io = SDL_IOFromConstMem(data, size);
     if (!io)
@@ -27,7 +27,7 @@ bool png_create(u32 size, void *data, image_raw *out_image)
     }
 
     size_t buffer_size = (size_t)rgba->pitch * rgba->h;
-    u8    *pixel_data  = (u8 *)SDL_malloc(buffer_size);
+    u8    *pixel_data  = (u8 *)memory_arena_alloc(arena, buffer_size);
 
     if (!pixel_data)
     {

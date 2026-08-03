@@ -2,7 +2,7 @@
 # TODOS
   - [X] srgb gamma correction in shaders
   - [X] get simulation back (with leapfrog integrator)
-  - [ ] memory arenas
+  - [X] memory arenas
   - [ ] cleaner setup overall (better way of getting target density and also remove all variable slop in app struct)
   - [ ] grid based neigbourhood search
   - [ ] sync2
