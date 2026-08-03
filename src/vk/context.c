@@ -261,6 +261,7 @@ static bool logical_device_init(vulkan *vulkan)
         .sType               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
         .pNext               = &descriptor,
         .bufferDeviceAddress = VK_TRUE,
+        .timelineSemaphore   = VK_TRUE,
         // NOTE: indexing
         .descriptorBindingPartiallyBound              = VK_TRUE,
         .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
@@ -338,7 +339,7 @@ void vulkan_resize(vulkan *vulkan, u32 w, u32 h)
     vulkan_swapchain_recreate(vulkan, &vulkan->swapchain, (u32)w, (u32)h);
 }
 
-void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
+void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height, vulkan_command_queue *queue)
 {
     assert(vulkan);
 
@@ -364,7 +365,7 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height)
     }
 
     vkResetCommandBuffer(frame_data->command_buffer, 0);
-    vulkan_command_handler_record(vulkan, &vulkan->command_handler);
+    vulkan_command_end(queue, vulkan);
 
     VkSemaphore wait_semaphores[] = {
         frame_data->image_available,

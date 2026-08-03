@@ -7,8 +7,9 @@
   - [ ] grid based neigbourhood search
   - [ ] sync2
   - [ ] volk vulkan loading
-  - [ ] cross platform build system
   - [ ] apparently you only need one depth image for the swapchain so change to that
+  - [ ] cross platform build system
   - [ ] shader reflections
   - [ ] fast ocrtee neighbourhood search
   - [ ] assets folder doesnt copy when new assets are loaded
+  - [ ] better fluid rendering

@@ -22,6 +22,8 @@ void *memory_arena_alloc(memory_arena *arena, u32 size);
 
 void *memory_arena_calloc(memory_arena *arena, u32 n, u32 size);
 
+void memory_arena_reset(memory_arena *arena);
+
 void memory_arena_destroy(memory_arena *arena);
 
 memory_stream memory_stream_reader(u32 size, void *data);

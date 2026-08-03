@@ -10,6 +10,7 @@
 #include <sph/ui_layout.h>
 #include <sph/pipelines.h>
 #include <sph/simulation.h>
+#include <sph/memory.h>
 #include <vk/context.h>
 
 struct app
@@ -22,6 +23,8 @@ struct app
 	ui_layout_context ui_layout;
 	simulation simulation;
 
+	memory_arena frame_arena;
+	vulkan_command_queue *render_queue;
 	vulkan_pipeline_id pipelines[PIPELINE_COUNT];
 
 	vulkan_sampler linear_sampler;

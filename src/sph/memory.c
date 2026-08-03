@@ -9,8 +9,8 @@ memory_arena memory_arena_create(u32 capacity)
     memory_arena result = {0};
 
     result.capacity = capacity;
-    result.free = capacity;
-    result.base = SDL_malloc(capacity);
+    result.free     = capacity;
+    result.base     = SDL_malloc(capacity);
     assert(result.base);
 
     return result;
@@ -45,6 +45,11 @@ void *memory_arena_calloc(memory_arena *arena, u32 n, u32 size)
     void *data = memory_arena_alloc(arena, n * size);
     SDL_memset(data, 0, n * size);
     return data;
+}
+
+void memory_arena_reset(memory_arena *arena)
+{
+    arena->free = arena->capacity;
 }
 
 void memory_arena_destroy(memory_arena *arena)

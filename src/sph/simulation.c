@@ -7,31 +7,35 @@
 #define PARTICLE_Y 30
 #define PARTICLE_Z 30
 
-static void simulation_compute_densities(app *app, vulkan *vulkan, simulation *simulation, u32 particle_count)
+static void simulation_compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count)
 {
-    vulkan_command_label_begin(vulkan, "compute densities", CYAN);
-    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
+    vulkan *vulkan = &app->vulkan;
+
+    vulkan_command_label_begin(queue, "compute densities", CYAN);
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
 
     particle_density_pc density_pc = {
         .densities_addr      = vulkan_buffer_address_get(vulkan, simulation->densities),
         .positions_read_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
         .particle_count      = particle_count,
     };
-    vulkan_command_push_constants(vulkan, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
-    vulkan_command_dispatch(vulkan, (particle_count + 255) / 256, 1, 1);
+    vulkan_command_push_constants(queue, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
+    vulkan_command_dispatch(queue, (particle_count + 255) / 256, 1, 1);
 
-    vulkan_command_label_end(vulkan);
+    vulkan_command_label_end(queue);
 }
 
-bool simulation_create(vulkan *vulkan, simulation *out_simulation)
+bool simulation_create(app *app, simulation *out_simulation)
 {
+    vulkan *vulkan = &app->vulkan;
+
     simulation result = {0};
 
     result.read_index  = 0;
     result.write_index = 1;
     result.first_loop  = true;
 
-    v4 *particle_positions = SDL_calloc(PARTICLE_X * PARTICLE_Y * PARTICLE_Z, sizeof(v4));
+    v4 *particle_positions = memory_arena_alloc(&app->frame_arena, PARTICLE_X * PARTICLE_Y * PARTICLE_Z * sizeof(v4));
 
     u32 particle_index = 0;
     for (i32 z = -PARTICLE_Z / 2; z < PARTICLE_Z / 2; z++)
@@ -51,8 +55,7 @@ bool simulation_create(vulkan *vulkan, simulation *out_simulation)
         "particle_positions_one",
         "particle_velocities_zero",
         "particle_velocities_one",
-        "particle_densites_zero",
-        "particle_densities_one",
+        "particle_densites",
     };
     u32                   string_index   = 0;
     u32                   particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
@@ -64,12 +67,13 @@ bool simulation_create(vulkan *vulkan, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[1]);
     vulkan_buffer_device_local_create(vulkan, usage, sizeof(f32) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
 
-    SDL_free(particle_positions);
+    vulkan_command_queue *density_queue = vulkan_command_begin(&app->frame_arena);
 
-    /*
-    simulation_compute_densities(app, vulkan, &result, particle_count);
-    // NOTE: Currently very hacky way change that later
-    vulkan_draw(vulkan, app->window.width, app->window.height);
+    simulation_compute_densities(app, density_queue, &result, particle_count);
+    if (!vulkan_command_end(density_queue, vulkan))
+    {
+        return false;
+    }
 
     vulkan_buffer target_densities;
     if (!vulkan_buffer_device_local_get_data(vulkan, result.densities, "target densities", &target_densities))
@@ -77,29 +81,32 @@ bool simulation_create(vulkan *vulkan, simulation *out_simulation)
         return false;
     }
 
-    u32 middle_index = (PARTICLE_X / 2) * (PARTICLE_Y / 2) * (PARTICLE_Z / 2);
-    f32 density = ((f32 *)target_densities.host_visible.data)[middle_index];
+    u32 middle_index = particle_count / 2;
+    f32 density      = ((f32 *)target_densities.host_visible.data)[middle_index];
     SDL_Log("Density %u: %.4f", middle_index, density);
 
     vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
-*/
+
     *out_simulation = result;
 
     return true;
 }
 
-void simulation_update(app *app, vulkan *vulkan, simulation *simulation, f32 dt)
+void simulation_update(app *app, simulation *simulation, f32 dt)
 {
+    vulkan               *vulkan = &app->vulkan;
+    vulkan_command_queue *queue  = app->render_queue;
+
     simulation->elapsed_time += dt;
 
     const u32 particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
 
-    simulation_compute_densities(app, vulkan, simulation, particle_count);
+    simulation_compute_densities(app, queue, simulation, particle_count);
 
-    vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+    vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
-    vulkan_command_label_begin(vulkan, "update particles", YELLOW);
-    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
+    vulkan_command_label_begin(queue, "update particles", YELLOW);
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
 
     particle_update_pc update_pc = {
         .positions_read_addr   = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
@@ -114,23 +121,23 @@ void simulation_update(app *app, vulkan *vulkan, simulation *simulation, f32 dt)
         .particle_count        = particle_count,
     };
 
-    vulkan_command_push_constants(vulkan, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
+    vulkan_command_push_constants(queue, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
 
-    vulkan_command_dispatch(vulkan, (particle_count + 255) / 256, 1, 1);
-    vulkan_command_label_end(vulkan);
-
-    // TODO: Only maybe?
-    // vulkan_command_barrier(vulkan, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+    vulkan_command_dispatch(queue, (particle_count + 255) / 256, 1, 1);
+    vulkan_command_label_end(queue);
 
     simulation->read_index  = (simulation->read_index + 1) % PING_PONG_COUNT;
     simulation->write_index = (simulation->write_index + 1) % PING_PONG_COUNT;
     simulation->first_loop  = false;
 }
 
-void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
+void simulation_draw(app *app, simulation *simulation)
 {
-    vulkan_command_label_begin(vulkan, "render_particles", BLUE);
-    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_PARTICLE_RENDER]);
+    vulkan               *vulkan = &app->vulkan;
+    vulkan_command_queue *queue  = app->render_queue;
+
+    vulkan_command_label_begin(queue, "render_particles", BLUE);
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_RENDER]);
 
     particle_render_pc pc = {
         .positions_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
@@ -139,13 +146,15 @@ void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
         .particle_radius = app->particle_radius,
     };
 
-    vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_PARTICLE_RENDER]);
-    vulkan_command_draw(vulkan, PARTICLE_X * PARTICLE_Y * PARTICLE_Z * 6);
-    vulkan_command_label_end(vulkan);
+    vulkan_command_push_constants(queue, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_PARTICLE_RENDER]);
+    vulkan_command_draw(queue, PARTICLE_X * PARTICLE_Y * PARTICLE_Z * 6);
+    vulkan_command_label_end(queue);
 }
 
-void simulation_destroy(vulkan *vulkan, simulation *simulation)
+void simulation_destroy(app *app, simulation *simulation)
 {
+    vulkan *vulkan = &app->vulkan;
+
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[0]), &simulation->positions[0], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[1]), &simulation->positions[1], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->velocities[0]), &simulation->velocities[0], (vulkan_destroy_func)vulkan_buffer_destroy);

@@ -434,7 +434,7 @@ static bool directory_parse(memory_arena *arena, u32 size, void *data, directory
         return false;
     }
 
-    out_directory->tables = memory_arena_alloc(arena, out_directory->num_tables *sizeof(table));
+    out_directory->tables = memory_arena_alloc(arena, out_directory->num_tables * sizeof(table));
     assert(out_directory->tables);
 
     for (u16 i = 0; i < out_directory->num_tables; i++)
@@ -1338,7 +1338,7 @@ static image_raw glyph_rasterize(memory_arena *arena, glyf *glyf, u32 width, u32
 bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font *out_font)
 {
     memory_arena arena = memory_arena_create(MEGABYTES(4));
-    
+
     directory directory;
     if (!directory_parse(&arena, size, data, &directory))
     {
@@ -1394,7 +1394,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
     image_raw atlas_raw = {
         .width  = atlas_width,
         .height = atlas_height,
-        .data   = memory_arena_alloc(&arena, atlas_width * atlas_height *sizeof(u32)),
+        .data   = memory_arena_alloc(&arena, atlas_width * atlas_height * sizeof(u32)),
     };
 
     out_font->size_px = 64.0f;

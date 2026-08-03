@@ -21,11 +21,10 @@ typedef struct
     f32 elapsed_time;
 } simulation;
 
-bool simulation_create(vulkan *vulkan, simulation *out_simulation);
+bool simulation_create(app *app, simulation *out_simulation);
 
-void simulation_update(app *app, vulkan *vulkan, simulation *simulation, f32 dt);
+void simulation_update(app *app, simulation *simulation, f32 dt);
 
-// NOTE: app is only passed in for testing atm it will get removed later
-void simulation_draw(app *app, vulkan *vulkan, simulation *simulation);
+void simulation_draw(app *app, simulation *simulation);
 
-void simulation_destroy(vulkan *vulkan, simulation *simulation);
+void simulation_destroy(app *app, simulation *simulation);

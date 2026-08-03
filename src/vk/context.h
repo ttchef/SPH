@@ -54,7 +54,7 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size);
 
 void vulkan_resize(vulkan *vulkan, u32 w, u32 h);
 
-void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height);
+void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height, vulkan_command_queue *queue);
 
 void vulkan_destroy(vulkan *vulkan);
 

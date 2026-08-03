@@ -69,6 +69,8 @@ f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...)
 
 void draw_text(app *app, ttf_font *font, v2 pos, u32 font_size, const char *format, ...)
 {
+    vulkan_command_queue *queue = app->render_queue;
+
     va_list args;
     va_start(args, format);
 
@@ -81,9 +83,7 @@ void draw_text(app *app, ttf_font *font, v2 pos, u32 font_size, const char *form
         return;
     }
 
-    vulkan *vulkan = &app->vulkan;
-
-    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_TEXTURED_QUAD]);
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_TEXTURED_QUAD]);
 
     textured_quad_pc pc = {
         .image   = font->atlas.descriptor,
@@ -131,8 +131,8 @@ void draw_text(app *app, ttf_font *font, v2 pos, u32 font_size, const char *form
 
         pc.model = m4mul(translate, scale_m);
 
-        vulkan_command_push_constants(vulkan, sizeof(textured_quad_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_TEXTURED_QUAD]);
-        vulkan_command_draw(vulkan, 6);
+        vulkan_command_push_constants(queue, sizeof(textured_quad_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_TEXTURED_QUAD]);
+        vulkan_command_draw(queue, 6);
 
         write.x += glyph->advance * scale;
     }
@@ -142,9 +142,8 @@ void draw_text(app *app, ttf_font *font, v2 pos, u32 font_size, const char *form
 
 void draw_quad(app *app, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_image *image, vulkan_sampler *sampler)
 {
-    vulkan *vulkan = &app->vulkan;
-
-    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_TEXTURED_QUAD]);
+    vulkan_command_queue *queue = app->render_queue;
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_TEXTURED_QUAD]);
 
     v2 center = v2add(pos, v2scale(scale, 0.5f));
 
@@ -163,25 +162,24 @@ void draw_quad(app *app, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_i
         .aspect_ratio = scale.x / scale.y,
     };
 
-    vulkan_command_push_constants(vulkan, sizeof(textured_quad_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_TEXTURED_QUAD]);
-    vulkan_command_draw(vulkan, 6);
+    vulkan_command_push_constants(queue, sizeof(textured_quad_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_TEXTURED_QUAD]);
+    vulkan_command_draw(queue, 6);
 }
 
 void draw_cube_lines(app *app, v3 pos, v3 scale)
 {
-    vulkan *vulkan = &app->vulkan;
-
-    m4 scale_m   = m4scale(scale.x, scale.y, scale.z);
-    m4 translate = m4translate(pos.x, pos.y, pos.z);
-    m4 model     = m4mul(translate, scale_m);
+    vulkan_command_queue *queue     = app->render_queue;
+    m4                    scale_m   = m4scale(scale.x, scale.y, scale.z);
+    m4                    translate = m4translate(pos.x, pos.y, pos.z);
+    m4                    model     = m4mul(translate, scale_m);
 
     cube_lines_pc pc = {
         .model = model,
     };
 
-    vulkan_command_bind_pipeline(vulkan, app->pipelines[PIPELINE_CUBE_LINES]);
-    vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT, app->pipelines[PIPELINE_CUBE_LINES]);
-    vulkan_command_draw(vulkan, 24);
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_CUBE_LINES]);
+    vulkan_command_push_constants(queue, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT, app->pipelines[PIPELINE_CUBE_LINES]);
+    vulkan_command_draw(queue, 24);
 }
 
 static bool resources_create(app *app)
@@ -264,12 +262,14 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return false;
     }
 
+    app->frame_arena = memory_arena_create(MEGABYTES(12));
+
     app->render_bounding_box = true;
     app->bounding_box        = cubemake(v3zero(), v3make(200, 200, 200));
     app->particle_radius     = 1.0f;
     app->simulation_speed    = 1.0f;
 
-    if (!simulation_create(&app->vulkan, &app->simulation))
+    if (!simulation_create(app, &app->simulation))
     {
         SDL_Log("[ENGINE] Failed to initialize simulation.");
         return SDL_APP_FAILURE;
@@ -315,6 +315,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     app *app = appstate;
     assert(app);
 
+    memory_arena_reset(&app->frame_arena);
     time_update(&app->time);
     camera_update(&app->camera, &app->window, &app->input, app->time.delta);
     global_ubo_update(app);
@@ -323,30 +324,49 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     vulkan *vulkan = &app->vulkan;
     input  *input  = &app->input;
 
+    app->render_queue           = vulkan_command_begin(&app->frame_arena);
+    vulkan_command_queue *queue = app->render_queue;
+    vulkan_command_set_present(queue);
+
     if (!app->paused)
     {
         const f32 simulation_dt = 1.0f / 60.0f;
-        simulation_update(app, vulkan, &app->simulation, simulation_dt * app->simulation_speed);
+        f32       delta         = app->time.delta;
+
+        u32 iteration_count = 0;
+        while (delta > 0.0f)
+        {
+            simulation_update(app, &app->simulation, simulation_dt * app->simulation_speed);
+            delta -= simulation_dt;
+
+            vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+
+            // NOTE: 1 only for developing
+            if (iteration_count++ > 1)
+            {
+                break;
+            }
+        }
     }
 
-    vulkan_command_begin_rendering(vulkan);
-    vulkan_command_set_viewport(vulkan, 0, 0, MAX(window->width, app->ui_layout.width + 1) - app->ui_layout.width, window->height);
+    vulkan_command_begin_rendering(queue);
+    vulkan_command_set_viewport(queue, 0, 0, MAX(window->width, app->ui_layout.width + 1) - app->ui_layout.width, window->height);
 
-    vulkan_command_label_begin(vulkan, "render_cube", RED);
+    vulkan_command_label_begin(queue, "render cube", RED);
     if (app->render_bounding_box)
     {
         draw_cube_lines(app, app->bounding_box.pos, app->bounding_box.size);
     }
-    vulkan_command_label_end(vulkan);
+    vulkan_command_label_end(queue);
 
-    simulation_draw(app, vulkan, &app->simulation);
+    simulation_draw(app, &app->simulation);
 
-    vulkan_command_set_viewport(vulkan, 0, 0, window->width, window->height);
+    vulkan_command_set_viewport(queue, 0, 0, window->width, window->height);
     ui_update(input);
 
-    vulkan_command_label_begin(vulkan, "render_text", GREEN);
-    draw_text(app, &app->jet_brains, v2make(0, 0), 24, "Frametime: %.4fms\nHello World", app->time.smooth_delta * 1000.0f);
-    vulkan_command_label_end(vulkan);
+    vulkan_command_label_begin(queue, "render_text", GREEN);
+    draw_text(app, &app->jet_brains, v2make(0, 0), 24, "Frametime: %.4fms", app->time.smooth_delta * 1000.0f);
+    vulkan_command_label_end(queue);
 
     ui_layout_calculate(app);
 
@@ -356,17 +376,17 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     }
     if (app->reset_pressed)
     {
-        simulation_destroy(vulkan, &app->simulation);
-        simulation_create(vulkan, &app->simulation);
+        simulation_destroy(app, &app->simulation);
+        simulation_create(app, &app->simulation);
     }
 
-    vulkan_command_label_begin(vulkan, "ui", RED);
+    vulkan_command_label_begin(queue, "ui", RED);
     ui_draw(app);
-    vulkan_command_label_end(vulkan);
+    vulkan_command_label_end(queue);
 
-    vulkan_command_end_rendering(vulkan);
+    vulkan_command_end_rendering(queue);
 
-    vulkan_draw(vulkan, app->window.width, app->window.height);
+    vulkan_draw(vulkan, app->window.width, app->window.height, queue);
     input_update(&app->input, NULL);
 
     return SDL_APP_CONTINUE;
@@ -382,7 +402,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     vulkan *vulkan = &app->vulkan;
     vkDeviceWaitIdle(vulkan->device);
 
-    simulation_destroy(vulkan, &app->simulation);
+    memory_arena_destroy(&app->frame_arena);
+    simulation_destroy(app, &app->simulation);
     ttf_destroy(vulkan, &app->jet_brains);
 
     vulkan_object_destroy(vulkan, sizeof(app->test_texture), &app->test_texture, (vulkan_destroy_func)vulkan_image_destroy);

@@ -70,7 +70,7 @@ FSOutput fragmentMain(VSOutput input)
 	const float3 light_dir = normalize(float3(0.5, 0.5, 1.0));
 	float diffuse = max(dot(normal, light_dir), 0.2);
 
-	const float max_velo = 50.0;
+	const float max_velo = 30.0;
 	float speed = length(pc.velocities[input.index].xyz);
 	float t = min(speed / max_velo, 1.0);
 	float3 color = float3(t, 0.0, 1.0 - t);
