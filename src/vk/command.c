@@ -11,6 +11,7 @@
 typedef enum
 {
     COMMAND_BARRIER,
+    COMMAND_IMAGE_BARRIER,
     COMMAND_BEGIN_RENDERING,
     COMMAND_END_RENDERING,
     // NOTE: Automatically bind every discriptor set assoisiated with the pipeline
@@ -21,6 +22,8 @@ typedef enum
     COMMAND_DRAW,
     COMMAND_DISPATCH,
     COMMAND_SET_VIEWPORT,
+    COMMAND_COPY_BUFFER,
+    COMMAND_COPY_IMAGE,
 
 #if defined(DEBUG)
     COMMAND_LABEL_BEGIN,
@@ -43,6 +46,16 @@ typedef struct
     VkAccessFlags        src_access;
     VkAccessFlags        dst_access;
 } command_barrier;
+
+typedef struct
+{
+    command_header       header;
+    vulkan_image         image;
+    VkImageLayout        new_layout;
+    VkAccessFlagBits     new_access;
+    VkPipelineStageFlags src_stage;
+    VkPipelineStageFlags dst_stage;
+} command_image_barrier;
 
 typedef struct
 {
@@ -100,6 +113,21 @@ typedef struct
     f32            height;
 } command_set_viewport;
 
+typedef struct
+{
+    command_header header;
+    vulkan_buffer  src;
+    vulkan_buffer  dst;
+} command_copy_buffer;
+
+typedef struct
+{
+    command_header header;
+    vulkan_buffer  src;
+    vulkan_image   dst;
+    VkImageLayout  new_layout;
+} command_copy_image;
+
 #if defined(DEBUG)
 
 typedef struct
@@ -147,6 +175,25 @@ bool vulkan_command_barrier(vulkan_command_queue *queue, VkPipelineStageFlags sr
     };
 
     return command_add(queue, &barrier, header.size);
+}
+
+bool vulkan_command_image_barrier(vulkan_command_queue *queue, vulkan_image image, VkImageLayout new_layout, VkAccessFlagBits new_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage)
+{
+    command_header header = {
+        .type = COMMAND_IMAGE_BARRIER,
+        .size = sizeof(command_image_barrier),
+    };
+
+    command_image_barrier image_barrier = {
+        .header     = header,
+        .image      = image,
+        .new_layout = new_layout,
+        .new_access = new_access,
+        .src_stage  = src_stage,
+        .dst_stage  = dst_stage,
+    };
+
+    return command_add(queue, &image_barrier, header.size);
 }
 
 bool vulkan_command_begin_rendering(vulkan_command_queue *queue)
@@ -287,6 +334,39 @@ bool vulkan_command_set_viewport(vulkan_command_queue *queue, f32 x, f32 y, f32 
     };
 
     return command_add(queue, &set_viewport, header.size);
+}
+
+bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, vulkan_buffer dst)
+{
+    command_header header = {
+        .type = COMMAND_COPY_BUFFER,
+        .size = sizeof(command_copy_buffer),
+    };
+
+    command_copy_buffer copy_buffer = {
+        .header = header,
+        .src    = src,
+        .dst    = dst,
+    };
+
+    return command_add(queue, &copy_buffer, header.size);
+}
+
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, VkImageLayout new_layout)
+{
+    command_header header = {
+        .type = COMMAND_COPY_IMAGE,
+        .size = sizeof(command_copy_image),
+    };
+
+    command_copy_image copy_image = {
+        .header     = header,
+        .src        = src,
+        .dst        = dst,
+        .new_layout = new_layout,
+    };
+
+    return command_add(queue, &copy_image, header.size);
 }
 
 #if defined(DEBUG)
@@ -470,13 +550,50 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
         {
             command_barrier *barrier = at;
 
-            VkMemoryBarrier memory_barrier = {
-                .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            VkMemoryBarrier2 memory_barrier = {
+                .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
                 .srcAccessMask = barrier->src_access,
                 .dstAccessMask = barrier->dst_access,
+                .srcStageMask  = barrier->src_stage,
+                .dstStageMask  = barrier->dst_stage,
             };
 
-            vkCmdPipelineBarrier(command_buffer, barrier->src_stage, barrier->dst_stage, 0, 1, &memory_barrier, 0, NULL, 0, NULL);
+            VkDependencyInfo dep_info = {
+                .sType              = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                .memoryBarrierCount = 1,
+                .pMemoryBarriers    = &memory_barrier,
+            };
+
+            vkCmdPipelineBarrier2(command_buffer, &dep_info);
+        }
+        break;
+        case COMMAND_IMAGE_BARRIER:
+        {
+            command_image_barrier *image_barrier = at;
+
+            VkImageMemoryBarrier2 barrier = {
+                .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                .image            = image_barrier->image.handle,
+                .oldLayout        = image_barrier->image.layout,
+                .newLayout        = image_barrier->new_layout,
+                .srcAccessMask    = image_barrier->image.access,
+                .dstAccessMask    = image_barrier->new_access,
+                .srcStageMask     = image_barrier->src_stage,
+                .dstStageMask     = image_barrier->dst_stage,
+                .subresourceRange = {
+                    .aspectMask = image_barrier->image.aspect,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
+            };
+
+            VkDependencyInfo dep_info = {
+                .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                .imageMemoryBarrierCount = 1,
+                .pImageMemoryBarriers    = &barrier,
+            };
+
+            vkCmdPipelineBarrier2(command_buffer, &dep_info);
         }
         break;
         case COMMAND_BEGIN_RENDERING:
@@ -588,6 +705,38 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
             };
 
             vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+        }
+        break;
+        case COMMAND_COPY_BUFFER:
+        {
+            command_copy_buffer *copy_buffer = at;
+
+            assert(copy_buffer->src.size == copy_buffer->dst.size);
+
+            VkBufferCopy region = {
+                .size = copy_buffer->src.size,
+            };
+
+            vkCmdCopyBuffer(command_buffer, copy_buffer->src.handle, copy_buffer->dst.handle, 1, &region);
+        }
+        break;
+        case COMMAND_COPY_IMAGE:
+        {
+            command_copy_image *copy_image = at;
+
+            VkBufferImageCopy region = {
+                .imageSubresource = {
+                    .aspectMask = copy_image->dst.aspect,
+                    .layerCount = 1,
+                },
+                .imageExtent = {
+                    .width  = copy_image->dst.width,
+                    .height = copy_image->dst.height,
+                    .depth  = 1,
+                },
+            };
+
+            vkCmdCopyBufferToImage(command_buffer, copy_image->src.handle, copy_image->dst.handle, copy_image->new_layout, 1, &region);
         }
         break;
 

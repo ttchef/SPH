@@ -1488,7 +1488,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
         SDL_Log("[TTF] Failed to create vulkan image.");
         return false;
     }
-    vulkan_image_data_upload(vulkan, &out_font->atlas, atlas_raw.width * atlas_raw.height * 4, atlas_raw.data, v2umake(atlas_raw.width, atlas_raw.height), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
+    vulkan_image_data_upload(vulkan, &arena, &out_font->atlas, atlas_raw.width * atlas_raw.height * 4, atlas_raw.data, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
 
     memory_arena_destroy(&arena);
 

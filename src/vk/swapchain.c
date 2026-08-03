@@ -95,23 +95,20 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
 
     vkGetSwapchainImagesKHR(vulkan->device, swapchain->handle, &swapchain->image_count, NULL);
 
-    swapchain->images = SDL_calloc(swapchain->image_count, sizeof(VkImage));
-    assert(swapchain->images);
+    swapchain->arena = memory_arena_create(KILOBYTES(500));
 
+    swapchain->images = memory_arena_alloc(&swapchain->arena, swapchain->image_count * sizeof(VkImage));
     vkGetSwapchainImagesKHR(vulkan->device, swapchain->handle, &swapchain->image_count, swapchain->images);
 
-    swapchain->image_views = SDL_calloc(swapchain->image_count, sizeof(VkImageView));
-    assert(swapchain->image_views);
+    swapchain->image_views = memory_arena_alloc(&swapchain->arena, swapchain->image_count * sizeof(VkImageView));
 
-    swapchain->depth_images = SDL_calloc(swapchain->image_count, sizeof(vulkan_image));
-    assert(swapchain->depth_images);
+    swapchain->depth_images = memory_arena_alloc(&swapchain->arena, swapchain->image_count * sizeof(vulkan_image));
 
     VkSemaphoreCreateInfo semaphore_info = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     };
 
-    swapchain->finished = SDL_calloc(swapchain->image_count, sizeof(VkSemaphore));
-    assert(swapchain->finished);
+    swapchain->finished = memory_arena_alloc(&swapchain->arena, swapchain->image_count * sizeof(VkSemaphore));
 
     for (u32 i = 0; i < swapchain->image_count; i++)
     {
@@ -139,7 +136,7 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
             goto error;
         }
 
-        vulkan_image_transition(vulkan, &swapchain->depth_images[i], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        vulkan_image_transition(vulkan, &swapchain->arena, &swapchain->depth_images[i], VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         if (vkCreateSemaphore(vulkan->device, &semaphore_info, NULL, &swapchain->finished[i]) != VK_SUCCESS)
         {
@@ -155,29 +152,7 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
 error:
     SDL_Log("[VULKAN] Failed to create swapchain.");
 
-    if (swapchain->image_views)
-    {
-        SDL_free(swapchain->image_views);
-        swapchain->image_views = NULL;
-    }
-
-    if (swapchain->images)
-    {
-        SDL_free(swapchain->images);
-        swapchain->images = NULL;
-    }
-
-    if (swapchain->depth_images)
-    {
-        SDL_free(swapchain->depth_images);
-        swapchain->depth_images = NULL;
-    }
-
-    if (swapchain->finished)
-    {
-        SDL_free(swapchain->finished);
-        swapchain->finished = NULL;
-    }
+    memory_arena_destroy(&swapchain->arena);
 
     return false;
 }
@@ -217,8 +192,5 @@ void vulkan_swapchain_destroy(vulkan *vulkan, vulkan_swapchain *swapchain)
 
     vkDestroySwapchainKHR(vulkan->device, swapchain->handle, NULL);
 
-    SDL_free(swapchain->finished);
-    SDL_free(swapchain->image_views);
-    SDL_free(swapchain->images);
-    SDL_free(swapchain->depth_images);
+    memory_arena_destroy(&swapchain->arena);
 }

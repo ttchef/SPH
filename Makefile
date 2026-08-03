@@ -9,7 +9,7 @@ BUILD_MODE := release
 MODE_FLAGS := -DNDEBUG -O2
 else
 BUILD_MODE := debug
-MODE_FLAGS := -DDEBUG -O0 -g -fsanitize=address
+MODE_FLAGS := -DDEBUG -O0 -g
 endif
 
 BUILD_DIR := build/$(BUILD_MODE)

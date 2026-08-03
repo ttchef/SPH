@@ -7,6 +7,9 @@
 
 #include <vulkan/vulkan_core.h>
 
+// TODO: no sph in vk
+#include <sph/memory.h>
+
 typedef struct
 {
 	VkSwapchainKHR handle;
@@ -21,6 +24,8 @@ typedef struct
 
 	VkFormat fmt;
 	VkExtent2D extent;
+
+	memory_arena arena;
 } vulkan_swapchain;
 
 bool vulkan_swapchain_create(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h);

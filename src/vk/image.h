@@ -7,6 +7,9 @@
 
 #include <vulkan/vulkan_core.h>
 
+// TODO: no sph in here
+#include <sph/memory.h>
+
 typedef struct
 {
 	VkImage handle;
@@ -16,6 +19,9 @@ typedef struct
 	VkImageLayout layout;
 	VkAccessFlags access;
 	VkImageAspectFlags aspect;
+
+	u32 width;
+	u32 height;
 
 	// NOTE: VULKAN_INVALID_BINDING by default
 	vulkan_bindless_image descriptor;	
@@ -32,9 +38,9 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
 
 void vulkan_image_destroy(vulkan *vulkan, vulkan_image *image);
 
-bool vulkan_image_transition(vulkan *vulkan, vulkan_image *image, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkImageAspectFlags aspect_mask);
+bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image *image, VkImageLayout new_layout, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkImageAspectFlags aspect_mask);
 
-bool vulkan_image_data_upload(vulkan *vulkan, vulkan_image *image, u32 size, void *data, v2u dimensions, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage, bool update_descriptor);
+bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image *image, u32 size, void *data, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage, bool update_descriptor);
 
 bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, const char *name, vulkan_sampler *out_sampler);
 

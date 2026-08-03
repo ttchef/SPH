@@ -6,13 +6,16 @@
 
 #include <vulkan/vulkan_core.h>
 
-typedef enum vulkan_buffer_type
+// TODO: No sph in here
+#include <sph/memory.h>
+
+typedef enum
 {
     VULKAN_BUFFER_TYPE_HOST_VISIBLE,
     VULKAN_BUFFER_TYPE_DEVICE_LOCAL,
 } vulkan_buffer_type;
 
-typedef struct vulkan_buffer
+typedef struct
 {
     vulkan_buffer_type type;
 
@@ -27,7 +30,7 @@ typedef struct vulkan_buffer
 } vulkan_buffer;
 
 // NOTE: automatically copies data into buffer
-bool vulkan_buffer_device_local_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, const char *name, vulkan_buffer *out_buffer);
+bool vulkan_buffer_device_local_create(vulkan *vulkan, memory_arena *arena, VkBufferUsageFlags usage, u32 size, const void *data, const char *name, vulkan_buffer *out_buffer);
 
 bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, const char *name, vulkan_buffer *out_buffer);
 

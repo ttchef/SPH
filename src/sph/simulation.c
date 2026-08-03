@@ -61,11 +61,11 @@ bool simulation_create(app *app, simulation *out_simulation)
     u32                   particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
     VkBufferUsageFlagBits usage          = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-    vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, particle_positions, buffer_strings[string_index++], &result.positions[0]);
-    vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.positions[1]);
-    vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[0]);
-    vulkan_buffer_device_local_create(vulkan, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[1]);
-    vulkan_buffer_device_local_create(vulkan, usage, sizeof(f32) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * particle_count, particle_positions, buffer_strings[string_index++], &result.positions[0]);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.positions[1]);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[0]);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[1]);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
 
     vulkan_command_queue *density_queue = vulkan_command_begin(&app->frame_arena);
 

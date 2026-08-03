@@ -58,6 +58,8 @@ typedef struct
 
 bool vulkan_command_barrier(vulkan_command_queue *queue, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access);
 
+bool vulkan_command_image_barrier(vulkan_command_queue *queue, vulkan_image image, VkImageLayout new_layout, VkAccessFlagBits new_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage);
+
 bool vulkan_command_begin_rendering(vulkan_command_queue *queue);
 
 bool vulkan_command_end_rendering(vulkan_command_queue *queue);
@@ -73,6 +75,10 @@ bool vulkan_command_draw(vulkan_command_queue *queue, u32 vertex_count);
 bool vulkan_command_dispatch(vulkan_command_queue *queue, u32 size_x, u32 size_y, u32 size_z);
 
 bool vulkan_command_set_viewport(vulkan_command_queue *queue, f32 x, f32 y, f32 width, f32 height);
+
+bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, vulkan_buffer dst);
+
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, VkImageLayout new_layout);
 
 //
 // NOTE: Special ones

@@ -273,6 +273,7 @@ static bool logical_device_init(vulkan *vulkan)
         .pNext                          = &features12,
         .shaderDemoteToHelperInvocation = VK_TRUE,
         .dynamicRendering               = VK_TRUE,
+        .synchronization2               = VK_TRUE,
     };
 
     VkDeviceCreateInfo info = {
@@ -324,8 +325,8 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
 
     vulkan->destroy_queue = vulkan_destroy_queue_create();
 
-    CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
     CHECK(vulkan_command_handler_create(vulkan, &vulkan->command_handler));
+    CHECK(vulkan_swapchain_create(vulkan, &vulkan->swapchain, 600, 600));
     CHECK(vulkan_pipeline_manager_create(&vulkan->pipeline_manager));
     CHECK(vulkan_bindless_create(vulkan, global_ubo_size, &vulkan->bindless));
 
