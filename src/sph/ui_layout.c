@@ -233,6 +233,8 @@ void ui_layout_calculate(app *app)
             app->reset_pressed  = button(app, "Reset");
             app->paused_pressed = button(app, app->paused ? "Resume" : "Pause");
         }
+        
+        slider(app, &app->particle_radius, 1, 10, "Particle radius");
     }
 
     // NOTE: Reset current element id

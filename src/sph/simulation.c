@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X 20
-#define PARTICLE_Y 20
-#define PARTICLE_Z 20
+#define PARTICLE_X 30
+#define PARTICLE_Y 30
+#define PARTICLE_Z 30
 
 static void simulation_compute_densities(app *app, vulkan *vulkan, simulation *simulation, u32 particle_count)
 {
@@ -90,7 +90,7 @@ bool simulation_create(app *app, vulkan *vulkan, simulation *out_simulation)
 
 void simulation_update(app *app, vulkan *vulkan, simulation *simulation)
 {
-    const f32 dt = 1.0f / 240.0f;
+    const f32 dt = 1.0f / 60.0f;
     simulation->elapsed_time += dt;
 
     const u32 particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
@@ -135,7 +135,9 @@ void simulation_draw(app *app, vulkan *vulkan, simulation *simulation)
 
     particle_render_pc pc = {
         .positions_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
+        .velocities_addr = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->read_index]),
         .particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z,
+        .particle_radius = app->particle_radius,
     };
 
     vulkan_command_push_constants(vulkan, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_PARTICLE_RENDER]);

@@ -4,7 +4,9 @@ import utils;
 struct PushConstant
 {
 	float4 *positions;
+	float4 *velocities;
 	uint particle_count;
+	float particle_radius;
 };
 
 [[vk::push_constant]]
@@ -13,7 +15,8 @@ PushConstant pc;
 struct VSOutput
 {
 	float4 position : SV_Position;
-	uint index;
+	float2 uv;
+	uint index;	
 };
 
 [shader("vertex")]
@@ -32,9 +35,10 @@ VSOutput vertexMain(uint index: SV_VulkanVertexID)
 	float2 offset = offsets[index % 6];
 
 	float4 view_pos = mul(ubo.view, pos);
-	view_pos.xy += offset;
+	view_pos.xy += offset * pc.particle_radius;
 
 	output.position = mul(ubo.perspective, float4(view_pos));
+	output.uv = offset;
 	output.index = index;
 
 	return output;
@@ -43,8 +47,22 @@ VSOutput vertexMain(uint index: SV_VulkanVertexID)
 [shader("fragment")]
 float4 fragmentMain(VSOutput input)
 {
-	float r = float(input.index % 20) / 20.0;
-	float g = float((input.index / 20) % 20) / 20.0;
-	float b = float(input.index / (20 * 20)) / 20.0;
-	return float4(gamma_correct(float3(r, g, b)), 1.0);
+	float dist_sq = dot(input.uv, input.uv);
+	if (dist_sq > 1.0)
+	{
+		discard;
+	}
+
+	float z = sqrt(1.0 - dist_sq);
+	float3 normal = normalize(float3(input.uv, z));
+
+	const float3 light_dir = normalize(float3(0.5, 0.5, 1.0));
+	float diffuse = max(dot(normal, light_dir), 0.2);
+
+	const float max_velo = 50.0;
+	float speed = length(pc.velocities[input.index].xyz);
+	float t = min(speed / max_velo, 1.0);
+	float3 color = float3(t, 0.0, 1.0 - t);
+
+	return float4(gamma_correct(color * diffuse), 1.0);
 }

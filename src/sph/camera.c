@@ -14,7 +14,7 @@ camera camera_create(void)
     result.pitch = 0.0f;
 
     result.speed       = 100.0f;
-    result.sensitivity = 0.1f;
+    result.sensitivity = 50.0f;
 
     return result;
 }
@@ -65,8 +65,8 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
 
     if (camera->invis_cursor)
     {
-        camera->yaw += input->mouse_delta.x * camera->sensitivity;
-        camera->pitch -= input->mouse_delta.y * camera->sensitivity;
+        camera->yaw += input->mouse_delta.x * camera->sensitivity * dt;
+        camera->pitch -= input->mouse_delta.y * camera->sensitivity * dt;
 
         camera->pitch = CLAMP(camera->pitch, -89.0f, 89.0f);
 

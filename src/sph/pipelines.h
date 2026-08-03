@@ -29,7 +29,9 @@ typedef struct
 typedef struct
 {
     VkDeviceAddress positions_addr;
+    VkDeviceAddress velocities_addr;
     u32             particle_count;
+    float particle_radius;
 } particle_render_pc;
 
 typedef struct

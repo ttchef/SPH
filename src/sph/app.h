@@ -31,12 +31,10 @@ struct app
 	// NOTE: All these variables will be moved later etc.
 	bool render_bounding_box;
 	cube bounding_box;
-	
+	float particle_radius;
 	bool reset_pressed;
 	bool paused_pressed;
-
 	bool paused;
-
 	bool first_time;
 };
 
