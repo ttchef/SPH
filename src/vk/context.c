@@ -366,7 +366,7 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height, vulkan_com
     }
 
     vkResetCommandBuffer(frame_data->command_buffer, 0);
-    vulkan_command_end(queue, vulkan);
+    vulkan_command_end(queue, vulkan, false);
 
     VkSemaphore wait_semaphores[] = {
         frame_data->image_available,

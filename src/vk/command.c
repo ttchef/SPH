@@ -125,7 +125,6 @@ typedef struct
     command_header header;
     vulkan_buffer  src;
     vulkan_image   dst;
-    VkImageLayout  new_layout;
 } command_copy_image;
 
 #if defined(DEBUG)
@@ -352,7 +351,7 @@ bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, 
     return command_add(queue, &copy_buffer, header.size);
 }
 
-bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, VkImageLayout new_layout)
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst)
 {
     command_header header = {
         .type = COMMAND_COPY_IMAGE,
@@ -360,10 +359,9 @@ bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, v
     };
 
     command_copy_image copy_image = {
-        .header     = header,
-        .src        = src,
-        .dst        = dst,
-        .new_layout = new_layout,
+        .header = header,
+        .src    = src,
+        .dst    = dst,
     };
 
     return command_add(queue, &copy_image, header.size);
@@ -736,7 +734,7 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
                 },
             };
 
-            vkCmdCopyBufferToImage(command_buffer, copy_image->src.handle, copy_image->dst.handle, copy_image->new_layout, 1, &region);
+            vkCmdCopyBufferToImage(command_buffer, copy_image->src.handle, copy_image->dst.handle, copy_image->dst.layout, 1, &region);
         }
         break;
 
@@ -797,11 +795,13 @@ vulkan_command_queue *vulkan_command_begin(memory_arena *arena)
     return queue;
 }
 
-bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan)
+bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan, bool wait)
 {
     vulkan_command_handler *handler = &vulkan->command_handler;
 
-    VkCommandBuffer command_buffer;
+    VkCommandBuffer            command_buffer;
+    vulkan_immeadiate_context *ctx;
+
     if (queue->present)
     {
         vulkan_frame_data *frame_data = &handler->frame_data[handler->frame_index];
@@ -809,8 +809,8 @@ bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan)
     }
     else
     {
-        vulkan_immeadiate_context *ctx = vulkan_command_handler_immeadiate_get(vulkan, handler);
-        command_buffer                 = ctx->buffer;
+        ctx            = vulkan_command_handler_immeadiate_get(vulkan, handler);
+        command_buffer = ctx->buffer;
     }
 
     VkCommandBufferBeginInfo begin_info = {
@@ -880,10 +880,21 @@ bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan)
 
     if (!queue->present)
     {
+        u64 signal_value = ++ctx->value;
+
+        VkTimelineSemaphoreSubmitInfo timeline_info = {
+            .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+            .signalSemaphoreValueCount = 1,
+            .pSignalSemaphoreValues = &signal_value,    
+        };
+        
         VkSubmitInfo submit_info = {
             .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .commandBufferCount = 1,
             .pCommandBuffers    = &command_buffer,
+            .pSignalSemaphores = &ctx->timeline,
+            .signalSemaphoreCount = 1,
+            .pNext = &timeline_info,
         };
 
         if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
@@ -891,7 +902,20 @@ bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan)
             SDL_Log("[VULKAN] Failed to submit graphics queue.");
             return false;
         }
+
+        if (wait)
+        {
+            VkSemaphoreWaitInfo wait = {
+                .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                .semaphoreCount = 1,
+                .pSemaphores    = &ctx->timeline,
+                .pValues        = &ctx->value,
+            };
+
+            vkWaitSemaphores(vulkan->device, &wait, UINT64_MAX);
+        }
     }
+
     return true;
 }
 

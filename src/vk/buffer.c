@@ -105,7 +105,7 @@ bool vulkan_buffer_device_local_create(vulkan *vulkan, memory_arena *arena, VkBu
 
     vulkan_command_queue *queue = vulkan_command_begin(arena);
     vulkan_command_copy_buffer(queue, staging, result);
-    if (!vulkan_command_end(queue, vulkan))
+    if (!vulkan_command_end(queue, vulkan, true))
     {
         return false;
     }

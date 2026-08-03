@@ -9,7 +9,7 @@
   - [ ] volk vulkan loading
   - [ ] apparently you only need one depth image for the swapchain so change to that
   - [ ] cross platform build system
-  - [ ] shader reflections
+  - [ ] shader reflections (only if i even use descriptor layouts other than the global ones)
   - [ ] fast ocrtee neighbourhood search
   - [ ] assets folder doesnt copy when new assets are loaded
   - [ ] better fluid rendering

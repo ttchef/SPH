@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X 30
-#define PARTICLE_Y 30
-#define PARTICLE_Z 30
+#define PARTICLE_X 20
+#define PARTICLE_Y 20
+#define PARTICLE_Z 20
 
 static void simulation_compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count)
 {
@@ -70,7 +70,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_command_queue *density_queue = vulkan_command_begin(&app->frame_arena);
 
     simulation_compute_densities(app, density_queue, &result, particle_count);
-    if (!vulkan_command_end(density_queue, vulkan))
+    if (!vulkan_command_end(density_queue, vulkan, true))
     {
         return false;
     }

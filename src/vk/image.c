@@ -99,7 +99,7 @@ bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image *
 {
     vulkan_command_queue *queue = vulkan_command_begin(arena);
     vulkan_command_image_barrier(queue, *image, new_layout, dst_access, src_stage, dst_stage);
-    if (!vulkan_command_end(queue, vulkan))
+    if (!vulkan_command_end(queue, vulkan, true))
     {
         return false;
     }
@@ -121,13 +121,14 @@ bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image 
     }
 
     vulkan_command_queue *queue = vulkan_command_begin(arena);
-    vulkan_command_image_barrier(queue, *image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0);
+    vulkan_command_image_barrier(queue, *image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     image->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     image->access = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    vulkan_command_copy_image(queue, staging, *image, layout);
-    if (!vulkan_command_end(queue, vulkan))
+    vulkan_command_copy_image(queue, staging, *image);
+    vulkan_command_image_barrier(queue, *image, layout, access, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage);
+    if (!vulkan_command_end(queue, vulkan, true))
     {
         vulkan_buffer_destroy(vulkan, &staging);
         return false;

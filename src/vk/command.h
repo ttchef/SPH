@@ -78,14 +78,14 @@ bool vulkan_command_set_viewport(vulkan_command_queue *queue, f32 x, f32 y, f32 
 
 bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, vulkan_buffer dst);
 
-bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, VkImageLayout new_layout);
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst);
 
 //
 // NOTE: Special ones
 // 
 vulkan_command_queue *vulkan_command_begin(memory_arena *arena);
 
-bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan);
+bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan, bool wait);
 
 void vulkan_command_set_present(vulkan_command_queue *queue);
 
