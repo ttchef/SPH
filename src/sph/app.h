@@ -32,6 +32,7 @@ struct app
 	bool render_bounding_box;
 	cube bounding_box;
 	float particle_radius;
+	float simulation_speed;
 	bool reset_pressed;
 	bool paused_pressed;
 	bool paused;

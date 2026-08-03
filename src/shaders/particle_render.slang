@@ -16,6 +16,7 @@ struct VSOutput
 {
 	float4 position : SV_Position;
 	float2 uv;
+	float4 view_pos;
 	uint index;	
 };
 
@@ -24,7 +25,8 @@ VSOutput vertexMain(uint index: SV_VulkanVertexID)
 {
 	VSOutput output;
 
-	float4 pos = pc.positions[index / 6];
+	uint particle_index = index / 6;
+	float4 pos = pc.positions[particle_index];
 
 	const float2 offsets[6] = {
 		float2(-1.0, -1.0), float2(1.0, -1.0),
@@ -39,14 +41,23 @@ VSOutput vertexMain(uint index: SV_VulkanVertexID)
 
 	output.position = mul(ubo.perspective, float4(view_pos));
 	output.uv = offset;
-	output.index = index;
+	output.view_pos = view_pos;
+	output.index = particle_index;
 
 	return output;
 }
 
-[shader("fragment")]
-float4 fragmentMain(VSOutput input)
+struct FSOutput
 {
+	float4 color : SV_Target;
+	float depth : SV_Depth;	
+};
+
+[shader("fragment")]
+FSOutput fragmentMain(VSOutput input)
+{
+	FSOutput output;
+
 	float dist_sq = dot(input.uv, input.uv);
 	if (dist_sq > 1.0)
 	{
@@ -64,5 +75,13 @@ float4 fragmentMain(VSOutput input)
 	float t = min(speed / max_velo, 1.0);
 	float3 color = float3(t, 0.0, 1.0 - t);
 
-	return float4(gamma_correct(color * diffuse), 1.0);
+	output.color = float4(gamma_correct(color * diffuse), 1.0);
+
+	float4 pos = input.view_pos;
+	pos.z += z * pc.particle_radius;
+
+	float4 clip_pos = mul(ubo.perspective, pos);
+	output.depth = clip_pos.z / clip_pos.w;
+
+	return output;
 }

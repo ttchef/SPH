@@ -1,9 +1,10 @@
 
 # TODOS
   - [X] srgb gamma correction in shaders
-  - [ ] get simulation back (with leapfrog integrator)
-  - [ ] grid based neigbourhood search
+  - [X] get simulation back (with leapfrog integrator)
   - [ ] memory arenas
+  - [ ] cleaner setup overall (better way of getting target density and also remove all variable slop in app struct)
+  - [ ] grid based neigbourhood search
   - [ ] sync2
   - [ ] volk vulkan loading
   - [ ] cross platform build system

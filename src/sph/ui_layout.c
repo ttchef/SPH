@@ -235,6 +235,7 @@ void ui_layout_calculate(app *app)
         }
         
         slider(app, &app->particle_radius, 1, 10, "Particle radius");
+        slider(app, &app->simulation_speed, 0.01, 1, "Speed");
     }
 
     // NOTE: Reset current element id
