@@ -24,6 +24,7 @@ typedef enum
     COMMAND_SET_VIEWPORT,
     COMMAND_COPY_BUFFER,
     COMMAND_COPY_IMAGE,
+    COMMAND_BIND_SCENE_UBO,
 
 #if defined(DEBUG)
     COMMAND_LABEL_BEGIN,
@@ -126,6 +127,13 @@ typedef struct
     vulkan_buffer  src;
     vulkan_image   dst;
 } command_copy_image;
+
+typedef struct
+{
+    command_header            header;
+    vulkan_bindless_scene_ubo scene_ubo;
+    vulkan_pipeline_id        pipeline;
+} command_bind_scene_ubo;
 
 #if defined(DEBUG)
 
@@ -365,6 +373,21 @@ bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, v
     };
 
     return command_add(queue, &copy_image, header.size);
+}
+
+bool vulkan_command_bind_scene_ubo(vulkan_command_queue *queue, vulkan_bindless_scene_ubo scene_ubo, vulkan_pipeline_id pipeline)
+{
+    command_header header = {
+        .type = COMMAND_BIND_SCENE_UBO,
+        .size = sizeof(command_bind_scene_ubo)};
+
+    command_bind_scene_ubo bind_scene_ubo = {
+        .header    = header,
+        .scene_ubo = scene_ubo,
+        .pipeline  = pipeline,
+    };
+
+    return command_add(queue, &bind_scene_ubo, header.size);
 }
 
 #if defined(DEBUG)
@@ -737,6 +760,22 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
             vkCmdCopyBufferToImage(command_buffer, copy_image->src.handle, copy_image->dst.handle, copy_image->dst.layout, 1, &region);
         }
         break;
+        case COMMAND_BIND_SCENE_UBO:
+        {
+            command_bind_scene_ubo *bind_scene_ubo = at;
+
+            vulkan_pipeline *pipeline = vulkan_pipeline_get(vulkan, bind_scene_ubo->pipeline);
+            assert(pipeline);
+
+            VkPipelineBindPoint bind_point = pipeline->type == VULKAN_PIPELINE_TYPE_GRAPHICS ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
+            vkCmdBindPipeline(command_buffer, bind_point, pipeline->handle);
+
+            assert(bind_scene_ubo->scene_ubo != VULKAN_INVALID_BINDING);
+            u32 dynamic_offset = bind_scene_ubo->scene_ubo * vulkan->bindless.scene_ubo_stride;
+
+            vkCmdBindDescriptorSets(command_buffer, bind_point, pipeline->layout, 1, 1, &vulkan->bindless.scene_set, 1, &dynamic_offset);
+        }
+        break;
 
 #if defined(DEBUG)
         case COMMAND_LABEL_BEGIN:
@@ -883,18 +922,18 @@ bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan, bool wait)
         u64 signal_value = ++ctx->value;
 
         VkTimelineSemaphoreSubmitInfo timeline_info = {
-            .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+            .sType                     = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
             .signalSemaphoreValueCount = 1,
-            .pSignalSemaphoreValues = &signal_value,    
+            .pSignalSemaphoreValues    = &signal_value,
         };
-        
+
         VkSubmitInfo submit_info = {
-            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1,
-            .pCommandBuffers    = &command_buffer,
-            .pSignalSemaphores = &ctx->timeline,
+            .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount   = 1,
+            .pCommandBuffers      = &command_buffer,
+            .pSignalSemaphores    = &ctx->timeline,
             .signalSemaphoreCount = 1,
-            .pNext = &timeline_info,
+            .pNext                = &timeline_info,
         };
 
         if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS)

@@ -1,6 +1,18 @@
 
 import utils;
 
+struct SimulationUbo
+{
+	uint particle_count;
+	float target_density;
+	float visocity_coeff;
+	float smoothing_radius;
+	float pressure_multiplier;	
+};
+
+[[vk::binding(0, 1)]]
+ConstantBuffer<SimulationUbo> scene_ubo;
+
 struct PushConstant
 {
 	float4 *positions_read;
@@ -13,7 +25,6 @@ struct PushConstant
 	float4 box_size;
 	float dt;
 	float first_run;
-	uint particle_count;
 };
 
 [[vk::push_constant]]
@@ -24,23 +35,23 @@ float4 W_spiky_gradient(float4 p_i, float4 p_j)
 	float4 delta = p_i - p_j;
 	float d = dot(delta, delta);
 
-	if (d <= 0.0001 || d > SMOOTHING_RADIUS * SMOOTHING_RADIUS)
+	if (d <= 0.0001 || d > scene_ubo.smoothing_radius * scene_ubo.smoothing_radius)
 	{
 		return float4(0).xxxx; 
 	}
 	d = sqrt(d);
 
-	const float normalization = -45.0 / (PI * pow(SMOOTHING_RADIUS, 6));
-	float shape_func = (SMOOTHING_RADIUS - d) * (SMOOTHING_RADIUS - d) / d;
+	const float normalization = -45.0 / (PI * pow(scene_ubo.smoothing_radius, 6));
+	float shape_func = (scene_ubo.smoothing_radius - d) * (scene_ubo.smoothing_radius - d) / d;
 
 	return delta * normalization * shape_func;
 }
 
 float calc_pressure(float density)
 {
-	const float k = 2.0;
+	const float k = scene_ubo.pressure_multiplier;
 
-	float term = pow(density / TARGET_DENSITY, 7);
+	float term = pow(density / scene_ubo.target_density, 7);
 	float pressure = k * (term - 1);
 
 	return pressure;
@@ -69,7 +80,7 @@ float4 calc_force(uint particle_index)
 	float density_i = pc.densities[particle_index];
 	float term1 = calc_pressure(density_i) / (density_i * density_i);
 
-	for (uint i = 0; i < pc.particle_count; i++)
+	for (uint i = 0; i < scene_ubo.particle_count; i++)
 	{
 		if (i == particle_index)
 		{
@@ -85,7 +96,7 @@ float4 calc_force(uint particle_index)
 			pressure -= dir * 500.0;
 			continue;
 		}
-		if (d > SMOOTHING_RADIUS)
+		if (d > scene_ubo.smoothing_radius)
 		{
 			continue;
 		}
@@ -101,9 +112,9 @@ float4 calc_force(uint particle_index)
 		float4 x_ij = pos_i - pc.positions_read[i];
 
 		float numerator = dot(x_ij, gradient);
-		float denominator = dot(x_ij, x_ij) + 0.01 * SMOOTHING_RADIUS * SMOOTHING_RADIUS;
+		float denominator = dot(x_ij, x_ij) + 0.01 * scene_ubo.smoothing_radius * scene_ubo.smoothing_radius;
 
-		viscosity += v_ij * (1.0 / density_j) * (numerator / denominator) * VISCOSITY_COEFF; 
+		viscosity += v_ij * (1.0 / density_j) * (numerator / denominator) * scene_ubo.visocity_coeff; 
 	}
 
 	pressure = -pressure;
@@ -116,7 +127,7 @@ float4 calc_force(uint particle_index)
 [numthreads(256, 1, 1)]
 void computeMain(uint index: SV_DispatchThreadID)
 {
-	if (index >= pc.particle_count)
+	if (index >= scene_ubo.particle_count)
 	{
 		return;
 	}

@@ -80,6 +80,8 @@ bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, 
 
 bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst);
 
+bool vulkan_command_bind_scene_ubo(vulkan_command_queue *queue, vulkan_bindless_scene_ubo scene_ubo, vulkan_pipeline_id pipeline);
+
 //
 // NOTE: Special ones
 // 

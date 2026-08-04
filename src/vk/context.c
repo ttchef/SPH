@@ -210,10 +210,9 @@ static bool physical_device_init(vulkan *vulkan)
         }
     }
 
-    VkPhysicalDeviceProperties props;
-    vkGetPhysicalDeviceProperties(vulkan->physical_device, &props);
+    vkGetPhysicalDeviceProperties(vulkan->physical_device, &vulkan->physical_device_props);
 
-    SDL_Log("[VULKAN] Picked GPU: %s", props.deviceName);
+    SDL_Log("[VULKAN] Picked GPU: %s", vulkan->physical_device_props.deviceName);
 
     return true;
 }

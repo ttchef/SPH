@@ -46,7 +46,6 @@ typedef struct
     v4              box_size;
     f32             dt;
     f32             first_run;
-    u32 particle_count;
 } particle_update_pc;
 
 typedef struct
@@ -54,7 +53,6 @@ typedef struct
     VkDeviceAddress densities_addr;
     VkDeviceAddress positions_read_addr;
     VkDeviceAddress padding;
-    u32 particle_count;
 } particle_density_pc;
 
 enum

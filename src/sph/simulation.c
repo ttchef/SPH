@@ -3,8 +3,8 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X 20
-#define PARTICLE_Y 20
+#define PARTICLE_X 30
+#define PARTICLE_Y 30
 #define PARTICLE_Z 20
 
 static void simulation_compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count)
@@ -13,11 +13,11 @@ static void simulation_compute_densities(app *app, vulkan_command_queue *queue, 
 
     vulkan_command_label_begin(queue, "compute densities", CYAN);
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
+    vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
 
     particle_density_pc density_pc = {
         .densities_addr      = vulkan_buffer_address_get(vulkan, simulation->densities),
         .positions_read_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
-        .particle_count      = particle_count,
     };
     vulkan_command_push_constants(queue, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
     vulkan_command_dispatch(queue, (particle_count + 255) / 256, 1, 1);
@@ -67,6 +67,16 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[1]);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
 
+    result.scene = vulkan_bindless_scene_ubo_aquire(&vulkan->bindless);
+    result.ubo_data = (simulation_ubo){
+        .particle_count = particle_count,
+        .target_density = 0.0065,
+        .pressure_multiplier = 2.5f,
+        .smoothing_radius = 15.0f,
+        .viscosity_coeff = 2.5f,
+    };
+    SDL_memcpy(vulkan_bindless_scene_ubo_get(&vulkan->bindless, result.scene), &result.ubo_data, sizeof(simulation_ubo));
+
     vulkan_command_queue *density_queue = vulkan_command_begin(&app->frame_arena);
 
     simulation_compute_densities(app, density_queue, &result, particle_count);
@@ -92,6 +102,11 @@ bool simulation_create(app *app, simulation *out_simulation)
     return true;
 }
 
+void simulation_ubo_update(app *app, simulation *simulation)
+{
+    SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan.bindless, simulation->scene), &simulation->ubo_data, sizeof(simulation_ubo));
+}
+
 void simulation_update(app *app, simulation *simulation, f32 dt)
 {
     vulkan               *vulkan = &app->vulkan;
@@ -107,6 +122,7 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
 
     vulkan_command_label_begin(queue, "update particles", YELLOW);
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
+    vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
 
     particle_update_pc update_pc = {
         .positions_read_addr   = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
@@ -118,7 +134,6 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
         .box_size              = v4fromv3(app->bounding_box.size, 0.0f),
         .dt                    = dt,
         .first_run             = simulation->first_loop ? 1.0f : 0.0f,
-        .particle_count        = particle_count,
     };
 
     vulkan_command_push_constants(queue, sizeof(update_pc), &update_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_UPDATE]);

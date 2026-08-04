@@ -328,6 +328,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     vulkan_command_queue *queue = app->render_queue;
     vulkan_command_set_present(queue);
 
+    simulation_ubo_update(app, &app->simulation);
     if (!app->paused)
     {
         const f32 simulation_dt = 1.0f / 60.0f;

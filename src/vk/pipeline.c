@@ -51,12 +51,17 @@ static bool pipeline_layout_create(vulkan *vulkan, vulkan_pipeline_desc *desc, v
         .stageFlags = desc->push_constants_stages,
     };
 
+    VkDescriptorSetLayout layouts[] = {
+          vulkan->bindless.layout,
+          vulkan->bindless.scene_layout,  
+    };
+
     VkPipelineLayoutCreateInfo layout_info = {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pPushConstantRanges    = desc->push_constant_size == 0 ? NULL : &push_constant,
         .pushConstantRangeCount = desc->push_constant_size == 0 ? 0 : 1,
-        .pSetLayouts            = &vulkan->bindless.layout,
-        .setLayoutCount         = 1,
+        .pSetLayouts            = layouts,
+        .setLayoutCount         = ARRAY_COUNT(layouts),
     };
 
     if (vkCreatePipelineLayout(vulkan->device, &layout_info, NULL, &out_pipeline->layout) != VK_SUCCESS)

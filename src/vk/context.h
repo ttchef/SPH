@@ -37,6 +37,7 @@ struct vulkan
     VkInstance       instance;
     VkSurfaceKHR     surface;
     VkPhysicalDevice physical_device;
+    VkPhysicalDeviceProperties physical_device_props;
 
     vulkan_queue graphics_queue;
     vulkan_queue present_queue;

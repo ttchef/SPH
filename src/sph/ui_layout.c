@@ -236,6 +236,11 @@ void ui_layout_calculate(app *app)
 
         slider(app, &app->particle_radius, 1, 10, "Particle radius");
         slider(app, &app->simulation_speed, 0.01, 1, "Speed");
+        
+        slider(app, &app->simulation.ubo_data.target_density, 0.001, 0.05, "Target density");
+        slider(app, &app->simulation.ubo_data.pressure_multiplier, 0.5, 25.0, "Pressure multiplier");
+        slider(app, &app->simulation.ubo_data.viscosity_coeff, 0.5, 25.0, "Viscosity multiplier");
+        slider(app, &app->simulation.ubo_data.smoothing_radius, 5, 25.0, "Smoothing radius");
     }
 
     // NOTE: Reset current element id
