@@ -166,6 +166,34 @@ void draw_quad(app *app, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_i
     vulkan_command_draw(queue, 6);
 }
 
+void draw_gradient(app *app, v2 pos, v2 scale, f32 roundness, color4 a, color4 b, gradient_type type)
+{
+    vulkan_command_queue *queue = app->render_queue;
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_TEXTURED_QUAD]);
+
+    v2 center = v2add(pos, v2scale(scale, 0.5f));
+
+    m4 scale_m   = m4scale(scale.x, scale.y, 1.0);
+    m4 translate = m4translate(center.x, center.y, 0.0f);
+    m4 model     = m4mul(translate, scale_m);
+
+    textured_quad_pc pc = {
+        .model        = model,
+        .uv_min       = v2make(0.0f, 0.0f),
+        .uv_max       = v2make(1.0f, 1.0f),
+        .image        = VULKAN_INVALID_BINDING,
+        .sampler      = VULKAN_INVALID_BINDING,
+        .color        = v4fromcolor4(a),
+        .roundness    = roundness,
+        .aspect_ratio = scale.x / scale.y,
+        .gradient = type,
+        .gradient_color = v4fromcolor4(b),
+    };
+
+    vulkan_command_push_constants(queue, sizeof(textured_quad_pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_TEXTURED_QUAD]);
+    vulkan_command_draw(queue, 6);
+}
+
 void draw_cube_lines(app *app, v3 pos, v3 scale)
 {
     vulkan_command_queue *queue     = app->render_queue;

@@ -44,10 +44,18 @@ struct app
 //
 // NOTE: Helpers
 //
+typedef enum
+{
+	GRADIENT_HORIZOTNAL = 1,
+	GRADIENT_VERTICAL = 2,
+} gradient_type;
+
 f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...);
 
 void draw_text(app *app, ttf_font *font, v2 pos, u32 font_size, const char *format, ...);
  
 void draw_quad(app *app, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_image *image, vulkan_sampler *sampler);
+
+void draw_gradient(app *app, v2 pos, v2 scale, f32 roundness, color4 a, color4 b, gradient_type type);
 
 void draw_cube_lines(app *app, v3 pos, v3 scale);

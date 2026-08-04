@@ -211,6 +211,25 @@ static bool button(app *app, const char *label)
     return result;
 }
 
+static void color_gradient(app *app)
+{
+    ui_layout_context *layout = &app->ui_layout;
+
+    UI({
+        .width = GROW(0),
+        .height = FIXED(48 * layout->height_scale),
+        .color = UI_COLOR1,
+        .padding = PAD_ALL(6),
+    })
+    {
+        UI({
+            .width = GROW(0),
+            .height = GROW(0),
+            .color = UI_COLOR8,
+        });
+    }
+}
+
 // NOTE: Non-linear ui scaling
 void layout_size(ui_layout_context *layout, u32 width, u32 height)
 {
@@ -259,6 +278,8 @@ void ui_layout_calculate(app *app)
         slider(app, &app->simulation.ubo_data.pressure_multiplier, 0.5, 25.0, "Pressure multiplier");
         slider(app, &app->simulation.ubo_data.viscosity_coeff, 0.5, 25.0, "Viscosity multiplier");
         slider(app, &app->simulation.ubo_data.smoothing_radius, 5, 25.0, "Smoothing radius");
+
+        color_gradient(app);
     }
 
     // NOTE: Reset current element id

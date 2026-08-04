@@ -11,6 +11,8 @@ struct PushConstant
     float2   uv_min;
     float2   uv_max;
     float4   color;
+    float4 gradient_color;
+    uint gradient;
 };
 
 [[vk::push_constant]]
@@ -69,7 +71,19 @@ float4 fragmentMain(VSOutput input)
     {
         color = textures[pc.texture].Sample(samplers[pc.sampler], input.uv);
     }
-    else if (pc.roundness != 0.0)
+    else if (pc.gradient != 0)
+    {
+        if (pc.gradient == 1)
+        {
+            color = lerp(color, pc.gradient_color, input.uv.x);
+        }
+        else
+        {
+            color = lerp(color, pc.gradient_color, input.uv.y);
+        }
+    }
+
+    if (pc.texture == 0 && pc.roundness != 0.0)
     {
         float2 remapped_uv = (input.uv * 2) - 1;
         remapped_uv.x *= pc.aspect_ratio;

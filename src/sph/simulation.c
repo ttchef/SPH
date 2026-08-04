@@ -3,8 +3,8 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X 30
-#define PARTICLE_Y 30
+#define PARTICLE_X 20
+#define PARTICLE_Y 20
 #define PARTICLE_Z 20
 
 static void simulation_compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count)

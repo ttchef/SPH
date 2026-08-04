@@ -19,6 +19,8 @@ typedef struct
     v2                      uv_min;
     v2                      uv_max;
     v4                      color;
+    v4 gradient_color;
+    u32 gradient;
 } textured_quad_pc;
 
 typedef struct
