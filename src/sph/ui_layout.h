@@ -11,6 +11,7 @@ typedef struct
 {
 	// NOTE: Width of the layout at the moment (will change later when the layout is more complex)
 	u32 width;
+	f32 height_scale;
 	ui_id active_id;
 }  ui_layout_context;
 

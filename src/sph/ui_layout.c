@@ -19,8 +19,8 @@ ui_layout_context ui_layout_create(void)
 {
     ui_layout_context result = {0};
 
-    result.active_id = UI_INVALID_ID;
-    result.width     = 400;
+    result.active_id    = UI_INVALID_ID;
+    result.height_scale = 1.0f;
 
     return result;
 }
@@ -37,7 +37,8 @@ static void set_active(app *app, ui_id id)
 
 static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
 {
-    const f32 bubble_size = 20;
+    ui_layout_context *layout      = &app->ui_layout;
+    const f32          bubble_size = 20 * layout->height_scale;
 
     *value -= min;
     *value /= (max - min);
@@ -48,8 +49,8 @@ static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
         .height      = FIT(0),
         .child_align = LEFT,
         .color       = UI_COLOR1,
-        .padding     = PAD_ALL(16),
-        .child_gap   = 16,
+        .padding     = PAD_ALL(16 * layout->height_scale),
+        .child_gap   = 16 * layout->height_scale,
         .roundness   = STD_ROUNDNESS,
     })
     {
@@ -73,7 +74,7 @@ static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
             .height = FIT(0),
             .text   = {
                 .chars     = label,
-                .font_size = 20,
+                .font_size = 20 * layout->height_scale,
                 .font      = &app->jet_brains,
             },
         });
@@ -82,13 +83,13 @@ static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
 
         UI({
             .width     = GROW(0),
-            .height    = FIXED(10),
+            .height    = FIXED(10 * layout->height_scale),
             .color     = UI_COLOR3,
             .roundness = 0.9f,
         })
         {
             UI({
-                .pos       = v2make(0, -5),
+                .pos       = v2make(0, -bubble_size / 4),
                 .width     = FIXED(bubble_size),
                 .height    = FIXED(bubble_size),
                 .roundness = 1.0f,
@@ -106,6 +107,8 @@ static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
 
 static void checkbox(app *app, bool *value, const char *label)
 {
+    ui_layout_context *layout = &app->ui_layout;
+
     UI({
         .width       = GROW(0),
         .height      = FIT(0),
@@ -118,7 +121,7 @@ static void checkbox(app *app, bool *value, const char *label)
     {
         UI({
             .width     = FIXED(32),
-            .height    = FIXED(32),
+            .height    = FIXED(32 * layout->height_scale),
             .padding   = PAD_ALL(5),
             .roundness = 0.4f,
         })
@@ -146,7 +149,7 @@ static void checkbox(app *app, bool *value, const char *label)
             .height = FIT(0),
             .text   = {
                 .chars     = label,
-                .font_size = 20,
+                .font_size = 20 * layout->height_scale,
                 .font      = &app->jet_brains,
             },
         });
@@ -156,6 +159,8 @@ static void checkbox(app *app, bool *value, const char *label)
 // NOTE: Returns true when pressed
 static bool button(app *app, const char *label)
 {
+    ui_layout_context *layout = &app->ui_layout;
+
     bool result = false;
 
     UI({
@@ -168,7 +173,7 @@ static bool button(app *app, const char *label)
     {
         UI({
             .width       = GROW(0),
-            .height      = FIXED(32),
+            .height      = FIXED(32 * layout->height_scale),
             .roundness   = 0.4f,
             .child_align = CENTER,
         })
@@ -191,7 +196,7 @@ static bool button(app *app, const char *label)
                 .height = FIT(0),
                 .text   = {
                     .chars     = label,
-                    .font_size = 20,
+                    .font_size = 20 * layout->height_scale,
                     .font      = &app->jet_brains,
                 },
             });
@@ -206,12 +211,22 @@ static bool button(app *app, const char *label)
     return result;
 }
 
+// NOTE: Non-linear ui scaling
+void layout_size(ui_layout_context *layout, u32 width, u32 height)
+{
+    layout->width = (SDL_sqrtf(width) * 6.5f) + 100;
+    layout->height_scale = MAX(height / 1440.0f, 0.6f);
+}
+
 void ui_layout_calculate(app *app)
 {
+    ui_layout_context *layout = &app->ui_layout;
+    layout_size(layout, app->window.width, app->window.height);
+
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
-        .pos       = v2make(app->window.width - 400, 0.0f),
-        .width     = FIXED(400),
+        .pos       = v2make(app->window.width - layout->width, 0.0f),
+        .width     = FIXED(layout->width),
         .height    = PERCENT(1.0f),
         .color     = UI_COLOR0,
         .padding   = PAD_ALL(16),
@@ -230,7 +245,7 @@ void ui_layout_calculate(app *app)
             .child_gap = 12,
         })
         {
-            app->reset_pressed  = button(app, app->simulation.initialized ? "Reset" : "Spawn");
+            app->reset_pressed = button(app, app->simulation.initialized ? "Reset" : "Spawn");
             if (button(app, app->paused ? "Resume" : "Pause"))
             {
                 app->paused = !app->paused;
@@ -239,7 +254,7 @@ void ui_layout_calculate(app *app)
 
         slider(app, &app->particle_radius, 1, 10, "Particle radius");
         slider(app, &app->simulation_speed, 0.01, 1, "Speed");
-        
+
         slider(app, &app->simulation.ubo_data.target_density, 0.001, 0.05, "Target density");
         slider(app, &app->simulation.ubo_data.pressure_multiplier, 0.5, 25.0, "Pressure multiplier");
         slider(app, &app->simulation.ubo_data.viscosity_coeff, 0.5, 25.0, "Viscosity multiplier");

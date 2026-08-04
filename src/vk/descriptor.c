@@ -13,7 +13,7 @@ enum
     SAMPLER_BINDING       = 2,
 
     // NOTE: Scene Set
-    SCENE_UBO_BINDING     = 0,
+    SCENE_UBO_BINDING = 0,
 };
 
 bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_bindless)
@@ -118,18 +118,18 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
     }
 
     VkDescriptorSetLayoutBinding scene_bindings[] = {
-          {          
+        {
             .binding         = SCENE_UBO_BINDING,
             .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
             .descriptorCount = 1,
             .stageFlags      = VK_SHADER_STAGE_ALL,
-          },  
+        },
     };
 
     VkDescriptorSetLayoutCreateInfo scene_layout_info = {
-          .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-          .bindingCount = ARRAY_COUNT(scene_bindings),
-          .pBindings = scene_bindings,
+        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .bindingCount = ARRAY_COUNT(scene_bindings),
+        .pBindings    = scene_bindings,
     };
 
     if (vkCreateDescriptorSetLayout(vulkan->device, &scene_layout_info, NULL, &result.scene_layout) != VK_SUCCESS)
@@ -139,10 +139,10 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
     }
 
     VkDescriptorSetAllocateInfo scene_alloc_info = {
-          .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-          .descriptorPool = result.pool,
-          .pSetLayouts = &result.scene_layout,
-          .descriptorSetCount = 1,          
+        .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool     = result.pool,
+        .pSetLayouts        = &result.scene_layout,
+        .descriptorSetCount = 1,
     };
 
     if (vkAllocateDescriptorSets(vulkan->device, &scene_alloc_info, &result.scene_set) != VK_SUCCESS)

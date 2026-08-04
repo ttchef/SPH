@@ -52,8 +52,8 @@ static bool pipeline_layout_create(vulkan *vulkan, vulkan_pipeline_desc *desc, v
     };
 
     VkDescriptorSetLayout layouts[] = {
-          vulkan->bindless.layout,
-          vulkan->bindless.scene_layout,  
+        vulkan->bindless.layout,
+        vulkan->bindless.scene_layout,
     };
 
     VkPipelineLayoutCreateInfo layout_info = {

@@ -67,13 +67,13 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * particle_count, NULL, buffer_strings[string_index++], &result.velocities[1]);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * particle_count, NULL, buffer_strings[string_index++], &result.densities);
 
-    result.scene = vulkan_bindless_scene_ubo_aquire(&vulkan->bindless);
+    result.scene    = vulkan_bindless_scene_ubo_aquire(&vulkan->bindless);
     result.ubo_data = (simulation_ubo){
-        .particle_count = particle_count,
-        .target_density = 0.0065,
+        .particle_count      = particle_count,
+        .target_density      = 0.0065,
         .pressure_multiplier = 2.5f,
-        .smoothing_radius = 15.0f,
-        .viscosity_coeff = 2.5f,
+        .smoothing_radius    = 15.0f,
+        .viscosity_coeff     = 15.0f,
     };
     SDL_memcpy(vulkan_bindless_scene_ubo_get(&vulkan->bindless, result.scene), &result.ubo_data, sizeof(simulation_ubo));
 
