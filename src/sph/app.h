@@ -44,12 +44,6 @@ struct app
 //
 // NOTE: Helpers
 //
-typedef enum
-{
-	GRADIENT_HORIZOTNAL = 1,
-	GRADIENT_VERTICAL = 2,
-} gradient_type;
-
 f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...);
 
 void draw_text(app *app, ttf_font *font, v2 pos, u32 font_size, const char *format, ...);

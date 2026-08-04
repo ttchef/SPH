@@ -66,6 +66,13 @@ typedef enum
     CENTER,
 } ui_alignement;
 
+typedef struct
+{
+    color4 a;
+    color4 b;
+    gradient_type type;
+} ui_gradient;
+
 typedef struct ui_element
 {
     ui_id     id;
@@ -75,6 +82,8 @@ typedef struct ui_element
     ui_size   height;
     color4    color;
     f32       roundness;
+
+    ui_gradient gradient;
 
     ui_padding padding;
 

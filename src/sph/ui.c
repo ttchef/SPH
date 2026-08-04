@@ -402,7 +402,15 @@ static void ui_draw_helper(app *app, ui_element *root)
         return;
     }
 
-    draw_quad(app, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
+    if (root->gradient.type == GRADIENT_NONE)
+    {
+        draw_quad(app, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
+    }
+    else
+    {
+        draw_gradient(app, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->gradient.a, root->gradient.b, root->gradient.type);
+    }
+    
     if (root->text.chars)
     {
         // TODO: Fix this

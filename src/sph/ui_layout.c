@@ -225,7 +225,11 @@ static void color_gradient(app *app)
         UI({
             .width = GROW(0),
             .height = GROW(0),
-            .color = UI_COLOR8,
+            .gradient = {
+                .a = RED,
+                .b = BLUE,
+                .type = GRADIENT_HORIZOTNAL,
+            },
         });
     }
 }

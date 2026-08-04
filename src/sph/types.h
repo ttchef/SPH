@@ -6,3 +6,11 @@
 // 
 
 typedef struct app app;
+
+typedef enum
+{
+	GRADIENT_NONE,
+	GRADIENT_HORIZOTNAL = 1,
+	GRADIENT_VERTICAL = 2,
+} gradient_type;
+
