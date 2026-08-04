@@ -97,6 +97,8 @@ bool simulation_create(app *app, simulation *out_simulation)
 
     vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
 
+    result.initialized = true;
+
     *out_simulation = result;
 
     return true;
@@ -104,11 +106,21 @@ bool simulation_create(app *app, simulation *out_simulation)
 
 void simulation_ubo_update(app *app, simulation *simulation)
 {
+    if (!simulation->initialized)
+    {
+        return;
+    }
+
     SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan.bindless, simulation->scene), &simulation->ubo_data, sizeof(simulation_ubo));
 }
 
 void simulation_update(app *app, simulation *simulation, f32 dt)
 {
+    if (!simulation->initialized)
+    {
+        return;
+    }
+
     vulkan               *vulkan = &app->vulkan;
     vulkan_command_queue *queue  = app->render_queue;
 
@@ -148,6 +160,11 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
 
 void simulation_draw(app *app, simulation *simulation)
 {
+    if (!simulation->initialized)
+    {
+        return;
+    }
+
     vulkan               *vulkan = &app->vulkan;
     vulkan_command_queue *queue  = app->render_queue;
 
@@ -168,6 +185,11 @@ void simulation_draw(app *app, simulation *simulation)
 
 void simulation_destroy(app *app, simulation *simulation)
 {
+    if (!simulation->initialized)
+    {
+        return;
+    }
+
     vulkan *vulkan = &app->vulkan;
 
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[0]), &simulation->positions[0], (vulkan_destroy_func)vulkan_buffer_destroy);
@@ -175,4 +197,6 @@ void simulation_destroy(app *app, simulation *simulation)
     vulkan_object_destroy(vulkan, sizeof(simulation->velocities[0]), &simulation->velocities[0], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->velocities[1]), &simulation->velocities[1], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->densities), &simulation->densities, (vulkan_destroy_func)vulkan_buffer_destroy);
+
+    simulation->initialized = false;
 }

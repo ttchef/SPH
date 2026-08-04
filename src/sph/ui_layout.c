@@ -230,8 +230,11 @@ void ui_layout_calculate(app *app)
             .child_gap = 12,
         })
         {
-            app->reset_pressed  = button(app, "Reset");
-            app->paused_pressed = button(app, app->paused ? "Resume" : "Pause");
+            app->reset_pressed  = button(app, app->simulation.initialized ? "Reset" : "Spawn");
+            if (button(app, app->paused ? "Resume" : "Pause"))
+            {
+                app->paused = !app->paused;
+            }
         }
 
         slider(app, &app->particle_radius, 1, 10, "Particle radius");

@@ -37,7 +37,6 @@ struct app
 	float particle_radius;
 	float simulation_speed;
 	bool reset_pressed;
-	bool paused_pressed;
 	bool paused;
 	bool first_time;
 };

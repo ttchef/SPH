@@ -31,6 +31,8 @@ typedef struct
     u32 read_index;
     u32 write_index;
     f32 elapsed_time;
+
+    bool initialized;
 } simulation;
 
 bool simulation_create(app *app, simulation *out_simulation);

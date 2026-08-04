@@ -269,11 +269,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     app->particle_radius     = 1.0f;
     app->simulation_speed    = 1.0f;
 
-    if (!simulation_create(app, &app->simulation))
-    {
-        SDL_Log("[ENGINE] Failed to initialize simulation.");
-        return SDL_APP_FAILURE;
-    }
+    app->simulation.initialized = false;
 
     return SDL_APP_CONTINUE;
 }
@@ -371,10 +367,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     ui_layout_calculate(app);
 
-    if (app->paused_pressed)
-    {
-        app->paused = !app->paused;
-    }
     if (app->reset_pressed)
     {
         simulation_destroy(app, &app->simulation);
