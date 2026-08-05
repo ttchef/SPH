@@ -300,7 +300,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
 
     app->render_bounding_box = true;
     app->bounding_box        = cubemake(v3zero(), v3make(200, 200, 200));
-    app->particle_radius     = 1.0f;
+    app->particle_radius     = 1.6f;
     app->simulation_speed    = 1.0f;
 
     app->simulation.initialized = false;

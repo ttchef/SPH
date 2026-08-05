@@ -25,15 +25,15 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
     const v3 up      = v3up();
     const v3 right   = v3norm(v3cross(camera->dir, up));
 
-    // SDL_Log("[ENGINE] Camera Pos: (%.3f, %.3f, %.3f)", camera->pos.x, camera->pos.y, camera->pos.z);
-
     if (input_down(input, INPUT_W))
     {
-        camera->pos = v3add(camera->pos, v3scale(forward, camera->speed * dt));
+        camera->pos = v3add(camera->pos, v3scale(camera->dir, camera->speed * dt));
+        // camera->pos = v3add(camera->pos, v3scale(forward, camera->speed * dt));
     }
     if (input_down(input, INPUT_S))
     {
-        camera->pos = v3sub(camera->pos, v3scale(forward, camera->speed * dt));
+        camera->pos = v3sub(camera->pos, v3scale(camera->dir, camera->speed * dt));
+        // camera->pos = v3sub(camera->pos, v3scale(forward, camera->speed * dt));
     }
     if (input_down(input, INPUT_A))
     {
@@ -43,6 +43,7 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
     {
         camera->pos = v3add(camera->pos, v3scale(right, camera->speed * dt));
     }
+    /*
     if (input_down(input, INPUT_SPACE))
     {
         camera->pos = v3add(camera->pos, v3scale(up, camera->speed * dt));
@@ -51,6 +52,7 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
     {
         camera->pos = v3sub(camera->pos, v3scale(up, camera->speed * dt));
     }
+    */
 
     if (input_pressed(input, INPUT_RMB) && !MOUSE_OVER_UI())
     {

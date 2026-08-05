@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.2)
 project(SPH C)
 
 set(CMAKE_C_STANDARD 11)
