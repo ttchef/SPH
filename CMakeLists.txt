@@ -5,11 +5,6 @@ project(SPH C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE "Release")
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif()
-
 find_package(Vulkan REQUIRED)
 
 include(FetchContent)
@@ -20,9 +15,19 @@ FetchContent_Declare(
     GIT_TAG 53b485c7aa873af8d1dd53466d1f050c1f374b96
 )
 
+if (LINUX)
+    set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-linux-x86_64.tar.gz)
+elseif (WINDOWS)
+    set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-windows-aarch64.zip)
+elseif (APPLE)
+    set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-macos-aarch64.zip)
+else()
+    message(STATUS "Unkown system")
+endif()
+
 FetchContent_Declare(
     SLANG
-    URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-linux-x86_64.tar.gz    
+    URL ${SLANG_URL}    
 )
 
 FetchContent_Makeavailable(SDL SLANG)
@@ -72,6 +77,8 @@ set(SRC_FILES src/sph/app.c src/sph/camera.c src/sph/input.c
 add_executable(${PROJECT_NAME} WIN32 ${SRC_FILES})
 add_dependencies(${PROJECT_NAME} Shaders)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
+
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -g -O0)
 
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE m)

@@ -828,6 +828,7 @@ vulkan_command_queue *vulkan_command_begin(memory_arena *arena)
     queue->available = queue->size;
     queue->base      = memory_arena_alloc(arena, queue->size);
     queue->at        = queue->base;
+    queue->present = false;
 
     assert(queue->base);
 
@@ -919,6 +920,7 @@ bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan, bool wait)
 
     if (!queue->present)
     {
+        assert(ctx);
         u64 signal_value = ++ctx->value;
 
         VkTimelineSemaphoreSubmitInfo timeline_info = {
