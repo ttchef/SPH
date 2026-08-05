@@ -57,6 +57,18 @@ typedef struct
     VkDeviceAddress padding;
 } particle_density_pc;
 
+typedef struct
+{
+    VkDeviceAddress spatial_loolkup_addr;
+    VkDeviceAddress spatial_loolkup_histograms_addr;
+} spatial_lookup_histograms_pc;
+
+typedef struct
+{
+    VkDeviceAddress spatial_loolkup_addr;
+    VkDeviceAddress spatial_loolkup_histograms_addr;
+} spatial_lookup_sort_pc;
+
 enum
 {
     PIPELINE_TEXTURED_QUAD,
@@ -64,6 +76,8 @@ enum
     PIPELINE_PARTICLE_RENDER,
     PIPELINE_PARTICLE_UPDATE,
     PIPELINE_PARTICLE_DENSITY,
+    PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS,
+    PIPELINE_SPATIAL_LOOKUP_SORT,
     PIPELINE_COUNT,
 };
 

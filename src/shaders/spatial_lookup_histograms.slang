@@ -1,0 +1,6 @@
+
+[shader("compute")]
+void computeMain()
+{
+	
+}
