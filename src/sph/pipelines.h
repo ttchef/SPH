@@ -77,6 +77,9 @@ typedef struct
 {
     VkDeviceAddress spatial_lookup_addr;
     VkDeviceAddress spatial_lookup_histograms_addr;
+    u32 shift;
+    u32 workgroup_count;
+    u32 blocks_per_workgroup;
 } spatial_lookup_sort_pc;
 
 enum

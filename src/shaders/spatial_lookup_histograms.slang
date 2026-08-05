@@ -11,7 +11,11 @@ struct PushConstant
 static const uint bin_count = 256;
 
 [shader("compute")]
-void computeMain(uint index: SV_DispatchThreadID)
+[numthreads(256, 1, 1)]
+void computeMain(uint index: SV_DispatchThreadID, uint local_index : SV_GroupThreadID)
 {
-	
+	if (local_index < bin_count)
+	{
+		
+	}	
 }

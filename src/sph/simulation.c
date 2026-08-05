@@ -30,7 +30,7 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
 {
     vulkan *vulkan = &app->vulkan;
 
-    const u32 workgroup_size           = 64;
+    const u32 workgroup_size           = 256;
     const u32 workgroup_count      = (PARTICLE_COUNT + workgroup_size - 1) / workgroup_size;
     const u32 sort_groups          = 32;
     const u32 blocks_per_workgroup = (PARTICLE_COUNT + sort_groups * workgroup_size - 1) / (sort_groups * workgroup_size);
@@ -69,6 +69,9 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
         spatial_lookup_sort_pc sort_pc = {
             .spatial_lookup_addr            = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup),
             .spatial_lookup_histograms_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup_histograms),
+            .shift                          = i * 8,
+            .workgroup_count                = workgroup_count,
+            .blocks_per_workgroup           = blocks_per_workgroup,
         };
 
         vulkan_command_push_constants(queue, sizeof(sort_pc), &sort_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_SPATIAL_LOOKUP_SORT]);
@@ -200,6 +203,8 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
     simulation->elapsed_time += dt;
 
     const u32 particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
+
+    spatial_lookup_sort(app, queue, simulation);
 
     compute_densities(app, queue, simulation, particle_count);
 

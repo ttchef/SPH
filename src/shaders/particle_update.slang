@@ -136,7 +136,7 @@ void computeMain(uint index: SV_DispatchThreadID)
 	}
 
 	pos += vel * pc.dt;
-	float damping = 0.1;
+	float damping = 1.0;
 
 	if (pos.y < pc.box_pos.y - pc.box_size.y * 0.5)
 	{

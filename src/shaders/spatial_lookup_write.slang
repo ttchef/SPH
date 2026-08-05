@@ -12,7 +12,7 @@ struct PushConstant
 PushConstant pc;
 
 [shader("compute")]
-[numthreads(64, 1, 1)]
+[numthreads(256, 1, 1)]
 void computeMain(uint index: SV_DispatchThreadID)
 {
 	if (index >= scene_ubo.particle_count)
