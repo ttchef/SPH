@@ -60,6 +60,14 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .push_constant_size    = sizeof(particle_density_pc),
         .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
     },
+    [PIPELINE_SPATIAL_LOOKUP_WRITE] = {
+        .name                  = "spatial_lookup_write",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/spatial_lookup_write.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(spatial_lookup_write_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
     [PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS] = {
         .name                  = "spatial_lookup_histograms",
         .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,

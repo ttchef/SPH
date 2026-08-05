@@ -38,6 +38,7 @@ set(SHADER_FILES
     src/shaders/particle_density.slang
     src/shaders/particle_update.slang
     src/shaders/particle_render.slang
+    src/shaders/spatial_lookup_write.slang
     src/shaders/spatial_lookup_histograms.slang
     src/shaders/spatial_lookup_sort.slang
 )

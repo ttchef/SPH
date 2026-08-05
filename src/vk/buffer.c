@@ -72,9 +72,6 @@ static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryProp
 
 bool vulkan_buffer_device_local_create(vulkan *vulkan, memory_arena *arena, VkBufferUsageFlags usage, u32 size, const void *data, const char *name, vulkan_buffer *out_buffer)
 {
-    assert(vulkan);
-    assert(out_buffer);
-
     vulkan_buffer result = {0};
 
     bool device_address = usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
