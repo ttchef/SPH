@@ -135,7 +135,7 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
     vulkan_command_label_begin(queue, "update particles", YELLOW);
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
     vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
-
+    
     particle_update_pc update_pc = {
         .positions_read_addr   = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
         .positions_write_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->write_index]),
@@ -192,6 +192,7 @@ void simulation_destroy(app *app, simulation *simulation)
 
     vulkan *vulkan = &app->vulkan;
 
+    vulkan_bindless_sampler_release(&vulkan->bindless, simulation->scene);
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[0]), &simulation->positions[0], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[1]), &simulation->positions[1], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->velocities[0]), &simulation->velocities[0], (vulkan_destroy_func)vulkan_buffer_destroy);

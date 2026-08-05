@@ -263,6 +263,12 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
+#if defined(DEBUG)
+    SDL_Log("[ENGINE] Running in debug.");
+#elif defined(NDEBUG)
+    SDL_Log("[ENGINE] Running in release.");
+#endif
+
     if (!window_create(&app->window, 2560, 1440))
     {
         SDL_Log("[ENGINE] Failed to create window.");

@@ -1,8 +1,9 @@
 # SPH
 
-Just for testing SDL3 is being chipped as a static library.
+To build the project
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
 
-Dependencies:
-  - sdl3 shared lib
-  - slangc shader compiler
-  - vulkan shared lib
+Then the build files will be in the build folder in the root directory.
