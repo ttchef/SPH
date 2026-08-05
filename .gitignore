@@ -1,5 +1,8 @@
 build/
 
+# For developing
+Makefile
+
 # Tool files
 .ignore
 compile_commands.json
