@@ -78,7 +78,21 @@ add_executable(${PROJECT_NAME} WIN32 ${SRC_FILES})
 add_dependencies(${PROJECT_NAME} Shaders)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -g -O0)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -Wall
+        -Wextra
+        -pedantic
+        -g
+        -O0
+        -DDEBUG
+    )
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -O2
+        -DNDEBUG
+    )
+endif()
 
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE m)
