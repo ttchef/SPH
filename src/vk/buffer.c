@@ -142,7 +142,7 @@ bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage,
     return true;
 }
 
-bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, const char *name, vulkan_buffer *out_buffer)
+bool vulkan_buffer_device_local_get_data(vulkan *vulkan, memory_arena *arena, vulkan_buffer buffer, const char *name, vulkan_buffer *out_buffer)
 {
     vkDeviceWaitIdle(vulkan->device);
 
@@ -151,89 +151,21 @@ bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, c
     {
         return false;
     }
-
     result.type = VULKAN_BUFFER_TYPE_HOST_VISIBLE;
 
-    VkCommandPool   command_pool;
-    VkCommandBuffer command_buffer;
-
-    VkCommandPoolCreateInfo pool_info = {
-        .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        .queueFamilyIndex = vulkan->graphics_queue.index,
-    };
-
-    if (vkCreateCommandPool(vulkan->device, &pool_info, NULL, &command_pool) != VK_SUCCESS)
+    vulkan_command_queue *queue = vulkan_command_begin(arena);
+    vulkan_command_copy_buffer(queue, buffer, result);
+    if (!vulkan_command_end(queue, vulkan, true))
     {
-        SDL_Log("[VULKAN] Failed to create command pool.");
-        vulkan_buffer_destroy(vulkan, &result);
+        SDL_Log("[VULKAN] Failed to get device local buffer data.");
         return false;
-    }
-
-    VkCommandBufferAllocateInfo alloc_info = {
-        .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool        = command_pool,
-        .commandBufferCount = 1,
-        .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-    };
-
-    if (vkAllocateCommandBuffers(vulkan->device, &alloc_info, &command_buffer) != VK_SUCCESS)
-    {
-        goto error;
-    }
-
-    VkCommandBufferBeginInfo begin_info = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-    };
-
-    if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS)
-    {
-        goto error;
-    }
-
-    VkBufferCopy region = {
-        .size = buffer.size,
-    };
-
-    vkCmdCopyBuffer(command_buffer, buffer.handle, result.handle, 1, &region);
-
-    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
-    {
-        goto error;
-    }
-
-    VkSubmitInfo submit_info = {
-        .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 1,
-        .pCommandBuffers    = &command_buffer,
-    };
-
-    if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
-    {
-        goto error;
-    }
-
-    if (vkQueueWaitIdle(vulkan->graphics_queue.handle))
-    {
-        goto error;
-    }
-
-    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
+    } 
 
     vkMapMemory(vulkan->device, result.memory, 0, buffer.size, 0, &result.host_visible.data);
 
     *out_buffer = result;
 
     return true;
-
-error:
-    vkDestroyCommandPool(vulkan->device, command_pool, NULL);
-    vulkan_buffer_destroy(vulkan, &result);
-
-    SDL_Log("[VULKAN] Error occured while getting device local data.");
-
-    return false;
 }
 
 VkDeviceAddress vulkan_buffer_address_get(vulkan *vulkan, vulkan_buffer buffer)

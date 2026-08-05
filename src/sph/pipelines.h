@@ -66,14 +66,17 @@ typedef struct
 
 typedef struct
 {
-    VkDeviceAddress spatial_loolkup_addr;
-    VkDeviceAddress spatial_loolkup_histograms_addr;
+    VkDeviceAddress spatial_lookup_addr;
+    VkDeviceAddress spatial_lookup_histograms_addr;
+    u32 shift;
+    u32 workgroup_count;
+    u32 blocks_per_workgroup;
 } spatial_lookup_histograms_pc;
 
 typedef struct
 {
-    VkDeviceAddress spatial_loolkup_addr;
-    VkDeviceAddress spatial_loolkup_histograms_addr;
+    VkDeviceAddress spatial_lookup_addr;
+    VkDeviceAddress spatial_lookup_histograms_addr;
 } spatial_lookup_sort_pc;
 
 enum

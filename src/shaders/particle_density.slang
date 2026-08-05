@@ -1,18 +1,6 @@
 
 import utils;
 
-struct SimulationUbo
-{
-	uint particle_count;
-	float target_density;
-	float visocity_coeff;
-	float smoothing_radius;
-	float pressure_multiplier;	
-};
-
-[[vk::binding(0, 1)]]
-ConstantBuffer<SimulationUbo> scene_ubo;
-
 struct PushConstant
 {
 	float *densities;

@@ -35,7 +35,7 @@ bool vulkan_buffer_device_local_create(vulkan *vulkan, memory_arena *arena, VkBu
 bool vulkan_buffer_host_visible_create(vulkan *vulkan, VkBufferUsageFlags usage, u32 size, const void *data, const char *name, vulkan_buffer *out_buffer);
 
 // NOTE: out_buffer is of type host visible
-bool vulkan_buffer_device_local_get_data(vulkan *vulkan, vulkan_buffer buffer, const char *name, vulkan_buffer *out_buffer);
+bool vulkan_buffer_device_local_get_data(vulkan *vulkan, memory_arena *arena, vulkan_buffer buffer, const char *name, vulkan_buffer *out_buffer);
 
 VkDeviceAddress vulkan_buffer_address_get(vulkan *vulkan, vulkan_buffer buffer);
 
