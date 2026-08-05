@@ -6,6 +6,7 @@
 // 
 
 typedef struct app app;
+typedef struct window window;
 
 typedef enum
 {

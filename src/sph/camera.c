@@ -14,7 +14,7 @@ camera camera_create(void)
     result.pitch = 0.0f;
 
     result.speed       = 100.0f;
-    result.sensitivity = 50.0f;
+    result.sensitivity = 150.0f;
 
     return result;
 }
@@ -52,18 +52,16 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
         camera->pos = v3sub(camera->pos, v3scale(up, camera->speed * dt));
     }
 
-    if (input_pressed(input, INPUT_LMB) && !MOUSE_OVER_UI())
+    if (input_pressed(input, INPUT_RMB) && !MOUSE_OVER_UI())
     {
-        SDL_SetWindowRelativeMouseMode(window->handle, true);
-        camera->invis_cursor = true;
+        input_relative_mouse(input, window, true);
     }
-    if (input_released(input, INPUT_LMB))
+    if (input_released(input, INPUT_RMB))
     {
-        SDL_SetWindowRelativeMouseMode(window->handle, false);
-        camera->invis_cursor = false;
+        input_relative_mouse(input, window, false);
     }
 
-    if (camera->invis_cursor)
+    if (input->relative_mouse)
     {
         camera->yaw += input->mouse_delta.x * camera->sensitivity * dt;
         camera->pitch -= input->mouse_delta.y * camera->sensitivity * dt;

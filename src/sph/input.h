@@ -3,6 +3,7 @@
 
 #include <math/types.h>
 #include <types.h>
+#include <sph/types.h>
 
 #include <SDL3/SDL.h>
 
@@ -37,17 +38,19 @@ typedef struct input
 
     v2 mouse_pos;
     v2 mouse_delta;
-    // NOTE: When pressed down this position will update till the next press down
-    v2   mouse_press_pos;
+
+    bool relative_mouse;
     bool mouse_initialized;
 } input;
 
 input input_create(void);
 
-void input_update(input *input, SDL_Event *event);
+void input_update(input *input, window *window, SDL_Event *event);
 
 bool input_down(input *input, u32 key);
 
 bool input_pressed(input *input, u32 key);
 
 bool input_released(input *input, u32 key);
+
+void input_relative_mouse(input *input, window *window, bool on);

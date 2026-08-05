@@ -16,8 +16,6 @@ typedef struct camera
 
     v3 pos;
     v3 dir;
-
-    bool invis_cursor;
 } camera;
 
 camera camera_create(void);

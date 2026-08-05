@@ -313,7 +313,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     app *app = appstate;
     assert(app);
 
-    input_update(&app->input, event);
+    input_update(&app->input, &app->window, event);
 
     if (event->type == SDL_EVENT_WINDOW_RESIZED)
     {
@@ -414,7 +414,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     vulkan_command_end_rendering(queue);
 
     vulkan_draw(vulkan, app->window.width, app->window.height, queue);
-    input_update(&app->input, NULL);
+    input_update(&app->input, &app->window, NULL);
 
     return SDL_APP_CONTINUE;
 }
