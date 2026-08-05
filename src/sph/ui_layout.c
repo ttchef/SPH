@@ -211,6 +211,19 @@ static bool button(app *app, const char *label)
     return result;
 }
 
+static void color_picker(app *app)
+{
+    v2 parent_world = WORLD_POS(PARENT()->id);
+    v2 pos = v2sub(v2zero(), parent_world);
+    
+    UI({
+        .pos = pos,
+        .width = FIXED(200),
+        .height = FIXED(200),
+        .color = RED,
+    }); 
+}
+
 static void color_gradient(app *app)
 {
     ui_layout_context *layout = &app->ui_layout;
@@ -222,6 +235,11 @@ static void color_gradient(app *app)
         .padding = PAD_ALL(6),
     })
     {
+        if (HOVERED() && input_down(&app->input, INPUT_LMB))
+        {
+            color_picker(app);         
+        }
+    
         UI({
             .width = GROW(0),
             .height = GROW(0),
