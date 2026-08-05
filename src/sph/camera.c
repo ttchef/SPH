@@ -14,14 +14,14 @@ camera camera_create(void)
     result.pitch = 0.0f;
 
     result.speed       = 100.0f;
-    result.sensitivity = 150.0f;
+    result.sensitivity = 0.1f;
 
     return result;
 }
 
 void camera_update(camera *camera, window *window, input *input, f32 dt)
 {
-    const v3 forward = v3norm(v3make(camera->dir.x, 0.0f, camera->dir.z));
+    // const v3 forward = v3norm(v3make(camera->dir.x, 0.0f, camera->dir.z));
     const v3 up      = v3up();
     const v3 right   = v3norm(v3cross(camera->dir, up));
 
@@ -43,7 +43,6 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
     {
         camera->pos = v3add(camera->pos, v3scale(right, camera->speed * dt));
     }
-    /*
     if (input_down(input, INPUT_SPACE))
     {
         camera->pos = v3add(camera->pos, v3scale(up, camera->speed * dt));
@@ -52,7 +51,6 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
     {
         camera->pos = v3sub(camera->pos, v3scale(up, camera->speed * dt));
     }
-    */
 
     if (input_pressed(input, INPUT_RMB) && !MOUSE_OVER_UI())
     {
@@ -65,8 +63,8 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
 
     if (input->relative_mouse)
     {
-        camera->yaw += input->mouse_delta.x * camera->sensitivity * dt;
-        camera->pitch -= input->mouse_delta.y * camera->sensitivity * dt;
+        camera->yaw += input->mouse_delta.x * camera->sensitivity;
+        camera->pitch -= input->mouse_delta.y * camera->sensitivity;
 
         camera->pitch = CLAMP(camera->pitch, -89.0f, 89.0f);
 

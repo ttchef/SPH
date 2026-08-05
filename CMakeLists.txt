@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 4.0)
 project(SPH C)
 
 set(CMAKE_C_STANDARD 11)
@@ -10,7 +10,7 @@ find_package(Vulkan REQUIRED)
 include(FetchContent)
 
 FetchContent_Declare(
-    SDL
+    SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG 53b485c7aa873af8d1dd53466d1f050c1f374b96
 )
@@ -30,7 +30,7 @@ FetchContent_Declare(
     URL ${SLANG_URL}    
 )
 
-FetchContent_Makeavailable(SDL SLANG)
+FetchContent_Makeavailable(SDL3 SLANG)
 
 set(SHADER_FILES
     src/shaders/cube_lines.slang
@@ -98,7 +98,7 @@ if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE m)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan SDL3::SDL3 m)
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan SDL3::SDL3)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

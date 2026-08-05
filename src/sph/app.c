@@ -313,7 +313,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     app *app = appstate;
     assert(app);
 
-    input_update(&app->input, &app->window, event);
+    input_event(&app->input, event);
 
     if (event->type == SDL_EVENT_WINDOW_RESIZED)
     {
@@ -345,9 +345,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     app *app = appstate;
     assert(app);
 
+    camera_update(&app->camera, &app->window, &app->input, app->time.delta);
     memory_arena_reset(&app->frame_arena);
     time_update(&app->time);
-    camera_update(&app->camera, &app->window, &app->input, app->time.delta);
     global_ubo_update(app);
 
     window *window = &app->window;
@@ -414,7 +414,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     vulkan_command_end_rendering(queue);
 
     vulkan_draw(vulkan, app->window.width, app->window.height, queue);
-    input_update(&app->input, &app->window, NULL);
+    input_update(&app->input, &app->window);
 
     return SDL_APP_CONTINUE;
 }

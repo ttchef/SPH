@@ -48,26 +48,26 @@ static u32 mouse_button_to_enum(u32 button)
     return INPUT_UNKOWN;
 }
 
-void input_update(input *input, window *window, SDL_Event *event)
+void input_update(input *input, window *window)
 {
     for (u32 i = 0; i < INPUT_COUNT; i++)
     {
         input->actions[i].pressed  = false;
         input->actions[i].released = false;
     }
-    input->mouse_delta = v2zero();
+
+    f32 x, y;
+    SDL_GetRelativeMouseState(&x, &y);
+    input->mouse_delta = v2make(x, y);
 
     if (input->relative_mouse)
     {
         SDL_WarpMouseInWindow(window->handle, window->width / 2.0f, window->height / 2.0f);
     }
+}
 
-    // NOTE: Called only for resetting the pressed states
-    if (!event)
-    {
-        return;
-    }
-
+void input_event(input *input, SDL_Event *event)
+{
     switch (event->type)
     {
     case SDL_EVENT_KEY_DOWN:
@@ -106,22 +106,6 @@ void input_update(input *input, window *window, SDL_Event *event)
     {
         v2 pos = v2make(event->motion.x, event->motion.y);
         input->mouse_pos         = pos;
-
-        if (!input->mouse_initialized)
-        {
-            input->mouse_initialized = true;
-            break;
-        }
-
-        if (input->relative_mouse)
-        {
-            input->mouse_delta.x = event->motion.xrel;
-            input->mouse_delta.y = event->motion.yrel;
-        }
-        else
-        {
-            input->mouse_delta = v2sub(pos, input->mouse_pos);
-        }
     }
     default:
         break;
@@ -151,3 +135,4 @@ void input_relative_mouse(input *input, window *window, bool on)
     SDL_SetWindowRelativeMouseMode(window->handle, on);
     input->relative_mouse = on;
 }
+

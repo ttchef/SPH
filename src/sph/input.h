@@ -45,7 +45,9 @@ typedef struct input
 
 input input_create(void);
 
-void input_update(input *input, window *window, SDL_Event *event);
+void input_update(input *input, window *window);
+
+void input_event(input *input, SDL_Event *event);
 
 bool input_down(input *input, u32 key);
 
@@ -54,3 +56,4 @@ bool input_pressed(input *input, u32 key);
 bool input_released(input *input, u32 key);
 
 void input_relative_mouse(input *input, window *window, bool on);
+
