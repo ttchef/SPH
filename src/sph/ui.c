@@ -407,9 +407,9 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
         return;
     }
 
-    if (root->custom_draw)
+    if (root->custom.draw_func)
     {
-        root->custom_draw(app, queue, GET_POS(root->pos), v2make(root->width.min_max.min, root->height.min_max.min));
+        root->custom.draw_func(app, queue, GET_POS(root->pos), v2make(root->width.min_max.min, root->height.min_max.min), root->custom.data);
     }
     else
     {

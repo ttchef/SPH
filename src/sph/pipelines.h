@@ -95,6 +95,7 @@ typedef struct
 typedef struct
 {
     m4 model;
+    color4 current_color;
 } color_picker_pc;
 
 enum

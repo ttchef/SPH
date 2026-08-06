@@ -13,6 +13,8 @@ typedef struct
 	u32 width;
 	f32 height_scale;
 	ui_id active_id;
+
+	bool show_color_picker;
 }  ui_layout_context;
 
 ui_layout_context ui_layout_create(void);

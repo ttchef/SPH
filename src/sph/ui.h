@@ -90,7 +90,7 @@ typedef struct
     };
 } ui_position;
 
-typedef void (*ui_draw_fn)(app *app, vulkan_command_queue *queue, v2 pos, v2 size);
+typedef void (*ui_draw_fn)(app *app, vulkan_command_queue *queue, v2 pos, v2 size, void *data);
 
 typedef struct ui_element
 {
@@ -109,12 +109,19 @@ typedef struct ui_element
     f32           child_gap;
     ui_alignement child_align;
 
-    ui_draw_fn custom_draw;
+    struct
+    {
+        ui_draw_fn draw_func;
+        // NOTE: Must be statically allocated right now
+        void *data;
+    } custom;
 
     struct
     {
+        // NOTE: Must be statically allocated right now
         const char *chars;
         u32         font_size;
+        // NOTE: Must be statically allocated right now
         ttf_font   *font;
     } text;
 

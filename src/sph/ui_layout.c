@@ -212,8 +212,10 @@ static bool button(app *app, const char *label)
     return result;
 }
 
-static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 size)
+static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 size, void *data)
 {
+    color4 current_color = *(color4 *)data;
+    
     v2 center = v2add(pos, v2scale(size, 0.5f));
 
     m4 scale_m   = m4scale(size.x, size.y, 1.0);
@@ -221,16 +223,19 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
     m4 model     = m4mul(translate, scale_m);
 
     color_picker_pc pc = {
-          .model = model,  
+          .model = model,
+          .current_color = current_color, 
     };
 
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_COLOR_PICKER]);
-    vulkan_command_push_constants(queue, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT, app->pipelines[PIPELINE_COLOR_PICKER]);
+    vulkan_command_push_constants(queue, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_COLOR_PICKER]);
     vulkan_command_draw(queue, 6);
 }
 
-static void color_picker(void)
-{    
+static void color_picker(app *app)
+{
+    static color4 color = (color4){1.0, 0.0, 0.0, 1.0};
+    
     UI({
         .pos = ABSOLUTE(0, 0),
         .width = FIXED(200),
@@ -242,8 +247,18 @@ static void color_picker(void)
         UI({
             .width = GROW(0),
             .height = GROW(0),
-            .custom_draw = draw_color_picker,
-        });
+            .custom = {
+                .draw_func = draw_color_picker,
+                .data = (void *)&color,
+            },
+        })
+        {
+            color = RED;
+            if (HOVERED() && input_down(&app->input, INPUT_LMB))
+            {
+                color = GREEN;
+            }
+        }
     }
 }
 
@@ -258,9 +273,14 @@ static void color_gradient(app *app)
         .padding = PAD_ALL(6),
     })
     {
-        if (HOVERED() && input_down(&app->input, INPUT_LMB))
+        if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
         {
-            color_picker();         
+            layout->show_color_picker = true;
+        }
+
+        if (layout->show_color_picker)
+        {
+            color_picker(app);
         }
     
         UI({

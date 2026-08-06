@@ -103,7 +103,7 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .depth_test            = VK_TRUE,
         .depth_write           = VK_TRUE,
         .push_constant_size    = sizeof(color_picker_pc),
-        .push_constants_stages = VK_SHADER_STAGE_VERTEX_BIT,
+        .push_constants_stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
     },
 };
 
