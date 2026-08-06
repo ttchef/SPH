@@ -296,7 +296,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return false;
     }
 
-    app->frame_arena = memory_arena_create(MEGABYTES(12));
+    app->frame_arena = memory_arena_create(MEGABYTES(50));
 
     app->render_bounding_box = true;
     app->bounding_box        = cubemake(v3zero(), v3make(400, 300, 400));

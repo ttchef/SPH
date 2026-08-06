@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X     50
-#define PARTICLE_Y     50
-#define PARTICLE_Z     50
+#define PARTICLE_X     70
+#define PARTICLE_Y     70
+#define PARTICLE_Z     70
 #define PARTICLE_COUNT PARTICLE_X * PARTICLE_Y * PARTICLE_Z
 
 static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count, u32 sorted)
@@ -156,7 +156,7 @@ bool simulation_create(app *app, simulation *out_simulation)
         .particle_count      = PARTICLE_COUNT,
         .target_density      = 0.0065,
         .pressure_multiplier = 2.5f,
-        .smoothing_radius    = 7.0f,
+        .smoothing_radius    = 9.0f,
         .viscosity_coeff     = 15.0f,
     };
     SDL_memcpy(vulkan_bindless_scene_ubo_get(&vulkan->bindless, result.scene), &result.ubo_data, sizeof(simulation_ubo));
