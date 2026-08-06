@@ -302,6 +302,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     app->bounding_box        = cubemake(v3zero(), v3make(200, 200, 200));
     app->particle_radius     = 1.6f;
     app->simulation_speed    = 1.0f;
+    app->first_time = true;
 
     app->simulation.initialized = false;
 
@@ -401,8 +402,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     ui_layout_calculate(app);
 
-    if (app->reset_pressed)
+    if (app->reset_pressed || app->first_time)
     {
+        app->first_time = false;
         simulation_destroy(app, &app->simulation);
         simulation_create(app, &app->simulation);
     }

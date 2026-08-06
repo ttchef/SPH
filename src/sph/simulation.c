@@ -267,6 +267,8 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
         .velocities_read_addr  = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->read_index]),
         .velocities_write_addr = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->write_index]),
         .densities_addr        = vulkan_buffer_address_get(vulkan, simulation->densities),
+        .spatial_lookup_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[sorted]),
+        .start_indices_addr  = vulkan_buffer_address_get(vulkan, simulation->start_indices),
         .box_pos               = v4fromv3(app->bounding_box.pos, 1.0f),
         .box_size              = v4fromv3(app->bounding_box.size, 0.0f),
         .dt                    = dt,

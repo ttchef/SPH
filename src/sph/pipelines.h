@@ -43,6 +43,8 @@ typedef struct
     VkDeviceAddress velocities_read_addr;
     VkDeviceAddress velocities_write_addr;
     VkDeviceAddress densities_addr;
+    VkDeviceAddress spatial_lookup_addr;
+    VkDeviceAddress start_indices_addr;
     VkDeviceAddress padding;
     v4              box_pos;
     v4              box_size;

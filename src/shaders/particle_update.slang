@@ -8,6 +8,8 @@ struct PushConstant
 	float4 *velocities_read;
 	float4 *velocities_write;
 	float *densities;
+	SpatialLookupEntry *spatial_lookup;
+	uint *start_indices;
 	float *padding;
 	float4 box_pos;
 	float4 box_size;
@@ -64,45 +66,60 @@ float4 calc_force(uint particle_index)
 
 	float4 pos_i = pc.positions_read[particle_index];
 	float4 vel_i = pc.velocities_read[particle_index];
+
+	int3 cell = position_to_cell(pos_i);
 	
 	float density_i = pc.densities[particle_index];
 	float term1 = calc_pressure(density_i) / (density_i * density_i);
 
-	for (uint i = 0; i < scene_ubo.particle_count; i++)
+	for (uint n = 0; n < neighbour_offsets.getCount(); n++)
 	{
-		if (i == particle_index)
+		uint key = cell_hash(cell + neighbour_offsets[n]);
+		uint start = pc.start_indices[key];
+
+		if (start == U32_MAX)
 		{
 			continue;
 		}
 
-		float4 pos_j = pc.positions_read[i];
-
-		float d = distance(pos_i, pos_j);
-		if (d <= 0.0001)
+		for (uint i = start; i < scene_ubo.particle_count && pc.spatial_lookup[i].cell_key == key; i++)
 		{
-			float4 dir = random_unit_vector(particle_index);
-			pressure -= dir * 500.0;
-			continue;
+			uint other = pc.spatial_lookup[i].particle_index;
+
+			if (other == particle_index)
+			{
+				continue;
+			}
+
+			float4 pos_j = pc.positions_read[other];
+
+			float d = distance(pos_i, pos_j);
+			if (d <= 0.0001)
+			{
+				float4 dir = random_unit_vector(particle_index);
+				pressure -= dir * 500.0;
+				continue;
+			}
+			if (d > scene_ubo.smoothing_radius)
+			{
+				continue;
+			}
+
+			float4 gradient = W_spiky_gradient(pos_i, pos_j);
+
+			float density_j = pc.densities[i];
+			float term2 = calc_pressure(density_j) / (density_j * density_j);
+
+			pressure += gradient * (term1 + term2);
+
+			float4 v_ij = vel_i - pc.velocities_read[i];
+			float4 x_ij = pos_i - pc.positions_read[i];
+
+			float numerator = dot(x_ij, gradient);
+			float denominator = dot(x_ij, x_ij) + 0.01 * scene_ubo.smoothing_radius * scene_ubo.smoothing_radius;
+
+			viscosity += v_ij * (1.0 / density_j) * (numerator / denominator) * scene_ubo.visocity_coeff; 
 		}
-		if (d > scene_ubo.smoothing_radius)
-		{
-			continue;
-		}
-
-		float4 gradient = W_spiky_gradient(pos_i, pos_j);
-
-		float density_j = pc.densities[i];
-		float term2 = calc_pressure(density_j) / (density_j * density_j);
-
-		pressure += gradient * (term1 + term2);
-
-		float4 v_ij = vel_i - pc.velocities_read[i];
-		float4 x_ij = pos_i - pc.positions_read[i];
-
-		float numerator = dot(x_ij, gradient);
-		float denominator = dot(x_ij, x_ij) + 0.01 * scene_ubo.smoothing_radius * scene_ubo.smoothing_radius;
-
-		viscosity += v_ij * (1.0 / density_j) * (numerator / denominator) * scene_ubo.visocity_coeff; 
 	}
 
 	pressure = -pressure;
