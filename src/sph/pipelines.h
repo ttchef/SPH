@@ -75,7 +75,8 @@ typedef struct
 
 typedef struct
 {
-    VkDeviceAddress spatial_lookup_addr;
+    VkDeviceAddress spatial_lookup_read_addr;
+    VkDeviceAddress spatial_lookup_write_addr;
     VkDeviceAddress spatial_lookup_histograms_addr;
     u32 shift;
     u32 workgroup_count;

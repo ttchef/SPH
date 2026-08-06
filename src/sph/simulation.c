@@ -30,7 +30,7 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
 {
     vulkan *vulkan = &app->vulkan;
 
-    const u32 workgroup_size           = 256;
+    const u32 workgroup_size       = 256;
     const u32 workgroup_count      = (PARTICLE_COUNT + workgroup_size - 1) / workgroup_size;
     const u32 sort_groups          = 32;
     const u32 blocks_per_workgroup = (PARTICLE_COUNT + sort_groups * workgroup_size - 1) / (sort_groups * workgroup_size);
@@ -39,7 +39,7 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
     vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_SPATIAL_LOOKUP_WRITE]);
 
     spatial_lookup_write_pc write_pc = {
-        .spatial_lookup_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup),
+        .spatial_lookup_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[simulation->read_index]),
         .start_indices_addr  = vulkan_buffer_address_get(vulkan, simulation->start_indices),
         .positions_addr      = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
     };
@@ -53,7 +53,7 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
         vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS]);
 
         spatial_lookup_histograms_pc histograms_pc = {
-            .spatial_lookup_addr            = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup),
+            .spatial_lookup_addr            = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[simulation->read_index]),
             .spatial_lookup_histograms_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup_histograms),
             .shift                          = i * 8,
             .workgroup_count                = workgroup_count,
@@ -67,7 +67,8 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
         vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_SPATIAL_LOOKUP_SORT]);
 
         spatial_lookup_sort_pc sort_pc = {
-            .spatial_lookup_addr            = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup),
+            .spatial_lookup_read_addr       = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[simulation->read_index]),
+            .spatial_lookup_write_addr      = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[simulation->write_index]),
             .spatial_lookup_histograms_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup_histograms),
             .shift                          = i * 8,
             .workgroup_count                = workgroup_count,
@@ -75,7 +76,7 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
         };
 
         vulkan_command_push_constants(queue, sizeof(sort_pc), &sort_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_SPATIAL_LOOKUP_SORT]);
-        vulkan_command_dispatch(queue, workgroup_count, 1, 1);   
+        vulkan_command_dispatch(queue, workgroup_count, 1, 1);
     }
 }
 
@@ -115,7 +116,8 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * PARTICLE_COUNT, NULL, "particle_velocities_zero", &result.velocities[0]);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * PARTICLE_COUNT, NULL, "particle_velocities_one", &result.velocities[1]);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * PARTICLE_COUNT, NULL, "particle_densities", &result.densities);
-    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(simulation_spatial_lookup_entry) * PARTICLE_COUNT, NULL, "particle_spatial_lookup", &result.spatial_lookup);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(simulation_spatial_lookup_entry) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_zero", &result.spatial_lookup[0]);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(simulation_spatial_lookup_entry) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_one", &result.spatial_lookup[1]);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_histograms", &result.spatial_lookup_histograms);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * PARTICLE_COUNT, NULL, "particle_start_indices", &result.start_indices);
 
@@ -158,7 +160,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     }
 
     vulkan_buffer spatial_lookup;
-    if (!vulkan_buffer_device_local_get_data(vulkan, &app->frame_arena, result.spatial_lookup, "spatal_lookup_sorted", &spatial_lookup))
+    if (!vulkan_buffer_device_local_get_data(vulkan, &app->frame_arena, result.spatial_lookup[result.write_index], "spatal_lookup_sorted", &spatial_lookup))
     {
         return false;
     }
@@ -277,7 +279,8 @@ void simulation_destroy(app *app, simulation *simulation)
     vulkan_object_destroy(vulkan, sizeof(simulation->velocities[0]), &simulation->velocities[0], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->velocities[1]), &simulation->velocities[1], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->densities), &simulation->densities, (vulkan_destroy_func)vulkan_buffer_destroy);
-    vulkan_object_destroy(vulkan, sizeof(simulation->spatial_lookup), &simulation->spatial_lookup, (vulkan_destroy_func)vulkan_buffer_destroy);
+    vulkan_object_destroy(vulkan, sizeof(simulation->spatial_lookup[0]), &simulation->spatial_lookup[0], (vulkan_destroy_func)vulkan_buffer_destroy);
+    vulkan_object_destroy(vulkan, sizeof(simulation->spatial_lookup[1]), &simulation->spatial_lookup[1], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->spatial_lookup_histograms), &simulation->spatial_lookup_histograms, (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->start_indices), &simulation->start_indices, (vulkan_destroy_func)vulkan_buffer_destroy);
 

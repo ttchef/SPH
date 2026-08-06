@@ -29,7 +29,7 @@ typedef struct
     vulkan_bindless_scene_ubo scene;
     simulation_ubo ubo_data;
 
-    vulkan_buffer spatial_lookup;
+    vulkan_buffer spatial_lookup[PING_PONG_COUNT];
     vulkan_buffer spatial_lookup_histograms;
     vulkan_buffer start_indices;
     
