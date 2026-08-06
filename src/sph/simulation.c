@@ -156,7 +156,7 @@ bool simulation_create(app *app, simulation *out_simulation)
         .particle_count      = PARTICLE_COUNT,
         .target_density      = 0.0065,
         .pressure_multiplier = 2.5f,
-        .smoothing_radius    = 15.0f,
+        .smoothing_radius    = 7.0f,
         .viscosity_coeff     = 15.0f,
     };
     SDL_memcpy(vulkan_bindless_scene_ubo_get(&vulkan->bindless, result.scene), &result.ubo_data, sizeof(simulation_ubo));
