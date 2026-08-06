@@ -49,16 +49,16 @@ void computeMain(uint index: SV_DispatchThreadID, uint local_index : SV_GroupThr
 	const uint sum = WaveActiveSum(histogram_count);
 	const uint prefix_sum = WavePrefixSum(histogram_count);
 
-	if (WaveIsFirstLane() && WaveGetLaneIndex() < (bin_count / subgroup_size))
+	if (WaveIsFirstLane() && WaveGetWaveIndex() < (bin_count / subgroup_size))
 	{
-		sums[WaveGetLaneIndex()] = sum;	
+		sums[WaveGetWaveIndex()] = sum;	
 	}
 	GroupMemoryBarrierWithGroupSync();
 
 	if (local_index < bin_count)
 	{
 		uint sums_prefix_sum = 0;
-		for (uint i = 0; i < WaveGetLaneIndex(); i++)
+		for (uint i = 0; i < WaveGetWaveIndex(); i++)
 		{
 			sums_prefix_sum += sums[i];
 		}
