@@ -29,6 +29,8 @@ FetchContent_Declare(
     SLANG
     URL ${SLANG_URL}    
 )
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_UCLIBC_LIBM OFF CACHE BOOL "" FORCE)
 
 FetchContent_Makeavailable(SDL3 SLANG)
 
@@ -55,7 +57,7 @@ foreach(FILE ${SHADER_FILES})
 
     add_custom_command(
         OUTPUT ${SPV_FILE}
-        COMMAND ${SLANG_SOURCE_DIR}/bin/slangc ${CMAKE_CURRENT_SOURCE_DIR}/${FILE}
+        COMMAND ${slang_SOURCE_DIR}/bin/slangc ${CMAKE_CURRENT_SOURCE_DIR}/${FILE}
                 -I ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/modules
                 -o ${SPV_FILE}
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${FILE}
