@@ -107,13 +107,13 @@ float4 calc_force(uint particle_index)
 
 			float4 gradient = W_spiky_gradient(pos_i, pos_j);
 
-			float density_j = pc.densities[i];
+			float density_j = pc.densities[other];
 			float term2 = calc_pressure(density_j) / (density_j * density_j);
 
 			pressure += gradient * (term1 + term2);
 
-			float4 v_ij = vel_i - pc.velocities_read[i];
-			float4 x_ij = pos_i - pc.positions_read[i];
+			float4 v_ij = vel_i - pc.velocities_read[other];
+			float4 x_ij = pos_i - pc.positions_read[other];
 
 			float numerator = dot(x_ij, gradient);
 			float denominator = dot(x_ij, x_ij) + 0.01 * scene_ubo.smoothing_radius * scene_ubo.smoothing_radius;

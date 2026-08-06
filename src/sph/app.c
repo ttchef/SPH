@@ -402,8 +402,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     ui_layout_calculate(app);
 
-    if (app->reset_pressed || app->first_time)
+    if (app->reset_pressed)
     {
+        // NOTE: Only for nsight
         app->first_time = false;
         simulation_destroy(app, &app->simulation);
         simulation_create(app, &app->simulation);

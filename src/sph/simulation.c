@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X     30
-#define PARTICLE_Y     30
-#define PARTICLE_Z     30
+#define PARTICLE_X     50
+#define PARTICLE_Y     50
+#define PARTICLE_Z     50
 #define PARTICLE_COUNT PARTICLE_X * PARTICLE_Y * PARTICLE_Z
 
 static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count, u32 sorted)
@@ -161,6 +161,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     };
     SDL_memcpy(vulkan_bindless_scene_ubo_get(&vulkan->bindless, result.scene), &result.ubo_data, sizeof(simulation_ubo));
 
+    /*
     vulkan_command_queue *spatial_lookup_queue = vulkan_command_begin(&app->frame_arena);
 
     u32 sorted = spatial_lookup_sort(app, spatial_lookup_queue, &result);
@@ -218,7 +219,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     SDL_Log("Density %u: %.4f", middle_index, density);
 
     vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
-
+    */
     result.initialized = true;
 
     *out_simulation = result;
