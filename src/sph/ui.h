@@ -90,6 +90,8 @@ typedef struct
     };
 } ui_position;
 
+typedef void (*ui_draw_fn)(app *app, vulkan_command_queue *queue, v2 pos, v2 size);
+
 typedef struct ui_element
 {
     ui_id       id;
@@ -106,6 +108,8 @@ typedef struct ui_element
 
     f32           child_gap;
     ui_alignement child_align;
+
+    ui_draw_fn custom_draw;
 
     struct
     {
@@ -151,7 +155,7 @@ ui_element *ui_open(ui_element *parent, ui_element element);
 
 void ui_close(ui_element *element);
 
-void ui_draw(app *app);
+void ui_draw(app *app, vulkan_command_queue *queue);
 
 ui_context *ui_context_get(void);
 

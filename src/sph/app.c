@@ -411,7 +411,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     }
 
     vulkan_command_label_begin(queue, "ui", RED);
-    ui_draw(app);
+    ui_draw(app, queue);
     vulkan_command_label_end(queue);
 
     vulkan_command_end_rendering(queue);

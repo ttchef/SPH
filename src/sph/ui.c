@@ -400,22 +400,29 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
     }
 }
 
-static void ui_draw_helper(app *app, ui_element *root)
+static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *root)
 {
     if (!root)
     {
         return;
     }
 
-    if (root->gradient.type == GRADIENT_NONE)
+    if (root->custom_draw)
     {
-        draw_quad(app, GET_POS(root->pos), v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
+        root->custom_draw(app, queue, GET_POS(root->pos), v2make(root->width.min_max.min, root->height.min_max.min));
     }
     else
     {
-        draw_gradient(app, root->pos.relative, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->gradient.a, root->gradient.b, root->gradient.type);
+        if (root->gradient.type == GRADIENT_NONE)
+        {
+            draw_quad(app, GET_POS(root->pos), v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
+        }
+        else
+        {
+            draw_gradient(app, root->pos.relative, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->gradient.a, root->gradient.b, root->gradient.type);
+        }       
     }
-    
+
     if (root->text.chars)
     {
         // TODO: Fix this
@@ -498,17 +505,17 @@ static void ui_draw_helper(app *app, ui_element *root)
             }   
         }
 
-        ui_draw_helper(app, child);
+        ui_draw_helper(app, queue, child);
     }
 }
 
-void ui_draw(app *app)
+void ui_draw(app *app, vulkan_command_queue *queue)
 {
     ui_element *root = ui_ctx.root;
 
     ui_percent_resolve(root, app->window.width, app->window.height);
     ui_grow_resolve(root, app->window.width, app->window.height);
-    ui_draw_helper(app, root);
+    ui_draw_helper(app, queue, root);
 }
 
 ui_context *ui_context_get(void)

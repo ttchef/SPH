@@ -92,10 +92,18 @@ typedef struct
     VkDeviceAddress start_indices_addr;
 } start_indices_pc;
 
+typedef struct
+{
+    m4 model;
+} color_picker_pc;
+
 enum
 {
+    // NOTE: Draw Helper
     PIPELINE_TEXTURED_QUAD,
     PIPELINE_CUBE_LINES,
+
+    // NOTE: Particle stuff
     PIPELINE_PARTICLE_RENDER,
     PIPELINE_PARTICLE_UPDATE,
     PIPELINE_PARTICLE_DENSITY,
@@ -103,6 +111,9 @@ enum
     PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS,
     PIPELINE_SPATIAL_LOOKUP_SORT,
     PIPELINE_START_INDICES,
+
+    // NOTE: Ui
+    PIPELINE_COLOR_PICKER,
     PIPELINE_COUNT,
 };
 

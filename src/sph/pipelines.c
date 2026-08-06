@@ -92,6 +92,19 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .push_constant_size    = sizeof(start_indices_pc),
         .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
     },
+    [PIPELINE_COLOR_PICKER] = {
+        .name                  = "color picker",
+        .type                  = VULKAN_PIPELINE_TYPE_GRAPHICS,
+        .vertex_path           = "spv/color_picker.spv",
+        .fragment_path         = "spv/color_picker.spv",
+        .vertex_entry          = "vertexMain",
+        .fragment_entry        = "fragmentMain",
+        .topology              = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .depth_test            = VK_TRUE,
+        .depth_write           = VK_TRUE,
+        .push_constant_size    = sizeof(color_picker_pc),
+        .push_constants_stages = VK_SHADER_STAGE_VERTEX_BIT,
+    },
 };
 
 bool pipelines_create(vulkan *vulkan, vulkan_pipeline_id *pipelines, u32 count)

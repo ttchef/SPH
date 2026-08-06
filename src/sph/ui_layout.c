@@ -1,6 +1,7 @@
 
 #include <sph/app.h>
 #include <sph/ui_layout.h>
+#include <math/core.h>
 
 #define UI_COLOR0 color4gray(0.04, 1.0)
 #define UI_COLOR1 color4gray(0.08, 1.0)
@@ -211,14 +212,39 @@ static bool button(app *app, const char *label)
     return result;
 }
 
-static void color_picker(app *app)
+static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 size)
+{
+    v2 center = v2add(pos, v2scale(size, 0.5f));
+
+    m4 scale_m   = m4scale(size.x, size.y, 1.0);
+    m4 translate = m4translate(center.x, center.y, 0.0f);
+    m4 model     = m4mul(translate, scale_m);
+
+    color_picker_pc pc = {
+          .model = model,  
+    };
+
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_COLOR_PICKER]);
+    vulkan_command_push_constants(queue, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT, app->pipelines[PIPELINE_COLOR_PICKER]);
+    vulkan_command_draw(queue, 6);
+}
+
+static void color_picker(void)
 {    
     UI({
         .pos = ABSOLUTE(0, 0),
         .width = FIXED(200),
         .height = FIXED(200),
-        .color = RED,
-    }); 
+        .color = UI_COLOR2,
+        .padding = PAD_ALL(16),
+    })
+    {
+        UI({
+            .width = GROW(0),
+            .height = GROW(0),
+            .custom_draw = draw_color_picker,
+        });
+    }
 }
 
 static void color_gradient(app *app)
@@ -234,7 +260,7 @@ static void color_gradient(app *app)
     {
         if (HOVERED() && input_down(&app->input, INPUT_LMB))
         {
-            color_picker(app);         
+            color_picker();         
         }
     
         UI({
