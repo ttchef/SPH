@@ -24,32 +24,38 @@ void camera_update(camera *camera, window *window, input *input, f32 dt)
     // const v3 forward = v3norm(v3make(camera->dir.x, 0.0f, camera->dir.z));
     const v3 up      = v3up();
     const v3 right   = v3norm(v3cross(camera->dir, up));
+    f32 speed = camera->speed;
+
+    if (input_down(input, INPUT_LCTRL))
+    {
+        speed *= 2;
+    }
 
     if (input_down(input, INPUT_W))
     {
-        camera->pos = v3add(camera->pos, v3scale(camera->dir, camera->speed * dt));
+        camera->pos = v3add(camera->pos, v3scale(camera->dir, speed * dt));
         // camera->pos = v3add(camera->pos, v3scale(forward, camera->speed * dt));
     }
     if (input_down(input, INPUT_S))
     {
-        camera->pos = v3sub(camera->pos, v3scale(camera->dir, camera->speed * dt));
+        camera->pos = v3sub(camera->pos, v3scale(camera->dir, speed * dt));
         // camera->pos = v3sub(camera->pos, v3scale(forward, camera->speed * dt));
     }
     if (input_down(input, INPUT_A))
     {
-        camera->pos = v3sub(camera->pos, v3scale(right, camera->speed * dt));
+        camera->pos = v3sub(camera->pos, v3scale(right, speed * dt));
     }
     if (input_down(input, INPUT_D))
     {
-        camera->pos = v3add(camera->pos, v3scale(right, camera->speed * dt));
+        camera->pos = v3add(camera->pos, v3scale(right, speed * dt));
     }
     if (input_down(input, INPUT_SPACE))
     {
-        camera->pos = v3add(camera->pos, v3scale(up, camera->speed * dt));
+        camera->pos = v3add(camera->pos, v3scale(up, speed * dt));
     }
     if (input_down(input, INPUT_LSHIFT))
     {
-        camera->pos = v3sub(camera->pos, v3scale(up, camera->speed * dt));
+        camera->pos = v3sub(camera->pos, v3scale(up, speed * dt));
     }
 
     if (input_pressed(input, INPUT_RMB) && !MOUSE_OVER_UI())

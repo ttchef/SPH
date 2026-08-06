@@ -31,6 +31,8 @@ static u32 scancode_to_enum(u32 scancode)
         return INPUT_SPACE;
     case SDL_SCANCODE_LSHIFT:
         return INPUT_LSHIFT;
+    case SDL_SCANCODE_LCTRL:
+        return INPUT_LCTRL;
     }
 
     return INPUT_UNKOWN;

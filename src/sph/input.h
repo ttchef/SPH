@@ -23,6 +23,7 @@ enum
 
     INPUT_SPACE,
     INPUT_LSHIFT,
+    INPUT_LCTRL,
 
     INPUT_LMB,
     INPUT_RMB,
