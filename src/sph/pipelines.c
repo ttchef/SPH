@@ -60,6 +60,38 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .push_constant_size    = sizeof(particle_density_pc),
         .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
     },
+    [PIPELINE_SPATIAL_LOOKUP_WRITE] = {
+        .name                  = "spatial_lookup_write",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/spatial_lookup_write.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(spatial_lookup_write_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
+    [PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS] = {
+        .name                  = "spatial_lookup_histograms",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/spatial_lookup_histograms.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(spatial_lookup_histograms_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
+    [PIPELINE_SPATIAL_LOOKUP_SORT] = {
+        .name                  = "spatial_lookup_sort",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/spatial_lookup_sort.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(spatial_lookup_sort_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
+   [PIPELINE_START_INDICES] = {
+        .name                  = "start_indices",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/start_indices.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(start_indices_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
 };
 
 bool pipelines_create(vulkan *vulkan, vulkan_pipeline_id *pipelines, u32 count)

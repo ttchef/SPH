@@ -20,8 +20,18 @@ typedef struct
 
 typedef struct
 {
+    u32 particle_index;
+    u32 cell_key;
+} simulation_spatial_lookup_entry;
+
+typedef struct
+{
     vulkan_bindless_scene_ubo scene;
     simulation_ubo ubo_data;
+
+    vulkan_buffer spatial_lookup[PING_PONG_COUNT];
+    vulkan_buffer spatial_lookup_histograms;
+    vulkan_buffer start_indices;
     
     vulkan_buffer densities;
     vulkan_buffer velocities[PING_PONG_COUNT];

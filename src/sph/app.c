@@ -296,12 +296,13 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         return false;
     }
 
-    app->frame_arena = memory_arena_create(MEGABYTES(12));
+    app->frame_arena = memory_arena_create(MEGABYTES(50));
 
     app->render_bounding_box = true;
-    app->bounding_box        = cubemake(v3zero(), v3make(200, 200, 200));
+    app->bounding_box        = cubemake(v3zero(), v3make(400, 300, 400));
     app->particle_radius     = 1.6f;
     app->simulation_speed    = 1.0f;
+    app->first_time = true;
 
     app->simulation.initialized = false;
 
@@ -403,6 +404,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     if (app->reset_pressed)
     {
+        // NOTE: Only for nsight
+        app->first_time = false;
         simulation_destroy(app, &app->simulation);
         simulation_create(app, &app->simulation);
     }
