@@ -35,9 +35,9 @@ static void ui_mouse_over_elements(ui_element *root, v2 mouse_pos, ui_id **point
         return;
     }
 
-    if (root->pos.x < mouse_pos.x && root->pos.y < mouse_pos.y &&
-        root->pos.x + root->width.min_max.min > mouse_pos.x &&
-        root->pos.y + root->height.min_max.min > mouse_pos.y)
+    if (root->pos.relative.x < mouse_pos.x && root->pos.relative.y < mouse_pos.y &&
+        root->pos.relative.x + root->width.min_max.min > mouse_pos.x &&
+        root->pos.relative.y + root->height.min_max.min > mouse_pos.y)
     {
         darray_push((void **)pointer_over_ids, &root->id);
     }
@@ -62,7 +62,7 @@ static void ui_data_collect(ui_element *root, ui_previous_data **world_positions
 
     ui_previous_data pos = {
         .id   = root->id,
-        .pos  = v2make(root->pos.x, root->pos.y),
+        .pos  = GET_POS(root->pos),
         .size = v2make(root->width.min_max.min, root->height.min_max.min),
     };
 
@@ -224,13 +224,13 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     {
         if (root->width.type == UI_SIZE_GROW)
         {
-            root->width.min_max.min = window_width - root->pos.x;
-            root->width.min_max.min = MIN(root->width.min_max.min, root->width.min_max.max - root->pos.x);
+            root->width.min_max.min = window_width - root->pos.relative.x;
+            root->width.min_max.min = MIN(root->width.min_max.min, root->width.min_max.max - root->pos.relative.x);
         }
         if (root->height.type == UI_SIZE_GROW)
         {
-            root->height.min_max.min = window_height - root->pos.y;
-            root->height.min_max.min = MIN(root->height.min_max.min, root->height.min_max.max - root->pos.y);
+            root->height.min_max.min = window_height - root->pos.relative.y;
+            root->height.min_max.min = MIN(root->height.min_max.min, root->height.min_max.max - root->pos.relative.y);
         }
     }
 
@@ -256,6 +256,11 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     for (u32 i = 0; i < darray_len(root->children); i++)
     {
         ui_element *child             = &root->children[i];
+        if (child->pos.type == POSITION_ABSOLUTE)
+        {
+            continue;
+        }
+        
         ui_size    *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
 
         if (along_layout_size->type == UI_SIZE_GROW)
@@ -404,17 +409,17 @@ static void ui_draw_helper(app *app, ui_element *root)
 
     if (root->gradient.type == GRADIENT_NONE)
     {
-        draw_quad(app, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
+        draw_quad(app, GET_POS(root->pos), v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->color, NULL, NULL);
     }
     else
     {
-        draw_gradient(app, root->pos, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->gradient.a, root->gradient.b, root->gradient.type);
+        draw_gradient(app, root->pos.relative, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->gradient.a, root->gradient.b, root->gradient.type);
     }
     
     if (root->text.chars)
     {
         // TODO: Fix this
-        v2 text_pos = root->pos;
+        v2 text_pos = root->pos.relative;
         text_pos.y -= root->text.font_size * 0.25f;
 
         draw_text(app, root->text.font, text_pos, root->text.font_size, "%s", root->text.chars);
@@ -431,63 +436,66 @@ static void ui_draw_helper(app *app, ui_element *root)
     {
         ui_element *child = &root->children[i];
 
-        child->pos = v2add(root->pos, child->pos);
+        if (child->pos.type == POSITION_RELATIVE)
+        {
+             child->pos.relative = v2add(root->pos.relative, child->pos.relative);
 
-        if (root->layout == LAYOUT_TO_RIGHT)
-        {
-            switch (root->child_align)
+            if (root->layout == LAYOUT_TO_RIGHT)
             {
-            case TOP:
+                switch (root->child_align)
+                {
+                case TOP:
+                {
+                    child->pos.relative.y += root->padding.top;
+                }
+                break;
+                case BOTTOM:
+                {
+                    child->pos.relative.y += root->height.min_max.min - root->padding.bottom - child->height.min_max.min;
+                }
+                break;
+                case CENTER:
+                {
+                    child->pos.relative.y += (root->height.min_max.min - root->padding.top - root->padding.bottom) * 0.5f - child->height.min_max.min * 0.5f + root->padding.top;
+                }
+                break;
+                default:
+                {
+                    SDL_Log("[UI] Unkown child alignement.");
+                }
+                break;
+                }
+                child->pos.relative.x += offset;
+                offset += child->width.min_max.min + root->child_gap;
+            }
+            else if (root->layout == LAYOUT_TO_BOTTOM)
             {
-                child->pos.y += root->padding.top;
-            }
-            break;
-            case BOTTOM:
-            {
-                child->pos.y += root->height.min_max.min - root->padding.bottom - child->height.min_max.min;
-            }
-            break;
-            case CENTER:
-            {
-                child->pos.y += (root->height.min_max.min - root->padding.top - root->padding.bottom) * 0.5f - child->height.min_max.min * 0.5f + root->padding.top;
-            }
-            break;
-            default:
-            {
-                SDL_Log("[UI] Unkown child alignement.");
-            }
-            break;
-            }
-            child->pos.x += offset;
-            offset += child->width.min_max.min + root->child_gap;
-        }
-        else if (root->layout == LAYOUT_TO_BOTTOM)
-        {
-            switch (root->child_align)
-            {
-            case LEFT:
-            {
-                child->pos.x += root->padding.left;
-            }
-            break;
-            case RIGHT:
-            {
-                child->pos.x += root->width.min_max.min - child->width.min_max.min - root->padding.right;
-            }
-            break;
-            case CENTER:
-            {
-                child->pos.x += (root->width.min_max.min - root->padding.left - root->padding.right) * 0.5f - child->width.min_max.min * 0.5f + root->padding.left;
-            }
-            break;
-            default:
-            {
-                SDL_Log("[UI] Unkown child alignement.");
-            }
-            break;
-            }
-            child->pos.y += offset;
-            offset += child->height.min_max.min + root->child_gap;
+                switch (root->child_align)
+                {
+                case LEFT:
+                {
+                    child->pos.relative.x += root->padding.left;
+                }
+                break;
+                case RIGHT:
+                {
+                    child->pos.relative.x += root->width.min_max.min - child->width.min_max.min - root->padding.right;
+                }
+                break;
+                case CENTER:
+                {
+                    child->pos.relative.x += (root->width.min_max.min - root->padding.left - root->padding.right) * 0.5f - child->width.min_max.min * 0.5f + root->padding.left;
+                }
+                break;
+                default:
+                {
+                    SDL_Log("[UI] Unkown child alignement.");
+                }
+                break;
+                }
+                child->pos.relative.y += offset;
+                offset += child->height.min_max.min + root->child_gap;
+            }   
         }
 
         ui_draw_helper(app, child);
@@ -542,7 +550,7 @@ bool ui_hovered(ui_id id)
     return false;
 }
 
-v2 ui_world_position(ui_id id, bool size)
+v2 ui_world_data(ui_id id, bool size)
 {
     for (u32 i = 0; i < darray_len(ui_ctx.previous_data); i++)
     {

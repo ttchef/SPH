@@ -89,14 +89,14 @@ static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
         })
         {
             UI({
-                .pos       = v2make(0, -bubble_size / 4),
+                .pos       = RELATIVE(0, -bubble_size / 4),
                 .width     = FIXED(bubble_size),
                 .height    = FIXED(bubble_size),
                 .roundness = 1.0f,
                 .color     = HOVERED() ? UI_COLOR9 : UI_COLOR6,
             })
             {
-                CURRENT()->pos.x = *value * size.x;
+                POS(CURRENT())->x = *value * size.x;
             }
         }
     }
@@ -212,12 +212,9 @@ static bool button(app *app, const char *label)
 }
 
 static void color_picker(app *app)
-{
-    v2 parent_world = WORLD_POS(PARENT()->id);
-    v2 pos = v2sub(v2zero(), parent_world);
-    
+{    
     UI({
-        .pos = pos,
+        .pos = ABSOLUTE(0, 0),
         .width = FIXED(200),
         .height = FIXED(200),
         .color = RED,
@@ -266,7 +263,7 @@ void ui_layout_calculate(app *app)
 
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
-        .pos       = v2make(app->window.width - layout->width, 0.0f),
+        .pos       = RELATIVE(app->window.width - layout->width, 0.0f),
         .width     = FIXED(layout->width),
         .height    = PERCENT(1.0f),
         .color     = UI_COLOR0,

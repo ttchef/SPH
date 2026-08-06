@@ -2,10 +2,10 @@
 #pragma once
 
 #include <math/vector.h>
-#include <sph/input.h>
-#include <sph/types.h>
 #include <sph/darray.h>
+#include <sph/input.h>
 #include <sph/ttf.h>
+#include <sph/types.h>
 #include <types.h>
 
 //
@@ -68,20 +68,37 @@ typedef enum
 
 typedef struct
 {
-    color4 a;
-    color4 b;
+    color4        a;
+    color4        b;
     gradient_type type;
 } ui_gradient;
 
+typedef enum
+{
+    POSITION_RELATIVE,
+    POSITION_ABSOLUTE,
+} ui_position_type;
+
+typedef struct
+{
+    ui_position_type type;
+
+    union
+    {
+        v2 relative;
+        v2 absolute;
+    };
+} ui_position;
+
 typedef struct ui_element
 {
-    ui_id     id;
-    ui_layout layout;
-    v2        pos;
-    ui_size   width;
-    ui_size   height;
-    color4    color;
-    f32       roundness;
+    ui_id       id;
+    ui_layout   layout;
+    ui_position pos;
+    ui_size     width;
+    ui_size     height;
+    color4      color;
+    f32         roundness;
 
     ui_gradient gradient;
 
@@ -144,7 +161,7 @@ ui_element *ui_open_elements_peek(i32 offset);
 
 bool ui_hovered(ui_id id);
 
-v2 ui_world_position(ui_id id, bool size);
+v2 ui_world_data(ui_id id, bool size);
 
 static inline ui_size FIXED(f32 size)
 {
@@ -203,6 +220,22 @@ static inline ui_padding PAD_ALL(f32 padding)
     };
 }
 
+static inline ui_position RELATIVE(f32 x, f32 y)
+{
+    return (ui_position){
+        .type     = POSITION_RELATIVE,
+        .relative = v2make(x, y),
+    };
+}
+
+static inline ui_position ABSOLUTE(f32 x, f32 y)
+{
+    return (ui_position){
+        .type     = POSITION_ABSOLUTE,
+        .absolute = v2make(x, y),
+    };
+}
+
 static inline ui_element *PARENT(void)
 {
     return ui_open_elements_peek(-1);
@@ -220,12 +253,25 @@ static inline bool HOVERED(void)
 
 static inline v2 WORLD_POS(ui_id id)
 {
-    return ui_world_position(id, false);
+    return ui_world_data(id, false);
 }
 
 static inline v2 SIZE(ui_id id)
 {
-    return ui_world_position(id, true);
+    return ui_world_data(id, true);
+}
+
+static inline v2 GET_POS(ui_position pos)
+{
+    switch (pos.type)
+    {
+    case POSITION_ABSOLUTE:
+        return pos.absolute;
+    case POSITION_RELATIVE:
+        return pos.relative;
+    default:
+        return v2zero();
+    }
 }
 
 static inline bool MOUSE_OVER_UI(void)
@@ -236,6 +282,19 @@ static inline bool MOUSE_OVER_UI(void)
         return darray_len(ctx->pointer_over_ids) > 0;
     }
     return false;
+}
+
+static inline v2 *POS(ui_element *element)
+{
+    switch (element->pos.type)
+    {
+    case POSITION_RELATIVE:
+        return &element->pos.relative;
+    case POSITION_ABSOLUTE:
+        return &element->pos.absolute;
+    default:
+        return NULL;
+    }
 }
 
 #define UI(...)                                                    \
