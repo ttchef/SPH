@@ -8,7 +8,7 @@
 #define PARTICLE_Z     30
 #define PARTICLE_COUNT PARTICLE_X * PARTICLE_Y * PARTICLE_Z
 
-static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count)
+static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count, u32 sorted)
 {
     vulkan *vulkan = &app->vulkan;
 
@@ -19,6 +19,8 @@ static void compute_densities(app *app, vulkan_command_queue *queue, simulation 
     particle_density_pc density_pc = {
         .densities_addr      = vulkan_buffer_address_get(vulkan, simulation->densities),
         .positions_read_addr = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
+        .spatial_lookup_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[sorted]),
+        .start_indices_addr  = vulkan_buffer_address_get(vulkan, simulation->start_indices),
     };
     vulkan_command_push_constants(queue, sizeof(density_pc), &density_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_PARTICLE_DENSITY]);
     vulkan_command_dispatch(queue, (particle_count + 255) / 256, 1, 1);
@@ -26,7 +28,7 @@ static void compute_densities(app *app, vulkan_command_queue *queue, simulation 
     vulkan_command_label_end(queue);
 }
 
-static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulation *simulation)
+static u32 spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulation *simulation)
 {
     vulkan *vulkan = &app->vulkan;
 
@@ -35,6 +37,7 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
     const u32 sort_groups          = 32;
     const u32 blocks_per_workgroup = (PARTICLE_COUNT + sort_groups * workgroup_size - 1) / (sort_groups * workgroup_size);
 
+    vulkan_command_label_begin(queue, "spatial lookup sort", MAGENTA);
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_SPATIAL_LOOKUP_WRITE]);
     vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_SPATIAL_LOOKUP_WRITE]);
 
@@ -46,14 +49,17 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
 
     vulkan_command_push_constants(queue, sizeof(write_pc), &write_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_SPATIAL_LOOKUP_WRITE]);
     vulkan_command_dispatch(queue, workgroup_count, 1, 1);
+    vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
+    u32 src = simulation->read_index;
+    u32 dst = simulation->write_index;
     for (u32 i = 0; i < 4; i++)
     {
         vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS]);
         vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS]);
 
         spatial_lookup_histograms_pc histograms_pc = {
-            .spatial_lookup_addr            = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[simulation->read_index]),
+            .spatial_lookup_addr            = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[src]),
             .spatial_lookup_histograms_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup_histograms),
             .shift                          = i * 8,
             .workgroup_count                = workgroup_count,
@@ -62,13 +68,14 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
 
         vulkan_command_push_constants(queue, sizeof(histograms_pc), &histograms_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS]);
         vulkan_command_dispatch(queue, workgroup_count, 1, 1);
+        vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
         vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_SPATIAL_LOOKUP_SORT]);
         vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_SPATIAL_LOOKUP_SORT]);
 
         spatial_lookup_sort_pc sort_pc = {
-            .spatial_lookup_read_addr       = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[simulation->read_index]),
-            .spatial_lookup_write_addr      = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[simulation->write_index]),
+            .spatial_lookup_read_addr       = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[src]),
+            .spatial_lookup_write_addr      = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[dst]),
             .spatial_lookup_histograms_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup_histograms),
             .shift                          = i * 8,
             .workgroup_count                = workgroup_count,
@@ -77,7 +84,27 @@ static void spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulatio
 
         vulkan_command_push_constants(queue, sizeof(sort_pc), &sort_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_SPATIAL_LOOKUP_SORT]);
         vulkan_command_dispatch(queue, workgroup_count, 1, 1);
+        vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+        // NOTE: Xor swap
+        src ^= dst;
+        dst ^= src;
+        src ^= dst;
     }
+
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_START_INDICES]);
+    vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_START_INDICES]);
+
+    start_indices_pc start_pc = {
+        .spatial_lookup_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[src]),
+        .start_indices_addr  = vulkan_buffer_address_get(vulkan, simulation->start_indices),
+    };
+
+    vulkan_command_push_constants(queue, sizeof(start_pc), &start_pc, VK_SHADER_STAGE_COMPUTE_BIT, app->pipelines[PIPELINE_START_INDICES]);
+    vulkan_command_dispatch(queue, workgroup_count, 1, 1);
+    vulkan_command_label_end(queue);
+
+    return src;
 }
 
 bool simulation_create(app *app, simulation *out_simulation)
@@ -109,6 +136,9 @@ bool simulation_create(app *app, simulation *out_simulation)
             }
         }
     }
+    const u32 workgroup_size       = 256;
+    const u32 workgroup_count      = (PARTICLE_COUNT + workgroup_size - 1) / workgroup_size;
+
     VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * PARTICLE_COUNT, particle_positions, "particle_positions_zero", &result.positions[0]);
@@ -118,7 +148,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * PARTICLE_COUNT, NULL, "particle_densities", &result.densities);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(simulation_spatial_lookup_entry) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_zero", &result.spatial_lookup[0]);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(simulation_spatial_lookup_entry) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_one", &result.spatial_lookup[1]);
-    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_histograms", &result.spatial_lookup_histograms);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * workgroup_count * workgroup_size, NULL, "particle_spatial_lookup_histograms", &result.spatial_lookup_histograms);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * PARTICLE_COUNT, NULL, "particle_start_indices", &result.start_indices);
 
     result.scene    = vulkan_bindless_scene_ubo_aquire(&vulkan->bindless);
@@ -131,9 +161,47 @@ bool simulation_create(app *app, simulation *out_simulation)
     };
     SDL_memcpy(vulkan_bindless_scene_ubo_get(&vulkan->bindless, result.scene), &result.ubo_data, sizeof(simulation_ubo));
 
+    vulkan_command_queue *spatial_lookup_queue = vulkan_command_begin(&app->frame_arena);
+
+    u32 sorted = spatial_lookup_sort(app, spatial_lookup_queue, &result);
+    if (!vulkan_command_end(spatial_lookup_queue, vulkan, true))
+    {
+        return false;
+    }
+
+    vulkan_buffer spatial_lookup;
+    if (!vulkan_buffer_device_local_get_data(vulkan, &app->frame_arena, result.spatial_lookup[sorted], "spatal_lookup_sorted", &spatial_lookup))
+    {
+        return false;
+    }
+
+    simulation_spatial_lookup_entry *entries = spatial_lookup.host_visible.data;
+    for (u32 i = 0; i < PARTICLE_COUNT; i++)
+    {
+        simulation_spatial_lookup_entry *entry = &entries[i];
+
+        SDL_Log("Entry %u:\n\tIndex: %u\n\tKey: %u", i, entry->particle_index, entry->cell_key);
+    }
+
+    vulkan_object_destroy(vulkan, sizeof(spatial_lookup), &spatial_lookup, (vulkan_destroy_func)vulkan_buffer_destroy);
+
+    vulkan_buffer start_indices;
+    if (!vulkan_buffer_device_local_get_data(vulkan, &app->frame_arena, result.start_indices, "start_indices_test", &start_indices))
+    {
+        return false;
+    }
+
+    u32 *start_indices_data = start_indices.host_visible.data;
+    for (u32 i = 0; i < PARTICLE_COUNT; i++)
+    {
+        if (start_indices_data[i] == UINT32_MAX) continue;
+        SDL_Log("Indice %u: %u", i, start_indices_data[i]);
+    }
+    vulkan_object_destroy(vulkan, sizeof(start_indices), &start_indices, (vulkan_destroy_func)vulkan_buffer_destroy);
+
     vulkan_command_queue *density_queue = vulkan_command_begin(&app->frame_arena);
 
-    compute_densities(app, density_queue, &result, PARTICLE_COUNT);
+    compute_densities(app, density_queue, &result, PARTICLE_COUNT, sorted);
     if (!vulkan_command_end(density_queue, vulkan, true))
     {
         return false;
@@ -150,30 +218,6 @@ bool simulation_create(app *app, simulation *out_simulation)
     SDL_Log("Density %u: %.4f", middle_index, density);
 
     vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
-
-    vulkan_command_queue *spatial_lookup_queue = vulkan_command_begin(&app->frame_arena);
-
-    spatial_lookup_sort(app, spatial_lookup_queue, &result);
-    if (!vulkan_command_end(spatial_lookup_queue, vulkan, true))
-    {
-        return false;
-    }
-
-    vulkan_buffer spatial_lookup;
-    if (!vulkan_buffer_device_local_get_data(vulkan, &app->frame_arena, result.spatial_lookup[result.write_index], "spatal_lookup_sorted", &spatial_lookup))
-    {
-        return false;
-    }
-
-    simulation_spatial_lookup_entry *entries = spatial_lookup.host_visible.data;
-    for (u32 i = 0; i < PARTICLE_COUNT; i++)
-    {
-        simulation_spatial_lookup_entry *entry = &entries[i];
-
-        SDL_Log("Entry %u:\n\tIndex: %u\n\tKey: %u", i, entry->particle_index, entry->cell_key);
-    }
-
-    vulkan_object_destroy(vulkan, sizeof(spatial_lookup), &spatial_lookup, (vulkan_destroy_func)vulkan_buffer_destroy);
 
     result.initialized = true;
 
@@ -206,9 +250,10 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
 
     const u32 particle_count = PARTICLE_X * PARTICLE_Y * PARTICLE_Z;
 
-    spatial_lookup_sort(app, queue, simulation);
+    u32 sorted = spatial_lookup_sort(app, queue, simulation);
 
-    compute_densities(app, queue, simulation, particle_count);
+    vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+    compute_densities(app, queue, simulation, particle_count, sorted);
 
     vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
@@ -235,6 +280,7 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
 
     simulation->read_index  = (simulation->read_index + 1) % PING_PONG_COUNT;
     simulation->write_index = (simulation->write_index + 1) % PING_PONG_COUNT;
+
     simulation->first_loop  = false;
 }
 
@@ -272,7 +318,7 @@ void simulation_destroy(app *app, simulation *simulation)
 
     vulkan *vulkan = &app->vulkan;
 
-    vulkan_bindless_sampler_release(&vulkan->bindless, simulation->scene);
+    vulkan_bindless_scene_ubo_release(&vulkan->bindless, simulation->scene);
 
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[0]), &simulation->positions[0], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[1]), &simulation->positions[1], (vulkan_destroy_func)vulkan_buffer_destroy);

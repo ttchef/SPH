@@ -41,6 +41,7 @@ set(SHADER_FILES
     src/shaders/spatial_lookup_write.slang
     src/shaders/spatial_lookup_histograms.slang
     src/shaders/spatial_lookup_sort.slang
+    src/shaders/start_indices.slang
 )
 
 set(SPV_OUT ${CMAKE_BINARY_DIR}/spv)

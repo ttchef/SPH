@@ -74,7 +74,10 @@ void computeMain(uint index: SV_DispatchThreadID, uint local_index : SV_GroupThr
 
 		if (local_index < bin_count)
 		{
-			bins[local_index].flags[i].store(0);
+			for (uint j = 0; j < workgroup_size / subgroup_size; j++)
+			{
+				bins[local_index].flags[j].store(0);
+			}
 		}
 		GroupMemoryBarrierWithGroupSync();
 

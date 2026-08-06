@@ -5,7 +5,8 @@ struct PushConstant
 {
 	float *densities;
 	float4 *positions_read;
-	float4 *padding;
+	SpatialLookupEntry *spatial_lookup;
+	uint *start_indices;
 };
 
 [[vk::push_constant]]
@@ -38,12 +39,26 @@ void computeMain(uint index: SV_DispatchThreadID)
 	}
 
 	float density = 0.0;
-
 	float4 p_i = pc.positions_read[index];
-	for (uint i = 0; i < scene_ubo.particle_count; i++)
+	int3 cell = position_to_cell(p_i);
+	
+	for (uint n = 0; n < neighbour_offsets.getCount(); n++)
 	{
-		float4 p_j = pc.positions_read[i];
-		density += W_poly6(p_i, p_j);
+		uint key = cell_hash(cell + neighbour_offsets[n]);
+		uint start = pc.start_indices[key];
+
+		if (start == U32_MAX)
+		{
+			continue;
+		}
+
+		for (uint i = start; i < scene_ubo.particle_count && pc.spatial_lookup[i].cell_key == key; i++)
+		{
+			uint particle_index = pc.spatial_lookup[i].particle_index;
+
+			float4 p_j = pc.positions_read[particle_index];
+			density += W_poly6(p_i, p_j);
+		}
 	}
 
 	pc.densities[index] = density;

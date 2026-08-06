@@ -32,6 +32,20 @@ public Texture2D<float4> textures[256];
 [[vk::binding(2, 0)]]
 public SamplerState samplers[256];
 
+public static const int3 neighbour_offsets[] = {
+    int3(-1,-1, 0), int3(0,-1, 0), int3(1,-1, 0),
+    int3(-1, 0, 0), int3(0, 0, 0), int3(1, 0, 0),
+    int3(-1, 1, 0), int3(0, 1, 0), int3(1, 1, 0),
+    
+    int3(-1,-1, 1), int3(0,-1, 1), int3(1,-1, 1),
+    int3(-1, 0, 1), int3(0, 0, 1), int3(1, 0, 1),
+    int3(-1, 1, 1), int3(0, 1, 1), int3(1, 1, 1),
+    
+    int3(-1,-1, -1), int3(0,-1, -1), int3(1,-1, -1),
+    int3(-1, 0, -1), int3(0, 0, -1), int3(1, 0, -1),
+    int3(-1, 1, -1), int3(0, 1, -1), int3(1, 1, -1)
+};
+
 public struct SpatialLookupEntry
 {
 	public uint particle_index;

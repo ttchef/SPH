@@ -54,7 +54,8 @@ typedef struct
 {
     VkDeviceAddress densities_addr;
     VkDeviceAddress positions_read_addr;
-    VkDeviceAddress padding;
+    VkDeviceAddress spatial_lookup_addr;
+    VkDeviceAddress start_indices_addr;
 } particle_density_pc;
 
 typedef struct
@@ -83,6 +84,12 @@ typedef struct
     u32 blocks_per_workgroup;
 } spatial_lookup_sort_pc;
 
+typedef struct
+{
+    VkDeviceAddress spatial_lookup_addr;
+    VkDeviceAddress start_indices_addr;
+} start_indices_pc;
+
 enum
 {
     PIPELINE_TEXTURED_QUAD,
@@ -93,6 +100,7 @@ enum
     PIPELINE_SPATIAL_LOOKUP_WRITE,
     PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS,
     PIPELINE_SPATIAL_LOOKUP_SORT,
+    PIPELINE_START_INDICES,
     PIPELINE_COUNT,
 };
 
