@@ -366,9 +366,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         f32       delta         = app->time.delta;
 
         u32 iteration_count = 0;
+        u32 negative = app->reverse_time ? -1 : 1;
         while (delta > 0.0f)
         {
-            simulation_update(app, &app->simulation, simulation_dt * app->simulation_speed);
+                simulation_update(app, &app->simulation, simulation_dt * app->simulation_speed * negative);
             delta -= simulation_dt;
 
             vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);

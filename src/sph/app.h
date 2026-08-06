@@ -39,6 +39,7 @@ struct app
 	bool reset_pressed;
 	bool paused;
 	bool first_time;
+	bool reverse_time;
 };
 
 //
