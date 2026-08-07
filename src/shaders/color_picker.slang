@@ -5,7 +5,7 @@ import utils;
 struct PushConstant
 {
     float4x4 model;
-    float hue;
+    float4 data;
 };
 
 [[vk::push_constant]]
@@ -74,8 +74,10 @@ float4 fragmentMain(VSOutput input)
 {
     float4 color = float4(0.0, 0.0, 0.0, 0.0);
 
+    float hue = pc.data.w;
+
 	float2 remapped_uv = input.uv * 2 - 1;
-    float2 triangle_uv = rotate(remapped_uv, degToRad(-pc.hue + 90.0f));
+    float2 triangle_uv = rotate(remapped_uv, degToRad(-hue + 90.0f));
     const float triangle_size = 0.75;
 
 	float triangle_sdf = sdfEquilateralTriangle(triangle_uv, triangle_size);
@@ -89,18 +91,24 @@ float4 fragmentMain(VSOutput input)
         const float2 v2 = float2(triangle_size, -triangle_size / k);
 
         const float3 colors[] = {
-            float3(pc.hue, 0.0, 1.0),
-            float3(pc.hue, 1.0, 0.0),
-            float3(pc.hue, 1.0, 1.0),
+            float3(hue, 0.0, 1.0),
+            float3(hue, 1.0, 0.0),
+            float3(hue, 1.0, 1.0),
         };
 
         float2 p = triangle_uv;
 
-        float u = (v0.x * (v2.y - v0.y) + (p.y - v0.y) * (v2.x - v0.x) - p.x * (v2.y - v0.y)) / ((v1.y - v0.y) * (v2.x - v0.x) - (v1.x - v0.x) * (v2.y - v0.y));
-        float v = (p.y - v0.y - u * (v1.y - v0.y)) / (v2.y - v0.y);
+        const float2 v0v1 = v1 - v0;
+        const float2 v0v2 = v2 - v0;
+        
+        float u = (v0.x * (v0v2.y) + (p.y - v0.y) * (v0v2.x) - p.x * (v0v2.y)) / ((v0v1.y) * (v0v2.x) - (v0v1.x) * (v0v2.y));
+        float v = (p.y - v0.y - u * (v0v1.y)) / (v0v2.y);
         float w = 1.0 - u - v; 
                 
-        color = float4(hsvToRgb(u * colors[0] + v * colors[1] + w * colors[2]), 1.0);
+        float3 rgb = hsvToRgb(u * colors[0] + v * colors[1] + w * colors[2]);
+        float pd = fwidth(triangle_sdf);
+        float alhpa = 1.0 - saturate(triangle_sdf / pd);
+        color = lerp(color, float4(rgb, 1.0), alhpa);
     }
     if (circle_sdf <= 0.015)
     {
@@ -111,13 +119,21 @@ float4 fragmentMain(VSOutput input)
             angle += 360.0;
         }
 
-        color = float4(hsvToRgb(angle, 1.0, 1.0), 1.0);
+        float3 rgb = hsvToRgb(angle, 1.0, 1.0);
+        float pd = fwidth(circle_sdf);
+        float alpha = 1.0 - saturate(circle_sdf / pd);
+        color = lerp(color, float4(rgb, 1.0), alpha);
     }
 
-	float sdf = min(triangle_sdf, circle_sdf);
-	float pd = fwidth(sdf);
-	float mask = 1.0 - saturate(sdf / pd);
+    float triangle_point_valid = pc.data.z;
+    float selected_circle_sdf = 10000000.0;
+    if (triangle_point_valid == 1.0)
+    {
+        selected_circle_sdf = sdfRing(triangle_uv - pc.data.xy, 0.05, 0.07);
+        float pd = fwidth(selected_circle_sdf);
+        float alpha = 1.0 - saturate(selected_circle_sdf / pd);
+        color = lerp(color, float4(1.0, 1.0, 1.0, 1.0), alpha);
+    }
 
-    color *= mask;
     return float4(gamma_correct(color.xyz), color.w);
 }

@@ -215,7 +215,7 @@ static bool button(app *app, const char *label)
 
 static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 size, void *data)
 {
-    f32 hue = *(f32 *)data;
+    color_picker_data *color_picker = (color_picker_data *)data;
 
     v2 center = v2add(pos, v2scale(size, 0.5f));
 
@@ -225,7 +225,10 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
 
     color_picker_pc pc = {
         .model = model,
-        .hue   = hue,
+        .data.x = color_picker->triangle_point.x,
+        .data.y = color_picker->triangle_point.y,
+        .data.z = color_picker->triangle_point_valid ? 1.0f : 0.0f,
+        .data.w   = color_picker->hue,
     };
 
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_COLOR_PICKER]);
@@ -312,11 +315,18 @@ static void color_picker(app *app)
 
                 f32 u = (mouse_pos.x / size.x) * 2.0f - 1.0f;
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
-                v2  p = v2make(u, v);
+                v2  p = v2make(u, -v);
 
-                if (sdf_ring2D(p, 0.9f, 1.0) <= 0.1f)
+                v2 triangle_p = v2rotate(p, TO_RADIANS(-layout->color_picker_data.hue + 90.0f));
+                if (sdf_triangle2D(triangle_p, 0.75) <= 0.0f)
                 {
                     set_active(app, CURRENT()->id);
+                    layout->color_picker_triangle_active = true;
+                }
+                else if (sdf_ring2D(p, 0.9f, 1.0) <= 0.1f)
+                {
+                    set_active(app, CURRENT()->id);
+                    layout->color_picker_triangle_active = false;
                 }
             }
 
@@ -326,12 +336,21 @@ static void color_picker(app *app)
 
                 f32 u = (mouse_pos.x / size.x) * 2.0f - 1.0f;
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
-                v2  p = v2make(u, v);
+                v2  p = v2make(u, -v);
 
-                layout->color_picker_hue = TO_DEGREES(SDL_atan2f(-p.y, p.x));
-                if (layout->color_picker_hue < 0.0f)
+                if (layout->color_picker_triangle_active)
                 {
-                    layout->color_picker_hue += 360.0f;
+                    v2 triangle_p = v2rotate(p, TO_RADIANS(-layout->color_picker_data.hue + 90.0f));
+                    layout->color_picker_data.triangle_point = triangle_p;
+                    layout->color_picker_data.triangle_point_valid = true;
+                }
+                else
+                {
+                    layout->color_picker_data.hue = TO_DEGREES(SDL_atan2f(p.y, p.x));
+                    if (layout->color_picker_data.hue < 0.0f)
+                    {
+                        layout->color_picker_data.hue += 360.0f;
+                    }
                 }
             }
 
@@ -340,7 +359,7 @@ static void color_picker(app *app)
                 .height = GROW(0),
                 .custom = {
                     .draw_func = draw_color_picker,
-                    .data      = (void *)&layout->color_picker_hue,
+                    .data      = (void *)&layout->color_picker_data,
                 },
             });
         }

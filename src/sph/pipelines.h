@@ -95,7 +95,12 @@ typedef struct
 typedef struct
 {
     m4 model;
-    f32 hue;
+    // NOTE:
+    // x -> triangle_point.x
+    // y -> triangle_point.y
+    // z -> triangle_point valid
+    // w -> hue
+    v4 data;
 } color_picker_pc;
 
 enum
