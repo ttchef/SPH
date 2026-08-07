@@ -3,6 +3,7 @@
 #include <vk/swapchain.h>
 
 #include <SDL3/SDL_log.h>
+#include <SDL3/SDL_stdinc.h>
 #include <vulkan/vulkan_core.h>
 
 static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h, VkSwapchainKHR old_handle)
@@ -19,7 +20,13 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
         return false;
     }
 
-    VkSurfaceFormatKHR formats[format_count];
+    VkSurfaceFormatKHR *formats = SDL_malloc(format_count * sizeof(*formats));
+    if (formats == NULL)
+    {
+        SDL_Log("[VULKAN] Failed to allocate surface formats.");
+        return false;
+    }
+
     vkGetPhysicalDeviceSurfaceFormatsKHR(vulkan->physical_device, vulkan->surface, &format_count, formats);
 
     VkSurfaceFormatKHR fmt = formats[0];
@@ -31,6 +38,7 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
             break;
         }
     }
+    SDL_free(formats);
 
     u32 present_mode_count;
     vkGetPhysicalDeviceSurfacePresentModesKHR(vulkan->physical_device, vulkan->surface, &present_mode_count, NULL);
@@ -41,7 +49,13 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
         return false;
     }
 
-    VkPresentModeKHR present_modes[present_mode_count];
+    VkPresentModeKHR *present_modes = SDL_malloc(present_mode_count * sizeof(*present_modes));
+    if (present_modes == NULL)
+    {
+        SDL_Log("[VULKAN] Failed to allocate present modes.");
+        return false;
+    }
+
     vkGetPhysicalDeviceSurfacePresentModesKHR(vulkan->physical_device, vulkan->surface, &present_mode_count, present_modes);
 
     VkPresentModeKHR present_mode = present_modes[0];
@@ -53,6 +67,7 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
             break;
         }
     }
+    SDL_free(present_modes);
 
     VkExtent2D extent = (VkExtent2D){
         .width  = w,
