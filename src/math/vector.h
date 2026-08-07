@@ -34,6 +34,22 @@ static inline f32 v2len(v2 v)
     return SDL_sqrtf(v2lensq(v));
 }
 
+static inline f32 v2dot(v2 a, v2 b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+
+static inline f32 v2cross(v2 a, v2 b)
+{
+    return a.x * b.y - a.y * b.x;
+}
+
+static inline f32 v2dist(v2 a, v2 b)
+{
+    v2 d = v2sub(b, a);
+    return v2dot(d, d);
+}
+
 static inline v2 v2lerp(v2 a, v2 b, f32 t)
 {
     return v2make(t * b.x + (1.0f - t) * a.x, t * b.y + (1.0f - t) * a.y);

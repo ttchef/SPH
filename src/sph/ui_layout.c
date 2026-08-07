@@ -224,11 +224,11 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
     m4 model     = m4mul(translate, scale_m);
 
     color_picker_pc pc = {
-        .model = model,
+        .model  = model,
         .data.x = color_picker->triangle_point.x,
         .data.y = color_picker->triangle_point.y,
         .data.z = color_picker->triangle_point_valid ? 1.0f : 0.0f,
-        .data.w   = color_picker->hue,
+        .data.w = color_picker->hue,
     };
 
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_COLOR_PICKER]);
@@ -340,9 +340,19 @@ static void color_picker(app *app)
 
                 if (layout->color_picker_triangle_active)
                 {
-                    v2 triangle_p = v2rotate(p, TO_RADIANS(-layout->color_picker_data.hue + 90.0f));
-                    layout->color_picker_data.triangle_point = triangle_p;
+                    v2 triangle_p                                  = v2rotate(p, TO_RADIANS(-layout->color_picker_data.hue + 90.0f));
+                    layout->color_picker_data.triangle_point       = triangle_p;
                     layout->color_picker_data.triangle_point_valid = true;
+
+                    if (sdf_triangle2D(triangle_p, 0.75) > 0.0f)
+                    {
+                        const f32 k  = SDL_sqrtf(3.0f);
+                        const v2  v0 = v2make(0.0, 2.0 * 0.75 / k);
+                        const v2  v1 = v2make(-0.75, -0.75 / k);
+                        const v2  v2 = v2make(0.75, -0.75 / k);
+
+                        layout->color_picker_data.triangle_point = math_closest_point_on_triangle(triangle_p, v0, v1, v2);
+                    }
                 }
                 else
                 {
