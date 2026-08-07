@@ -39,6 +39,8 @@ typedef struct input
 
     v2 mouse_pos;
     v2 mouse_delta;
+    // NOTE: Position of the mouse when the last press occured
+    v2 mouse_press_pos;
 
     bool relative_mouse;
     bool mouse_initialized;

@@ -349,9 +349,6 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height, vulkan_com
     vulkan_frame_data *frame_data  = &vulkan->command_handler.frame_data[frame_index];
     assert(frame_data);
 
-    vkWaitForFences(vulkan->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(vulkan->device, 1, &frame_data->in_flight_fence);
-
     VkResult result = vkAcquireNextImageKHR(vulkan->device, vulkan->swapchain.handle, UINT64_MAX, frame_data->image_available, VK_NULL_HANDLE, &vulkan->swapchain.image_index);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
@@ -390,6 +387,8 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height, vulkan_com
         .pSignalSemaphores    = signal_semaphores,
     };
 
+    vkResetFences(vulkan->device, 1, &frame_data->in_flight_fence);
+
     if (vkQueueSubmit(vulkan->graphics_queue.handle, 1, &submit_info, frame_data->in_flight_fence) != VK_SUCCESS)
     {
         SDL_Log("[VULKAN] Failed to submit graphics queue.");
@@ -416,6 +415,7 @@ void vulkan_draw(vulkan *vulkan, u32 window_width, u32 window_height, vulkan_com
         SDL_Log("[VULKAN] Failed to present.");
         return;
     }
+    vkWaitForFences(vulkan->device, 1, &frame_data->in_flight_fence, VK_TRUE, UINT64_MAX);
 
     vulkan->command_handler.frame_index = (vulkan->command_handler.frame_index + 1) % FRAMES_IN_FLIGHT;
     ++vulkan->command_handler.accumulated_frame_index;

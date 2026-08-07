@@ -449,7 +449,6 @@ bool vulkan_command_handler_create(vulkan *vulkan, vulkan_command_handler *out_h
 
     VkFenceCreateInfo fence_info = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
     };
 
     for (u32 i = 0; i < FRAMES_IN_FLIGHT; i++)
