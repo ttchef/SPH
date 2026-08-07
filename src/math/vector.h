@@ -24,6 +24,16 @@ static inline v2 v2scale(v2 v, f32 s)
     return v2make(v.x * s, v.y * s);
 }
 
+static inline f32 v2lensq(v2 v)
+{
+    return v.x * v.x + v.y * v.y;
+}
+
+static inline f32 v2len(v2 v)
+{
+    return SDL_sqrtf(v2lensq(v));
+}
+
 static inline v2 v2lerp(v2 a, v2 b, f32 t)
 {
     return v2make(t * b.x + (1.0f - t) * a.x, t * b.y + (1.0f - t) * a.y);

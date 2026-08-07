@@ -2,11 +2,11 @@
 #pragma once
 
 #include <assert.h>
+#include <float.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <float.h>
 
 typedef int8_t  i8;
 typedef int16_t i16;
@@ -35,6 +35,8 @@ static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 #define MAX(a, b)              ((a) > (b) ? (a) : (b))
 #define MIN(a, b)              ((a) < (b) ? (a) : (b))
 #define CLAMP(n, lower, upper) (MAX(MIN(n, upper), lower))
+#define ABS(x)                 ((x) < 0.0f ? -(x) : (x))
+#define SIGN(x)                ((x) < 0.0f ? -1.0 : 1.0)
 #define KILOBYTES(x)           ((x) * 1024)
 #define MEGABYTES(x)           ((KILOBYTES(x)) * 1024)
 
@@ -44,6 +46,7 @@ static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 #define FOURCC_LE(a, b, c, d) ((u32)(a) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(d) << 24))
 
 #define TO_RADIANS(deg) ((deg) * 3.14159265f / 180.0f)
+#define TO_DEGREES(rad) ((rad) * (180.0f / 3.14159265f))
 
 typedef struct
 {
@@ -63,14 +66,14 @@ static inline color4 color4gray(f32 v, f32 a)
     return color4make(v, v, v, a);
 }
 
-#define WHITE  (color4make(1.0, 1.0, 1.0, 1.0))
-#define BLACK  (color4make(0.0, 0.0, 0.0, 1.0))
-#define RED    (color4make(1.0, 0.0, 0.0, 1.0))
-#define GREEN  (color4make(0.0, 1.0, 0.0, 1.0))
-#define BLUE   (color4make(0.0, 0.0, 1.0, 1.0))
-#define YELLOW (color4make(1.0, 1.0, 0.0, 1.0))
+#define WHITE   (color4make(1.0, 1.0, 1.0, 1.0))
+#define BLACK   (color4make(0.0, 0.0, 0.0, 1.0))
+#define RED     (color4make(1.0, 0.0, 0.0, 1.0))
+#define GREEN   (color4make(0.0, 1.0, 0.0, 1.0))
+#define BLUE    (color4make(0.0, 0.0, 1.0, 1.0))
+#define YELLOW  (color4make(1.0, 1.0, 0.0, 1.0))
 #define MAGENTA (color4make(1.0, 0.0, 1.0, 1.0))
-#define CYAN   (color4make(0.0, 1.0, 1.0, 1.0))
+#define CYAN    (color4make(0.0, 1.0, 1.0, 1.0))
 
 typedef struct
 {

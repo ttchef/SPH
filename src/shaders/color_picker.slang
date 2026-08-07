@@ -53,7 +53,7 @@ float sdfEquilateralTriangle(float2 p, float r)
     const float k = sqrt(3.0);
 
     p.x = abs(p.x) - r;
-    p.y = p.y + r/k;
+    p.y = p.y + r / k;
 
     if(p.x + k * p.y > 0.0)
     {
@@ -63,7 +63,7 @@ float sdfEquilateralTriangle(float2 p, float r)
     return -length(p) * sign(p.y);
 }
 
-float sdfCircle(float2 p, float inner, float outer)
+float sdfRing(float2 p, float inner, float outer)
 {
     float d = length(p);
     return max(inner - d, d - outer);
@@ -75,21 +75,23 @@ float4 fragmentMain(VSOutput input)
     float4 color = float4(0.0, 0.0, 0.0, 0.0);
 
 	float2 remapped_uv = input.uv * 2 - 1;
-    float2 triangle_uv = rotate(remapped_uv, degToRad(pc.hue + 90.0));
+    float2 triangle_uv = rotate(remapped_uv, degToRad(-pc.hue + 90.0f));
+    const float triangle_size = 0.75;
 
-	float triangle_sdf = sdfEquilateralTriangle(triangle_uv, 0.75);
-	float circle_sdf = sdfCircle(remapped_uv, 0.9, 1.0);
+	float triangle_sdf = sdfEquilateralTriangle(triangle_uv, triangle_size);
+	float circle_sdf = sdfRing(remapped_uv, 0.9, 1.0);
 
     if (triangle_sdf <= 0.015)
     {
-        const float2 v0 = float2(0.0, 0.75);
-        const float2 v1 = float2(-0.75, -0.75);
-        const float2 v2 = float2(0.75, -0.75);
+        const float k = sqrt(3.0);
+        const float2 v0 = float2(0.0, 2.0 * triangle_size / k);
+        const float2 v1 = float2(-triangle_size, -triangle_size / k);
+        const float2 v2 = float2(triangle_size, -triangle_size / k);
 
         const float3 colors[] = {
-            hsvToRgb(0.0f, 1.0, 0.0),
-            hsvToRgb(0.0f, 0.0, 1.0),
-            hsvToRgb(0.0f, 1.0, 1.0),
+            float3(pc.hue, 0.0, 1.0),
+            float3(pc.hue, 1.0, 0.0),
+            float3(pc.hue, 1.0, 1.0),
         };
 
         float2 p = triangle_uv;
@@ -98,7 +100,7 @@ float4 fragmentMain(VSOutput input)
         float v = (p.y - v0.y - u * (v1.y - v0.y)) / (v2.y - v0.y);
         float w = 1.0 - u - v; 
                 
-        color = float4(u * colors[0] + v * colors[1] + w * colors[2], 1.0);
+        color = float4(hsvToRgb(u * colors[0] + v * colors[1] + w * colors[2]), 1.0);
     }
     if (circle_sdf <= 0.015)
     {

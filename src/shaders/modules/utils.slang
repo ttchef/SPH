@@ -116,7 +116,7 @@ public float3 hsvToRgb(float hue, float saturation, float value)
 public float3 hsvToRgb(float3 hsv)
 {
 	return hsvToRgb(hsv.x, hsv.y, hsv.z);
-}
+}	
 
 public float degToRad(float degrees)
 {

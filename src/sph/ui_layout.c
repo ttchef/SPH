@@ -235,12 +235,15 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
 static void color_picker(app *app)
 {
     ui_layout_context *layout = &app->ui_layout;
+    const u32 panel_width = 250;
+    const u32 panel_height = 290;
+    const u32 topbar_height = panel_height - panel_width;
 
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
         .pos       = ABSOLUTE(layout->color_picker_pos.x, layout->color_picker_pos.y),
-        .width     = FIXED(250),
-        .height    = FIXED(290),
+        .width     = FIXED(panel_width),
+        .height    = FIXED(panel_height),
         .color     = UI_COLOR2,
         .padding   = PAD_ALL(8),
         .child_gap = 12,
@@ -250,7 +253,7 @@ static void color_picker(app *app)
         // NOTE: Topbar
         UI({
             .width       = GROW(0),
-            .height      = FIXED(40),
+            .height      = FIXED(topbar_height),
             .color       = UI_COLOR4,
             .roundness   = 0.3f,
             .padding     = PAD_ALL(6),
@@ -260,12 +263,12 @@ static void color_picker(app *app)
             if (HOVERED() && input_down(&app->input, INPUT_LMB))
             {
                 layout->color_picker_pos = v2add(layout->color_picker_pos, app->input.mouse_delta);
-                layout->active_id = CURRENT()->id;
+                set_active(app, CURRENT()->id);
             }
         
             UI({
                 .layout      = LAYOUT_TO_RIGHT,
-                .width       = FIXED(40),
+                .width       = FIXED(topbar_height - CURRENT()->padding.right - CURRENT()->padding.left),
                 .height      = GROW(0),
                 .color       = RED,
                 .roundness   = 0.35f,
@@ -278,8 +281,8 @@ static void color_picker(app *app)
                 }
             
                 UI({
-                    .width  = FIXED(40),
-                    .height = GROW(0),
+                    .width  = FIT(0),
+                    .height = FIT(0),
                     .text   = {
                         .font_size = 30,
                         .chars     = "X",
@@ -296,6 +299,28 @@ static void color_picker(app *app)
             .color  = UI_COLOR0,
         })
         {
+            v2 world_pos = WORLD_POS(CURRENT()->id);
+            v2 size = SIZE(CURRENT()->id);
+
+            if (HOVERED() && input_down(&app->input, INPUT_LMB) && is_active(app, CURRENT()->id))
+            {
+                set_active(app, CURRENT()->id);
+                v2 mouse_pos = v2sub(app->input.mouse_pos, world_pos);
+
+                f32 u = (mouse_pos.x / size.x) * 2.0f - 1.0f;
+                f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
+                v2 p = v2make(u, v);
+
+                if (sdf_ring2D(p, 0.9f, 1.0) <= 0.0f)
+                {
+                    layout->color_picker_hue = TO_DEGREES(SDL_atan2f(-p.y, p.x));
+                    if (layout->color_picker_hue < 0.0f)
+                    {
+                        layout->color_picker_hue += 360.0f;
+                    }
+                }
+            }
+            
             UI({
                 .width  = GROW(0),
                 .height = GROW(0),
@@ -319,7 +344,7 @@ static void color_gradient(app *app)
         .padding = PAD_ALL(6),
     })
     {
-        if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+        if (HOVERED() && input_down(&app->input, INPUT_LMB))
         {
             layout->show_color_picker = true;
             layout->color_picker_pos  = WORLD_POS(CURRENT()->id);
