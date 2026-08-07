@@ -260,7 +260,7 @@ static void color_picker(app *app)
             .child_align = CENTER,
         })
         {
-            if (HOVERED() && input_down(&app->input, INPUT_LMB))
+            if (HOVERED() && input_down(&app->input, INPUT_LMB) && is_active(app, CURRENT()->id))
             {
                 layout->color_picker_pos = v2add(layout->color_picker_pos, app->input.mouse_delta);
                 set_active(app, CURRENT()->id);
@@ -302,9 +302,8 @@ static void color_picker(app *app)
             v2 world_pos = WORLD_POS(CURRENT()->id);
             v2 size = SIZE(CURRENT()->id);
 
-            if (HOVERED() && input_down(&app->input, INPUT_LMB) && is_active(app, CURRENT()->id))
+            if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
             {
-                set_active(app, CURRENT()->id);
                 v2 mouse_pos = v2sub(app->input.mouse_pos, world_pos);
 
                 f32 u = (mouse_pos.x / size.x) * 2.0f - 1.0f;
@@ -313,11 +312,22 @@ static void color_picker(app *app)
 
                 if (sdf_ring2D(p, 0.9f, 1.0) <= 0.0f)
                 {
-                    layout->color_picker_hue = TO_DEGREES(SDL_atan2f(-p.y, p.x));
-                    if (layout->color_picker_hue < 0.0f)
-                    {
-                        layout->color_picker_hue += 360.0f;
-                    }
+                    set_active(app, CURRENT()->id);
+                }
+            }
+
+            if (layout->active_id == CURRENT()->id)
+            {
+                v2 mouse_pos = v2sub(app->input.mouse_pos, world_pos);
+
+                f32 u = (mouse_pos.x / size.x) * 2.0f - 1.0f;
+                f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
+                v2 p = v2make(u, v);
+
+                layout->color_picker_hue = TO_DEGREES(SDL_atan2f(-p.y, p.x));
+                if (layout->color_picker_hue < 0.0f)
+                {
+                    layout->color_picker_hue += 360.0f;
                 }
             }
             
