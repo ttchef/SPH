@@ -71,3 +71,45 @@ public uint cell_hash(int3 cell)
 }
 
 
+public float3 hsvToRgb(float hue, float saturation, float value)
+{
+    float chroma = value * saturation;
+    float h1 = hue / 60.0;
+    float X = chroma * (1.0 - abs(h1 % 2 - 1));
+
+    float3 color;
+
+    if (h1 < 1.0)
+    {
+        color = float3(chroma, X, 0.0);
+    }
+    else if (h1 < 2.0)
+    {
+        color = float3(X, chroma, 0.0);
+    }
+    else if (h1 < 3.0)
+    {
+        color = float3(0.0, chroma, X);
+    }
+    else if (h1 < 4.0)
+    {
+        color = float3(0.0, X, chroma); 
+    }
+    else if (h1 < 5.0)
+    {
+        color = float3(X, 0.0, chroma);
+    }
+    else if (h1 < 6.0)
+    {
+        color = float3(chroma, 0.0, X);
+    }
+    else
+    {
+        // NOTE: Easy to debug
+        color = float3(1.0, 1.0, 1.0);
+    }
+
+    float m = value - chroma;
+    return color + m;
+}
+

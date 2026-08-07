@@ -75,6 +75,32 @@ float4 fragmentMain(VSOutput input)
 	float triangle_sdf = sdfEquilateralTriangle(remapped_uv, 0.75);
 	float circle_sdf = sdfCircle(remapped_uv, 0.9, 1.0);
 
+    if (triangle_sdf <= 0.015)
+    {
+        const float2 v0 = float2(0.0, 0.75);
+        const float2 v1 = float2(-0.75, -0.75);
+        const float2 v2 = float2(0.75, -0.75);
+
+        float2 p = remapped_uv;
+
+        float u = (v0.x * (v2.y - v0.x) + (p.y - v0.y) * (v2.x - v0.x) - p.x * (v2.y - v0.y)) / ((v1.y - v0.y) * (v2.x - v0.x) - (v1.x - v0.x) * (v2.y - v0.y));
+        float v = (p.y - v0.y - u * (v1.y - v0.y)) / (v2.y - v0.y);
+        float w = 1.0 - u - v; 
+                
+        color = float4(v, u, w, 1.0);
+    }
+    if (circle_sdf <= 0.015)
+    {
+        float angle = atan2(remapped_uv.y, remapped_uv.x) * (180 / PI);
+
+        if (angle < 0.0)
+        {
+            angle += 360.0;
+        }
+
+        color = float4(hsvToRgb(angle, 1.0, 1.0), 1.0);
+    }
+
 	float sdf = min(triangle_sdf, circle_sdf);
 	float pd = fwidth(sdf);
 	float mask = 1.0 - saturate(sdf / pd);

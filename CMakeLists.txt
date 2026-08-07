@@ -86,12 +86,15 @@ add_dependencies(${PROJECT_NAME} Shaders)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/W4>
-    $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall;-Wextra;-pedantic>
+    $<$<AND:$<CONFIG:Debug>,$<C_COMPILER_ID:MSVC>>:/W4>
+    $<$<AND:$<CONFIG:Debug>,$<NOT:$<C_COMPILER_ID:MSVC>>>:-Wall;-Wextra;-pedantic>
+    $<$<AND:$<CONFIG:Release>,$<C_COMPILER_ID:MSVC>>:/O2>
+    $<$<AND:$<CONFIG:Release>,$<NOT:$<C_COMPILER_ID:MSVC>>>:-O2>
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:DEBUG>
+    $<$<CONFIG:Release>:NDEBUG>
 )
 
 if (NOT MSVC)
