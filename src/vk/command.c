@@ -634,7 +634,7 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
 
             VkRenderingAttachmentInfo depth_attachment_info = {
                 .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .imageView   = vulkan->swapchain.depth_images[vulkan->swapchain.image_index].view,
+                .imageView   = vulkan->swapchain.depth_image.view,
                 .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
                 .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,

@@ -15,9 +15,10 @@ typedef struct
 	VkSwapchainKHR handle;
 	
 	VkImageView *image_views;
-	vulkan_image *depth_images;
 	VkSemaphore *finished;
 	VkImage *images;
+
+	vulkan_image depth_image;
 	
 	u32 image_count;
 	u32 image_index;

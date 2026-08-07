@@ -374,7 +374,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
             vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
 
             // NOTE: 1 only for developing
-            if (iteration_count++ > 1)
+            if (iteration_count++ > 4)
             {
                 break;
             }
