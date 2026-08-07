@@ -1,7 +1,7 @@
 
+#include <math/core.h>
 #include <sph/app.h>
 #include <sph/ui_layout.h>
-#include <math/core.h>
 
 #define UI_COLOR0 color4gray(0.04, 1.0)
 #define UI_COLOR1 color4gray(0.08, 1.0)
@@ -215,7 +215,7 @@ static bool button(app *app, const char *label)
 static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 size, void *data)
 {
     color4 current_color = *(color4 *)data;
-    
+
     v2 center = v2add(pos, v2scale(size, 0.5f));
 
     m4 scale_m   = m4scale(size.x, size.y, 1.0);
@@ -223,8 +223,9 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
     m4 model     = m4mul(translate, scale_m);
 
     color_picker_pc pc = {
-          .model = model,
-          .current_color = current_color, 
+        .model         = model,
+        .current_color = current_color,
+        .time          = app->time.elapsed,
     };
 
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_COLOR_PICKER]);
@@ -234,29 +235,72 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
 
 static void color_picker(app *app)
 {
+    ui_layout_context *layout = &app->ui_layout;
     static color4 color = {1.0f, 0.0f, 0.0f, 1.0f};
-    
+
     UI({
-        .pos = ABSOLUTE(0, 0),
-        .width = FIXED(200),
-        .height = FIXED(200),
-        .color = UI_COLOR2,
-        .padding = PAD_ALL(16),
+        .layout    = LAYOUT_TO_BOTTOM,
+        .pos       = ABSOLUTE(layout->color_picker_pos.x, layout->color_picker_pos.y),
+        .width     = FIXED(250),
+        .height    = FIXED(290),
+        .color     = UI_COLOR2,
+        .padding   = PAD_ALL(8),
+        .child_gap = 12,
+        .roundness = 0.05f,
     })
     {
+        // NOTE: Topbar
         UI({
-            .width = GROW(0),
-            .height = GROW(0),
-            .custom = {
-                .draw_func = draw_color_picker,
-                .data = (void *)&color,
-            },
+            .width       = GROW(0),
+            .height      = FIXED(40),
+            .color       = UI_COLOR4,
+            .roundness   = 0.3f,
+            .padding     = PAD_ALL(6),
+            .child_align = CENTER,
         })
         {
-            color = RED;
-            if (HOVERED() && input_down(&app->input, INPUT_LMB))
+            UI({
+                .layout = LAYOUT_TO_RIGHT,
+                .width = FIXED(40),
+                .height = GROW(0),
+                .color = RED,
+                .roundness = 0.35f,
+                .child_align = CENTER,
+            })
             {
-                color = GREEN;
+                UI({
+                    .width  = FIXED(40),
+                    .height = GROW(0),
+                    .text   = {
+                        .font_size = 30,
+                        .chars     = "X",
+                        .font      = &app->jet_brains,
+                    },
+                });
+            }
+        }
+
+        // NOTE: Color picker container
+        UI({
+            .width  = GROW(0),
+            .height = GROW(0),
+            .color  = UI_COLOR0,
+        })
+        {
+            UI({
+                .width  = GROW(0),
+                .height = GROW(0),
+                .custom = {
+                    .draw_func = draw_color_picker,
+                    .data      = (void *)&color,
+                },
+            })
+            {
+                color = RED;
+                if (HOVERED() && input_down(&app->input, INPUT_LMB))
+                {
+                    color = GREEN;
+                }
             }
         }
     }
@@ -267,28 +311,29 @@ static void color_gradient(app *app)
     ui_layout_context *layout = &app->ui_layout;
 
     UI({
-        .width = GROW(0),
-        .height = FIXED(48 * layout->height_scale),
-        .color = UI_COLOR1,
+        .width   = GROW(0),
+        .height  = FIXED(48 * layout->height_scale),
+        .color   = UI_COLOR1,
         .padding = PAD_ALL(6),
     })
     {
         if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
         {
             layout->show_color_picker = true;
+            layout->color_picker_pos = GET_POS(CURRENT()->pos);
         }
 
         if (layout->show_color_picker)
         {
             color_picker(app);
         }
-    
+
         UI({
-            .width = GROW(0),
-            .height = GROW(0),
+            .width    = GROW(0),
+            .height   = GROW(0),
             .gradient = {
-                .a = RED,
-                .b = BLUE,
+                .a    = RED,
+                .b    = BLUE,
                 .type = GRADIENT_HORIZOTNAL,
             },
         });
@@ -298,7 +343,7 @@ static void color_gradient(app *app)
 // NOTE: Non-linear ui scaling
 void layout_size(ui_layout_context *layout, u32 width, u32 height)
 {
-    layout->width = (SDL_sqrtf(width) * 6.5f) + 100;
+    layout->width        = (SDL_sqrtf(width) * 6.5f) + 100;
     layout->height_scale = MAX(height / 1440.0f, 0.6f);
 }
 

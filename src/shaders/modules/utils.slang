@@ -113,3 +113,20 @@ public float3 hsvToRgb(float hue, float saturation, float value)
     return color + m;
 }
 
+public float degToRad(float degrees)
+{
+	return degrees * (PI / 180.0);
+}
+
+public float radToDeg(float radians)
+{
+	return radians * (180.0 / PI);
+}
+
+public float2 rotate(float2 v, float radians)
+{
+	float x = v.x * cos(radians) + v.y * -sin(radians);
+	float y = v.x * sin(radians) + v.y * cos(radians);
+
+	return float2(x, y); 
+}

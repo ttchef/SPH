@@ -15,6 +15,7 @@ typedef struct
 	ui_id active_id;
 
 	bool show_color_picker;
+	v2 color_picker_pos;
 }  ui_layout_context;
 
 ui_layout_context ui_layout_create(void);

@@ -96,6 +96,7 @@ typedef struct
 {
     m4 model;
     color4 current_color;
+    f32 time;
 } color_picker_pc;
 
 enum
