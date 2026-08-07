@@ -50,3 +50,9 @@ color4 hsvtocolor4(f32 hue, f32 saturation, f32 value)
     f32 m = value - chroma;
     return color4make(color.x + m, color.y + m, color.z + m, 1.0f);
 }
+
+// NOTE: I cant keep up bro i gotta find better naming sheme like wtf
+color4 hsvtocolor4_2(v3 hsv)
+{
+    return hsvtocolor4(hsv.x, hsv.y, hsv.z);
+}

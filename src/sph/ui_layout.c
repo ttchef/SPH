@@ -2,6 +2,7 @@
 #include <math/core.h>
 #include <sph/app.h>
 #include <sph/ui_layout.h>
+#include <sph/color.h>
 
 #define UI_COLOR0 color4gray(0.04, 1.0)
 #define UI_COLOR1 color4gray(0.08, 1.0)
@@ -248,7 +249,7 @@ static void color_picker(app *app)
         .pos       = ABSOLUTE(layout->color_picker_pos.x, layout->color_picker_pos.y, 1),
         .width     = FIXED(panel_width),
         .height    = FIXED(panel_height),
-        .color     = UI_COLOR2,
+        .color     = layout->color_picker_color,
         .padding   = PAD_ALL(8),
         .child_gap = 12,
         .roundness = 0.05f,
@@ -344,15 +345,30 @@ static void color_picker(app *app)
                     layout->color_picker_data.triangle_point       = triangle_p;
                     layout->color_picker_data.triangle_point_valid = true;
 
+                    const f32 k  = SDL_sqrtf(3.0f);
+                    const v2  v0 = v2make(0.0, 2.0 * 0.75 / k);
+                    const v2  v1 = v2make(-0.75, -0.75 / k);
+                    const v2  v2 = v2make(0.75, -0.75 / k);
                     if (sdf_triangle2D(triangle_p, 0.75) > 0.0f)
                     {
-                        const f32 k  = SDL_sqrtf(3.0f);
-                        const v2  v0 = v2make(0.0, 2.0 * 0.75 / k);
-                        const v2  v1 = v2make(-0.75, -0.75 / k);
-                        const v2  v2 = v2make(0.75, -0.75 / k);
-
                         layout->color_picker_data.triangle_point = math_closest_point_on_triangle(triangle_p, v0, v1, v2);
                     }
+
+                    v3 colors[] = {
+                        v3make(layout->color_picker_data.hue, 0.0, 1.0),
+                        v3make(layout->color_picker_data.hue, 1.0, 0.0),
+                        v3make(layout->color_picker_data.hue, 1.0, 1.0),
+                    };
+
+                    v3 barycentrics = math_barycentrics(v0, v1, v2, layout->color_picker_data.triangle_point);
+
+                    // NOTE: Fuck naming at this point (i am writing this at 2 am)
+                    v3 a = v3scale(colors[0], barycentrics.x);
+                    v3 b = v3scale(colors[1], barycentrics.y);
+                    v3 c = v3scale(colors[2], barycentrics.z);
+
+                    v3 hsv = v3add(a, v3add(b, c));
+                    layout->color_picker_color = hsvtocolor4_2(hsv);
                 }
                 else
                 {

@@ -101,8 +101,8 @@ float4 fragmentMain(VSOutput input)
         const float2 v0v1 = v1 - v0;
         const float2 v0v2 = v2 - v0;
         
-        float u = (v0.x * (v0v2.y) + (p.y - v0.y) * (v0v2.x) - p.x * (v0v2.y)) / ((v0v1.y) * (v0v2.x) - (v0v1.x) * (v0v2.y));
-        float v = (p.y - v0.y - u * (v0v1.y)) / (v0v2.y);
+        float u = (v0.x * v0v2.y + (p.y - v0.y) * v0v2.x - p.x * v0v2.y) / (v0v1.y * v0v2.x - v0v1.x * v0v2.y);
+        float v = (p.y - v0.y - u * v0v1.y) / v0v2.y;
         float w = 1.0 - u - v; 
                 
         float3 rgb = hsvToRgb(u * colors[0] + v * colors[1] + w * colors[2]);

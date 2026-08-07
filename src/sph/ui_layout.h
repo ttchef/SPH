@@ -9,9 +9,9 @@
 
 typedef struct
 {
-    v2  triangle_point;
+    v2   triangle_point;
     bool triangle_point_valid;
-    f32 hue;
+    f32  hue;
 } color_picker_data;
 
 typedef struct
@@ -25,6 +25,7 @@ typedef struct
     bool              color_picker_triangle_active;
     v2                color_picker_pos;
     color_picker_data color_picker_data;
+    color4            color_picker_color;
 } ui_layout_context;
 
 ui_layout_context ui_layout_create(void);
