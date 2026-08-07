@@ -234,7 +234,7 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
 
 static void color_picker(app *app)
 {
-    static color4 color = (color4){1.0, 0.0, 0.0, 1.0};
+    static color4 color = {1.0f, 0.0f, 0.0f, 1.0f};
     
     UI({
         .pos = ABSOLUTE(0, 0),

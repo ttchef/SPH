@@ -17,12 +17,12 @@ FetchContent_Declare(
 
 if (LINUX)
     set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-linux-x86_64.tar.gz)
-elseif (WINDOWS)
-    set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-windows-aarch64.zip)
+elseif (WIN32)
+    set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-windows-x86_64.zip)
 elseif (APPLE)
     set(SLANG_URL https://github.com/shader-slang/slang/releases/download/v2026.14.1/slang-2026.14.1-macos-aarch64.zip)
 else()
-    message(STATUS "Unkown system")
+    message(FATAL_ERROR "Unknown system")
 endif()
 
 FetchContent_Declare(
@@ -85,21 +85,14 @@ add_executable(${PROJECT_NAME} WIN32 ${SRC_FILES})
 add_dependencies(${PROJECT_NAME} Shaders)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        -Wall
-        -Wextra
-        -pedantic
-        -g
-        -O0
-        -DDEBUG
-    )
-else()
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        -O2
-        -DNDEBUG
-    )
-endif()
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/W4>
+    $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall;-Wextra;-pedantic>
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:DEBUG>
+)
 
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE m)
@@ -111,6 +104,9 @@ add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
             ${CMAKE_CURRENT_SOURCE_DIR}/assets
-            ${CMAKE_CURRENT_BINARY_DIR}/assets
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${SPV_OUT}
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/spv
     VERBATIM
 )

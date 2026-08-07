@@ -9,6 +9,8 @@
 #include <SDL3/SDL_endian.h>
 #include <SDL3/SDL_log.h>
 
+#define SEGMENT_RESOLUTION 12u
+
 //
 // NOTE: TTF Spec: https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6cmap.html
 //       This parser only implements cmap format 4 and 12 which are the most widely used
@@ -1153,8 +1155,6 @@ static line_segment *glyph_segments_generate(glyf *glyf)
     line_segment *seg = darray_create(sizeof(line_segment));
     assert(seg);
 
-    const u32 segment_resolution = 12;
-
     for (u32 i = 0; i < darray_len(glyf->glyphs); i++)
     {
         glyf_simple *simple = &glyf->glyphs[i];
@@ -1203,10 +1203,10 @@ static line_segment *glyph_segments_generate(glyf *glyf)
                 {
                     if (has_control_point)
                     {
-                        line_segment s[segment_resolution];
-                        line_segment_bezier(start, point, control, segment_resolution, s);
+                        line_segment s[SEGMENT_RESOLUTION];
+                        line_segment_bezier(start, point, control, SEGMENT_RESOLUTION, s);
 
-                        for (u32 k = 0; k < segment_resolution; k++)
+                        for (u32 k = 0; k < SEGMENT_RESOLUTION; k++)
                         {
                             darray_push((void *)&seg, &s[k]);
                         }
@@ -1229,10 +1229,10 @@ static line_segment *glyph_segments_generate(glyf *glyf)
                     {
                         v2 middle = v2lerp(control, point, 0.5f);
 
-                        line_segment s[segment_resolution];
-                        line_segment_bezier(start, middle, control, segment_resolution, s);
+                        line_segment s[SEGMENT_RESOLUTION];
+                        line_segment_bezier(start, middle, control, SEGMENT_RESOLUTION, s);
 
-                        for (u32 k = 0; k < segment_resolution; k++)
+                        for (u32 k = 0; k < SEGMENT_RESOLUTION; k++)
                         {
                             darray_push((void *)&seg, &s[k]);
                         }
