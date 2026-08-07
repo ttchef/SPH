@@ -178,15 +178,15 @@ void draw_gradient(app *app, v2 pos, v2 scale, f32 roundness, color4 a, color4 b
     m4 model     = m4mul(translate, scale_m);
 
     textured_quad_pc pc = {
-        .model        = model,
-        .uv_min       = v2make(0.0f, 0.0f),
-        .uv_max       = v2make(1.0f, 1.0f),
-        .image        = VULKAN_INVALID_BINDING,
-        .sampler      = VULKAN_INVALID_BINDING,
-        .color        = v4fromcolor4(a),
-        .roundness    = roundness,
-        .aspect_ratio = scale.x / scale.y,
-        .gradient = type,
+        .model          = model,
+        .uv_min         = v2make(0.0f, 0.0f),
+        .uv_max         = v2make(1.0f, 1.0f),
+        .image          = VULKAN_INVALID_BINDING,
+        .sampler        = VULKAN_INVALID_BINDING,
+        .color          = v4fromcolor4(a),
+        .roundness      = roundness,
+        .aspect_ratio   = scale.x / scale.y,
+        .gradient       = type,
         .gradient_color = v4fromcolor4(b),
     };
 
@@ -302,7 +302,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     app->bounding_box        = cubemake(v3zero(), v3make(400, 300, 400));
     app->particle_radius     = 1.6f;
     app->simulation_speed    = 1.0f;
-    app->first_time = true;
+    app->first_time          = true;
 
     app->simulation.initialized = false;
 
@@ -415,8 +415,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     vulkan_command_label_end(queue);
 
     vulkan_command_end_rendering(queue);
-
     vulkan_draw(vulkan, app->window.width, app->window.height, queue);
+
     input_update(&app->input, &app->window);
 
     return SDL_APP_CONTINUE;

@@ -28,7 +28,7 @@ ui_layout_context ui_layout_create(void)
 
 static bool is_active(app *app, ui_id id)
 {
-    return (app->ui_layout.active_id == id || app->ui_layout.active_id == UI_INVALID_ID);
+    return (app->ui_layout.active_id == id);
 }
 
 static void set_active(app *app, ui_id id)
@@ -55,19 +55,20 @@ static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
         .roundness   = STD_ROUNDNESS,
     })
     {
+        if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+        {
+            set_active(app, CURRENT()->id);
+        }
+
         v2 world_pos = WORLD_POS(CURRENT()->id);
         world_pos.x += CURRENT()->padding.left + bubble_size * 0.5f;
 
         v2 size = SIZE(CURRENT()->id);
         size.x -= CURRENT()->padding.right + CURRENT()->padding.left + bubble_size;
 
-        if (size.x > FLT_EPSILON)
+        if (is_active(app, CURRENT()->id) && size.x > FLT_EPSILON)
         {
-            if (HOVERED() && input_down(&app->input, INPUT_LMB) && is_active(app, CURRENT()->id))
-            {
-                *value = (app->input.mouse_pos.x - world_pos.x) / size.x;
-                set_active(app, CURRENT()->id);
-            }
+            *value = (app->input.mouse_pos.x - world_pos.x) / size.x;
         }
 
         UI({
@@ -234,10 +235,10 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
 
 static void color_picker(app *app)
 {
-    ui_layout_context *layout = &app->ui_layout;
-    const u32 panel_width = 250;
-    const u32 panel_height = 290;
-    const u32 topbar_height = panel_height - panel_width;
+    ui_layout_context *layout        = &app->ui_layout;
+    const u32          panel_width   = 250;
+    const u32          panel_height  = 290;
+    const u32          topbar_height = panel_height - panel_width;
 
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
@@ -260,12 +261,15 @@ static void color_picker(app *app)
             .child_align = CENTER,
         })
         {
-            if (HOVERED() && input_down(&app->input, INPUT_LMB) && is_active(app, CURRENT()->id))
+            if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
             {
-                layout->color_picker_pos = v2add(layout->color_picker_pos, app->input.mouse_delta);
                 set_active(app, CURRENT()->id);
             }
-        
+            if (is_active(app, CURRENT()->id))
+            {
+                layout->color_picker_pos = v2add(layout->color_picker_pos, app->input.mouse_delta);
+            }
+
             UI({
                 .layout      = LAYOUT_TO_RIGHT,
                 .width       = FIXED(topbar_height - CURRENT()->padding.right - CURRENT()->padding.left),
@@ -279,7 +283,7 @@ static void color_picker(app *app)
                 {
                     layout->show_color_picker = false;
                 }
-            
+
                 UI({
                     .width  = FIT(0),
                     .height = FIT(0),
@@ -300,7 +304,7 @@ static void color_picker(app *app)
         })
         {
             v2 world_pos = WORLD_POS(CURRENT()->id);
-            v2 size = SIZE(CURRENT()->id);
+            v2 size      = SIZE(CURRENT()->id);
 
             if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
             {
@@ -308,7 +312,7 @@ static void color_picker(app *app)
 
                 f32 u = (mouse_pos.x / size.x) * 2.0f - 1.0f;
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
-                v2 p = v2make(u, v);
+                v2  p = v2make(u, v);
 
                 if (sdf_ring2D(p, 0.9f, 1.0) <= 0.0f)
                 {
@@ -316,13 +320,13 @@ static void color_picker(app *app)
                 }
             }
 
-            if (layout->active_id == CURRENT()->id)
+            if (is_active(app, CURRENT()->id))
             {
                 v2 mouse_pos = v2sub(app->input.mouse_pos, world_pos);
 
                 f32 u = (mouse_pos.x / size.x) * 2.0f - 1.0f;
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
-                v2 p = v2make(u, v);
+                v2  p = v2make(u, v);
 
                 layout->color_picker_hue = TO_DEGREES(SDL_atan2f(-p.y, p.x));
                 if (layout->color_picker_hue < 0.0f)
@@ -330,7 +334,7 @@ static void color_picker(app *app)
                     layout->color_picker_hue += 360.0f;
                 }
             }
-            
+
             UI({
                 .width  = GROW(0),
                 .height = GROW(0),
