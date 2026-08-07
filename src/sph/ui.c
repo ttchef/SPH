@@ -97,6 +97,7 @@ void ui_update(input *input)
     ui_data_collect(ui_ctx.root, &ui_ctx.previous_data);
 
     ui_ctx.element_count = 0;
+    ui_ctx.floating.element_count = 0;
 
     if (ui_ctx.root)
     {
@@ -135,9 +136,9 @@ ui_element *ui_open(ui_element *parent, ui_element element)
         }
         ui_ctx.root = data;
 
-        if (ui_ctx.open_elements.count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
+        if (ui_ctx.open.element_count + 1 < ARRAY_COUNT(ui_ctx.open.elements))
         {
-            ui_ctx.open_elements.elements[ui_ctx.open_elements.count++] = data;
+            ui_ctx.open.elements[ui_ctx.open.element_count++] = data;
         }
 
         return data;
@@ -151,9 +152,9 @@ ui_element *ui_open(ui_element *parent, ui_element element)
     element.parent            = parent;
     ui_element *child_address = darray_push((void **)&parent->children, &element);
 
-    if (ui_ctx.open_elements.count + 1 < ARRAY_COUNT(ui_ctx.open_elements.elements))
+    if (ui_ctx.open.element_count + 1 < ARRAY_COUNT(ui_ctx.open.elements))
     {
-        ui_ctx.open_elements.elements[ui_ctx.open_elements.count++] = child_address;
+        ui_ctx.open.elements[ui_ctx.open.element_count++] = child_address;
     }
     return child_address;
 }
@@ -255,13 +256,13 @@ static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_heigh
     // NOTE: All sizes of regular sized elements
     for (u32 i = 0; i < darray_len(root->children); i++)
     {
-        ui_element *child             = &root->children[i];
+        ui_element *child = &root->children[i];
         if (child->pos.type == POSITION_ABSOLUTE)
         {
             continue;
         }
-        
-        ui_size    *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
+
+        ui_size *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
 
         if (along_layout_size->type == UI_SIZE_GROW)
         {
@@ -400,6 +401,17 @@ static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_he
     }
 }
 
+static void floating_push(ui_element *element)
+{
+    if (ui_ctx.floating.element_count + 1 > ARRAY_COUNT(ui_ctx.floating.elements))
+    {
+        SDL_Log("[UI] Max floating elements reached.");
+        return;
+    }
+
+    ui_ctx.floating.elements[ui_ctx.floating.element_count++] = element;
+}
+
 static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *root)
 {
     if (!root)
@@ -420,7 +432,7 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
         else
         {
             draw_gradient(app, root->pos.relative, v2make(root->width.min_max.min, root->height.min_max.min), root->roundness, root->gradient.a, root->gradient.b, root->gradient.type);
-        }       
+        }
     }
 
     if (root->text.chars)
@@ -443,9 +455,14 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
     {
         ui_element *child = &root->children[i];
 
-        if (child->pos.type == POSITION_RELATIVE)
+        if (child->pos.type == POSITION_ABSOLUTE)
         {
-             child->pos.relative = v2add(root->pos.relative, child->pos.relative);
+            floating_push(child);
+            continue;
+        }
+        else
+        {
+            child->pos.relative = v2add(root->pos.relative, child->pos.relative);
 
             if (root->layout == LAYOUT_TO_RIGHT)
             {
@@ -502,7 +519,7 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
                 }
                 child->pos.relative.y += offset;
                 offset += child->height.min_max.min + root->child_gap;
-            }   
+            }
         }
 
         ui_draw_helper(app, queue, child);
@@ -516,6 +533,11 @@ void ui_draw(app *app, vulkan_command_queue *queue)
     ui_percent_resolve(root, app->window.width, app->window.height);
     ui_grow_resolve(root, app->window.width, app->window.height);
     ui_draw_helper(app, queue, root);
+
+    for (u32 i = 0; i < ui_ctx.floating.element_count; i++)
+    {
+        ui_draw_helper(app, queue, ui_ctx.floating.elements[i]);
+    }
 }
 
 ui_context *ui_context_get(void)
@@ -525,23 +547,23 @@ ui_context *ui_context_get(void)
 
 ui_element *ui_open_elements_pop(void)
 {
-    if (ui_ctx.open_elements.count == 0)
+    if (ui_ctx.open.element_count == 0)
     {
         SDL_Log("[UI] Tried to pop open elements with a count of 0.");
         return NULL;
     }
 
-    return ui_ctx.open_elements.elements[--ui_ctx.open_elements.count];
+    return ui_ctx.open.elements[--ui_ctx.open.element_count];
 }
 
 ui_element *ui_open_elements_peek(i32 offset)
 {
-    if (ui_ctx.open_elements.count < (u32)SDL_abs(offset - 1))
+    if (ui_ctx.open.element_count < (u32)SDL_abs(offset - 1))
     {
         return NULL;
     }
 
-    return ui_ctx.open_elements.elements[ui_ctx.open_elements.count + offset - 1];
+    return ui_ctx.open.elements[ui_ctx.open.element_count + offset - 1];
 }
 
 bool ui_hovered(ui_id id)

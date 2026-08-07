@@ -50,6 +50,14 @@ static_assert(sizeof(f64) == 8, "a f64 is not 8 bytes");
 
 typedef struct
 {
+    u32 width;
+    u32 height;
+    u8 *data;
+} image_raw;
+
+
+typedef struct
+{
     f32 r;
     f32 g;
     f32 b;
@@ -74,10 +82,3 @@ static inline color4 color4gray(f32 v, f32 a)
 #define YELLOW  (color4make(1.0, 1.0, 0.0, 1.0))
 #define MAGENTA (color4make(1.0, 0.0, 1.0, 1.0))
 #define CYAN    (color4make(0.0, 1.0, 1.0, 1.0))
-
-typedef struct
-{
-    u32 width;
-    u32 height;
-    u8 *data;
-} image_raw;

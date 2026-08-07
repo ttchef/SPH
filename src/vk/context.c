@@ -251,14 +251,8 @@ static bool logical_device_init(vulkan *vulkan)
         .fillModeNonSolid = VK_TRUE,
     };
 
-    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor = {
-        .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
-        .descriptorBuffer = VK_TRUE,
-    };
-
     VkPhysicalDeviceVulkan12Features features12 = {
         .sType               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-        .pNext               = &descriptor,
         .bufferDeviceAddress = VK_TRUE,
         .timelineSemaphore   = VK_TRUE,
         // NOTE: indexing

@@ -242,7 +242,7 @@ static void color_picker(app *app)
 
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
-        .pos       = ABSOLUTE(layout->color_picker_pos.x, layout->color_picker_pos.y),
+        .pos       = ABSOLUTE(layout->color_picker_pos.x, layout->color_picker_pos.y, 1),
         .width     = FIXED(panel_width),
         .height    = FIXED(panel_height),
         .color     = UI_COLOR2,
@@ -314,7 +314,7 @@ static void color_picker(app *app)
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
                 v2  p = v2make(u, v);
 
-                if (sdf_ring2D(p, 0.9f, 1.0) <= 0.0f)
+                if (sdf_ring2D(p, 0.9f, 1.0) <= 0.1f)
                 {
                     set_active(app, CURRENT()->id);
                 }

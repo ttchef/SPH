@@ -33,7 +33,7 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
     VkSurfaceFormatKHR fmt = formats[0];
     for (u32 i = 0; i < format_count; i++)
     {
-        if (formats[i].format == VK_FORMAT_R8G8B8A8_UNORM && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        if (formats[i].format == VK_FORMAT_B8G8R8A8_UNORM && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
             fmt = formats[i];
             break;

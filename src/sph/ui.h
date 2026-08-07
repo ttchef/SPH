@@ -82,6 +82,7 @@ typedef enum
 typedef struct
 {
     ui_position_type type;
+    u32              z_order;
 
     union
     {
@@ -122,7 +123,7 @@ typedef struct ui_element
         const char *chars;
         u32         font_size;
         // NOTE: Must be statically allocated right now
-        ttf_font   *font;
+        ttf_font *font;
     } text;
 
     struct ui_element *parent;
@@ -143,8 +144,14 @@ typedef struct
     {
         // NOTE: Max of 32 element depth
         ui_element *elements[32];
-        u32         count;
-    } open_elements;
+        u32         element_count;
+    } open;
+
+    struct
+    {
+        ui_element *elements[64];
+        u32         element_count;
+    } floating;
 
     // NOTE: Only have one root element for now
     ui_element *root;
@@ -236,14 +243,16 @@ static inline ui_position RELATIVE(f32 x, f32 y)
     return (ui_position){
         .type     = POSITION_RELATIVE,
         .relative = v2make(x, y),
+        .z_order  = 0,
     };
 }
 
-static inline ui_position ABSOLUTE(f32 x, f32 y)
+static inline ui_position ABSOLUTE(f32 x, f32 y, u32 z)
 {
     return (ui_position){
         .type     = POSITION_ABSOLUTE,
         .absolute = v2make(x, y),
+        .z_order  = z,
     };
 }
 
