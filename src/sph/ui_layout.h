@@ -16,6 +16,7 @@ typedef struct
 
 	bool show_color_picker;
 	v2 color_picker_pos;
+	f32 color_picker_hue;
 }  ui_layout_context;
 
 ui_layout_context ui_layout_create(void);

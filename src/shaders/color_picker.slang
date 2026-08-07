@@ -5,8 +5,7 @@ import utils;
 struct PushConstant
 {
     float4x4 model;
-    float4 color;
-    float time;
+    float hue;
 };
 
 [[vk::push_constant]]
@@ -73,10 +72,12 @@ float sdfCircle(float2 p, float inner, float outer)
 [shader("fragment")]
 float4 fragmentMain(VSOutput input)
 {
-    float4 color = pc.color;
+    float4 color = float4(0.0, 0.0, 0.0, 0.0);
 
 	float2 remapped_uv = input.uv * 2 - 1;
-	float triangle_sdf = sdfEquilateralTriangle(rotate(remapped_uv, degToRad(pc.time * 50)), 0.75);
+    float2 triangle_uv = rotate(remapped_uv, degToRad(pc.hue + 90.0));
+
+	float triangle_sdf = sdfEquilateralTriangle(triangle_uv, 0.75);
 	float circle_sdf = sdfCircle(remapped_uv, 0.9, 1.0);
 
     if (triangle_sdf <= 0.015)
@@ -86,12 +87,14 @@ float4 fragmentMain(VSOutput input)
         const float2 v2 = float2(0.75, -0.75);
 
         const float3 colors[] = {
-            float3(pc.color.xyz), float3(0.0, 0.0, 0.0), float3(1.0, 1.0, 1.0), 
+            hsvToRgb(0.0f, 1.0, 0.0),
+            hsvToRgb(0.0f, 0.0, 1.0),
+            hsvToRgb(0.0f, 1.0, 1.0),
         };
 
-        float2 p = remapped_uv;
+        float2 p = triangle_uv;
 
-        float u = (v0.x * (v2.y - v0.x) + (p.y - v0.y) * (v2.x - v0.x) - p.x * (v2.y - v0.y)) / ((v1.y - v0.y) * (v2.x - v0.x) - (v1.x - v0.x) * (v2.y - v0.y));
+        float u = (v0.x * (v2.y - v0.y) + (p.y - v0.y) * (v2.x - v0.x) - p.x * (v2.y - v0.y)) / ((v1.y - v0.y) * (v2.x - v0.x) - (v1.x - v0.x) * (v2.y - v0.y));
         float v = (p.y - v0.y - u * (v1.y - v0.y)) / (v2.y - v0.y);
         float w = 1.0 - u - v; 
                 

@@ -214,7 +214,7 @@ static bool button(app *app, const char *label)
 
 static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 size, void *data)
 {
-    color4 current_color = *(color4 *)data;
+    f32 hue = *(f32 *)data;
 
     v2 center = v2add(pos, v2scale(size, 0.5f));
 
@@ -223,9 +223,8 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
     m4 model     = m4mul(translate, scale_m);
 
     color_picker_pc pc = {
-        .model         = model,
-        .current_color = current_color,
-        .time          = app->time.elapsed,
+        .model = model,
+        .hue   = hue,
     };
 
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_COLOR_PICKER]);
@@ -236,7 +235,6 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
 static void color_picker(app *app)
 {
     ui_layout_context *layout = &app->ui_layout;
-    static color4 color = {1.0f, 0.0f, 0.0f, 1.0f};
 
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
@@ -259,15 +257,26 @@ static void color_picker(app *app)
             .child_align = CENTER,
         })
         {
+            if (HOVERED() && input_down(&app->input, INPUT_LMB))
+            {
+                layout->color_picker_pos = v2add(layout->color_picker_pos, app->input.mouse_delta);
+                layout->active_id = CURRENT()->id;
+            }
+        
             UI({
-                .layout = LAYOUT_TO_RIGHT,
-                .width = FIXED(40),
-                .height = GROW(0),
-                .color = RED,
-                .roundness = 0.35f,
+                .layout      = LAYOUT_TO_RIGHT,
+                .width       = FIXED(40),
+                .height      = GROW(0),
+                .color       = RED,
+                .roundness   = 0.35f,
                 .child_align = CENTER,
             })
             {
+                if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+                {
+                    layout->show_color_picker = false;
+                }
+            
                 UI({
                     .width  = FIXED(40),
                     .height = GROW(0),
@@ -292,16 +301,9 @@ static void color_picker(app *app)
                 .height = GROW(0),
                 .custom = {
                     .draw_func = draw_color_picker,
-                    .data      = (void *)&color,
+                    .data      = (void *)&layout->color_picker_hue,
                 },
-            })
-            {
-                color = RED;
-                if (HOVERED() && input_down(&app->input, INPUT_LMB))
-                {
-                    color = GREEN;
-                }
-            }
+            });
         }
     }
 }
@@ -320,7 +322,8 @@ static void color_gradient(app *app)
         if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
         {
             layout->show_color_picker = true;
-            layout->color_picker_pos = GET_POS(CURRENT()->pos);
+            layout->color_picker_pos  = WORLD_POS(CURRENT()->id);
+            layout->color_picker_pos.x -= 300;
         }
 
         if (layout->show_color_picker)
