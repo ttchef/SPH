@@ -1,8 +1,8 @@
 
 #include <math/core.h>
 #include <sph/app.h>
-#include <sph/ui_layout.h>
 #include <sph/color.h>
+#include <sph/ui_layout.h>
 
 #define UI_COLOR0 color4gray(0.04, 1.0)
 #define UI_COLOR1 color4gray(0.08, 1.0)
@@ -237,6 +237,30 @@ static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 
     vulkan_command_draw(queue, 6);
 }
 
+static color4 get_color(f32 hue, v2 p)
+{
+    const f32 k = SDL_sqrtf(3.0f);
+    const v2  a = v2make(0.0, 2.0 * 0.75 / k);
+    const v2  b = v2make(-0.75, -0.75 / k);
+    const v2  c = v2make(0.75, -0.75 / k);
+
+    v3 colors[] = {
+        v3make(hue, 0.0, 1.0),
+        v3make(hue, 1.0, 0.0),
+        v3make(hue, 1.0, 1.0),
+    };
+
+    v3 barycentrics = math_barycentrics(a, b, c, p);
+
+    // NOTE: Fuck naming at this point (i am writing this at 2 am)
+    v3 a0 = v3scale(colors[0], barycentrics.x);
+    v3 b0 = v3scale(colors[1], barycentrics.y);
+    v3 c0 = v3scale(colors[2], barycentrics.z);
+
+    v3 hsv = v3add(a0, v3add(b0, c0));
+    return hsvtocolor4_2(hsv);
+}
+
 static void color_picker(app *app)
 {
     ui_layout_context *layout        = &app->ui_layout;
@@ -339,36 +363,22 @@ static void color_picker(app *app)
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
                 v2  p = v2make(u, -v);
 
+                const f32 k = SDL_sqrtf(3.0f);
+                const v2  a = v2make(0.0, 2.0 * 0.75 / k);
+                const v2  b = v2make(-0.75, -0.75 / k);
+                const v2  c = v2make(0.75, -0.75 / k);
+
                 if (layout->color_picker_triangle_active)
                 {
                     v2 triangle_p                                  = v2rotate(p, TO_RADIANS(-layout->color_picker_data.hue + 90.0f));
                     layout->color_picker_data.triangle_point       = triangle_p;
                     layout->color_picker_data.triangle_point_valid = true;
-
-                    const f32 k  = SDL_sqrtf(3.0f);
-                    const v2  v0 = v2make(0.0, 2.0 * 0.75 / k);
-                    const v2  v1 = v2make(-0.75, -0.75 / k);
-                    const v2  v2 = v2make(0.75, -0.75 / k);
                     if (sdf_triangle2D(triangle_p, 0.75) > 0.0f)
                     {
-                        layout->color_picker_data.triangle_point = math_closest_point_on_triangle(triangle_p, v0, v1, v2);
+                        layout->color_picker_data.triangle_point = math_closest_point_on_triangle(triangle_p, a, b, c);
                     }
 
-                    v3 colors[] = {
-                        v3make(layout->color_picker_data.hue, 0.0, 1.0),
-                        v3make(layout->color_picker_data.hue, 1.0, 0.0),
-                        v3make(layout->color_picker_data.hue, 1.0, 1.0),
-                    };
-
-                    v3 barycentrics = math_barycentrics(v0, v1, v2, layout->color_picker_data.triangle_point);
-
-                    // NOTE: Fuck naming at this point (i am writing this at 2 am)
-                    v3 a = v3scale(colors[0], barycentrics.x);
-                    v3 b = v3scale(colors[1], barycentrics.y);
-                    v3 c = v3scale(colors[2], barycentrics.z);
-
-                    v3 hsv = v3add(a, v3add(b, c));
-                    layout->color_picker_color = hsvtocolor4_2(hsv);
+                    layout->color_picker_color = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
                 }
                 else
                 {
@@ -377,6 +387,8 @@ static void color_picker(app *app)
                     {
                         layout->color_picker_data.hue += 360.0f;
                     }
+
+                    layout->color_picker_color = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
                 }
             }
 
