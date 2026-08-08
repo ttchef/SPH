@@ -62,6 +62,15 @@ typedef struct
 
 typedef struct
 {
+    VkDeviceAddress positions_read_addr;
+    VkDeviceAddress velocities_read_addr;
+    VkDeviceAddress spatial_lookup_addr;
+    VkDeviceAddress sorted_positions_addr;
+    VkDeviceAddress sorted_velocities_addr;
+} particle_reorder_pc;
+
+typedef struct
+{
     VkDeviceAddress spatial_lookup_addr;
     VkDeviceAddress start_indices_addr;
     VkDeviceAddress positions_addr;
@@ -103,11 +112,6 @@ typedef struct
     v4 data;
 } color_picker_pc;
 
-typedef struct
-{
-    u32 idk;
-} write_gradient_pc;
-
 enum
 {
     // NOTE: Draw Helper
@@ -118,6 +122,7 @@ enum
     PIPELINE_PARTICLE_RENDER,
     PIPELINE_PARTICLE_UPDATE,
     PIPELINE_PARTICLE_DENSITY,
+    PIPELINE_PARTICLE_REORDER,
     PIPELINE_SPATIAL_LOOKUP_WRITE,
     PIPELINE_SPATIAL_LOOKUP_HISTOGRAMS,
     PIPELINE_SPATIAL_LOOKUP_SORT,
@@ -125,7 +130,6 @@ enum
 
     // NOTE: Ui
     PIPELINE_COLOR_PICKER,
-    PIPELINE_WRITE_GRADIENT,
     PIPELINE_COUNT,
 };
 

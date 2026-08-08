@@ -18,7 +18,9 @@ typedef struct
     f32 viscosity_coeff;
     f32 smoothing_radius;
     f32 pressure_multiplier;
-    f32 padding[3];
+    f32 poly6_normalization;
+    f32 spiky_gradient_normalization;
+    f32 padding;
 
     // NOTE: Particle rendering
     v4 particle_color0;
@@ -46,6 +48,8 @@ typedef struct
     vulkan_buffer densities;
     vulkan_buffer velocities[PING_PONG_COUNT];
     vulkan_buffer positions[PING_PONG_COUNT];
+    vulkan_buffer sorted_positions;
+    vulkan_buffer sorted_velocities;
 
     bool first_loop;
     u32 read_index;

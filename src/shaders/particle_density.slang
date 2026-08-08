@@ -21,12 +21,10 @@ float W_poly6(float4 p_i, float4 p_j)
 	{
 		return 0.0;
 	}
-	d = sqrt(d);
 
-	const float normalization = 315.0 / (64.0 * PI * pow(scene_ubo.smoothing_radius, 9));
-	float shape_func = pow((scene_ubo.smoothing_radius * scene_ubo.smoothing_radius) - (d * d), 3);
+	float shape_func = pow((scene_ubo.smoothing_radius * scene_ubo.smoothing_radius) - d, 3);
 
-	return normalization * shape_func;
+	return scene_ubo.poly6_normalization * shape_func;
 }
 
 [shader("compute")]
@@ -54,9 +52,7 @@ void computeMain(uint index: SV_DispatchThreadID)
 
 		for (uint i = start; i < scene_ubo.particle_count && pc.spatial_lookup[i].cell_key == key; i++)
 		{
-			uint particle_index = pc.spatial_lookup[i].particle_index;
-
-			float4 p_j = pc.positions_read[particle_index];
+			float4 p_j = pc.positions_read[i];
 			density += W_poly6(p_i, p_j);
 		}
 	}

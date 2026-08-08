@@ -47,12 +47,12 @@ set(SHADER_FILES
     src/shaders/particle_density.slang
     src/shaders/particle_update.slang
     src/shaders/particle_render.slang
+    src/shaders/particle_reorder.slang
     src/shaders/spatial_lookup_write.slang
     src/shaders/spatial_lookup_histograms.slang
     src/shaders/spatial_lookup_sort.slang
     src/shaders/start_indices.slang
     src/shaders/color_picker.slang
-    src/shaders/write_gradient.slang
 )
 
 set(SPV_OUT ${CMAKE_BINARY_DIR}/spv)

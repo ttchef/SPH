@@ -60,6 +60,14 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .push_constant_size    = sizeof(particle_density_pc),
         .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
     },
+    [PIPELINE_PARTICLE_REORDER] = {
+        .name                  = "particle_reorder",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/particle_reorder.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(particle_reorder_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
     [PIPELINE_SPATIAL_LOOKUP_WRITE] = {
         .name                  = "spatial_lookup_write",
         .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
@@ -104,14 +112,6 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .depth_write           = VK_TRUE,
         .push_constant_size    = sizeof(color_picker_pc),
         .push_constants_stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    },
-    [PIPELINE_WRITE_GRADIENT] = {
-        .name                  = "write_gradient",
-        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
-        .compute_path          = "spv/write_gradient.spv",
-        .compute_entry         = "main",
-        .push_constant_size    = sizeof(write_gradient_pc),
-        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
     },
 };
 

@@ -22,7 +22,8 @@ public struct SimulationUbo
 	public float visocity_coeff;
 	public float smoothing_radius;
 	public float pressure_multiplier;
-	// public float3 padding;
+	public float poly6_normalization;
+	public float spiky_gradient_normalization;
 
 	// NOTE: Particle rendering
 	public float4 particle_color0;

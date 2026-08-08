@@ -20,21 +20,10 @@ struct PushConstant
 [[vk::push_constant]]
 PushConstant pc;
 
-float4 W_spiky_gradient(float4 p_i, float4 p_j)
+float4 W_spiky_gradient(float4 delta, float d)
 {
-	float4 delta = p_i - p_j;
-	float d = dot(delta, delta);
-
-	if (d <= 0.0001 || d > scene_ubo.smoothing_radius * scene_ubo.smoothing_radius)
-	{
-		return float4(0).xxxx; 
-	}
-	d = sqrt(d);
-
-	const float normalization = -45.0 / (PI * pow(scene_ubo.smoothing_radius, 6));
 	float shape_func = (scene_ubo.smoothing_radius - d) * (scene_ubo.smoothing_radius - d) / d;
-
-	return delta * normalization * shape_func;
+	return delta * scene_ubo.spiky_gradient_normalization * shape_func;
 }
 
 float calc_pressure(float density)
@@ -84,36 +73,36 @@ float4 calc_force(uint particle_index)
 
 		for (uint i = start; i < scene_ubo.particle_count && pc.spatial_lookup[i].cell_key == key; i++)
 		{
-			uint other = pc.spatial_lookup[i].particle_index;
-
-			if (other == particle_index)
+			if (i == particle_index)
 			{
 				continue;
 			}
 
-			float4 pos_j = pc.positions_read[other];
+			float4 pos_j = pc.positions_read[i];
+			float4 delta = pos_i - pos_j;
+			float d = dot(delta, delta);
 
-			float d = distance(pos_i, pos_j);
-			if (d <= 0.0001)
+			if (d <= 0.00001)
 			{
 				float4 dir = random_unit_vector(particle_index);
 				pressure -= dir * 500.0;
 				continue;
 			}
-			if (d > scene_ubo.smoothing_radius)
+			if (d > scene_ubo.smoothing_radius * scene_ubo.smoothing_radius)
 			{
 				continue;
 			}
+			d = sqrt(d);
 
-			float4 gradient = W_spiky_gradient(pos_i, pos_j);
+			float4 gradient = W_spiky_gradient(delta, d);
 
-			float density_j = pc.densities[other];
+			float density_j = pc.densities[i];
 			float term2 = calc_pressure(density_j) / (density_j * density_j);
 
 			pressure += gradient * (term1 + term2);
 
-			float4 v_ij = vel_i - pc.velocities_read[other];
-			float4 x_ij = pos_i - pc.positions_read[other];
+			float4 v_ij = vel_i - pc.velocities_read[i];
+			float4 x_ij = pos_i - pc.positions_read[i];
 
 			float numerator = dot(x_ij, gradient);
 			float denominator = dot(x_ij, x_ij) + 0.01 * scene_ubo.smoothing_radius * scene_ubo.smoothing_radius;
