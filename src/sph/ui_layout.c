@@ -426,11 +426,6 @@ static void color_gradient(app *app)
         .child_gap = 6,
     })
     {
-        if (layout->show_color_picker)
-        {
-            color_picker(app);
-        }
-
         UI({
             .width = GROW(0),
             .height = FIXED(40 * layout->height_scale),
@@ -438,6 +433,17 @@ static void color_gradient(app *app)
         })
         {            
             ui_layout_gradient *gradient = &layout->particle_gradient;
+
+            if (gradient->positions[0] > 0.005f)
+            {
+                UI({
+                    .pos = RELATIVE(0.0f, 0.0f),
+                    .width = PERCENT(gradient->positions[0]),
+                    .height = GROW(0),
+                    .color = gradient->colors[0],
+                });
+            }
+
             for (u32 i = 1; i < ARRAY_COUNT(gradient->colors); i++)
             {
                 f32 width = gradient->positions[i] - gradient->positions[i - 1];
@@ -450,6 +456,15 @@ static void color_gradient(app *app)
                         .a = gradient->colors[i - 1],
                         .b = gradient->colors[i],
                     },
+                });
+            }
+
+            if (gradient->positions[ARRAY_COUNT(gradient->positions) - 1] < 0.995)
+            {
+                UI({
+                    .width = PERCENT(1.0f - gradient->positions[ARRAY_COUNT(gradient->positions) - 1]),
+                    .height = GROW(0),
+                    .color = gradient->colors[ARRAY_COUNT(gradient->positions) - 1],
                 });
             }
         }
@@ -480,6 +495,22 @@ static void color_gradient(app *app)
                         layout->color_picker_pos  = WORLD_POS(PARENT()->id);
                         layout->color_picker_pos.x -= 300;
                         layout->color_picker_color = i;
+                        set_active(app, CURRENT()->id);
+                    }
+
+                    if (is_active(app, CURRENT()->id))
+                    {
+                        v2 world_pos = WORLD_POS(PARENT()->id);
+                        if (world_pos.x < app->input.mouse_pos.x)
+                        {
+                            v2 p = v2sub(app->input.mouse_pos, world_pos);
+                            f32 t = p.x / container_size.x;
+
+                            f32 lower = i == 0 ? 0.0f : gradient->positions[i - 1];
+                            f32 upper = (i + 1 == ARRAY_COUNT(gradient->positions)) ? 1.0f : gradient->positions[i + 1];
+
+                            gradient->positions[i] = CLAMP(t, lower, upper);
+                        }
                     }
                     
                     UI({
@@ -489,6 +520,11 @@ static void color_gradient(app *app)
                     });
                 }
             }
+        }
+            
+        if (layout->show_color_picker)
+        {
+            color_picker(app);
         }
     }
 }
