@@ -23,7 +23,8 @@ float W_poly6(float4 p_i, float4 p_j)
         return 0.0;
     }
 
-    float shape_func = pow((scene_ubo.smoothing_radius * scene_ubo.smoothing_radius) - d, 3);
+    float t = (scene_ubo.smoothing_radius * scene_ubo.smoothing_radius) - d;
+    float shape_func = t * t * t;
 
     return scene_ubo.poly6_normalization * shape_func;
 }
@@ -40,8 +41,8 @@ float calc_pressure(float density)
 }
 
 [shader("compute")]
-    [numthreads(256, 1, 1)] void
-    computeMain(uint index : SV_DispatchThreadID)
+[numthreads(256, 1, 1)]
+void computeMain(uint index : SV_DispatchThreadID)
 {
     if (index >= scene_ubo.particle_count)
     {

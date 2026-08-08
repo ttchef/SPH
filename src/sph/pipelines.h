@@ -46,8 +46,8 @@ typedef struct
     VkDeviceAddress spatial_lookup_addr;
     VkDeviceAddress start_indices_addr;
     VkDeviceAddress pressures_addr;
-    v4              box_pos;
-    v4              box_size;
+    v4              box_min;
+    v4              box_max;
     f32             dt;
     f32             first_run;
 } particle_update_pc;

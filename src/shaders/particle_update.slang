@@ -11,8 +11,8 @@ struct PushConstant
     SpatialLookupEntry *spatial_lookup;
     uint               *start_indices;
     float              *pressures;
-    float4              box_pos;
-    float4              box_size;
+    float4              box_min;
+    float4              box_max;
     float               dt;
     float               first_run;
 };
@@ -48,7 +48,6 @@ float4 calc_force(uint particle_index)
 
     int3 cell = position_to_cell(pos_i);
 
-    float density_i = pc.densities[particle_index];
     float term1     = pc.pressures[particle_index];
 
     uint count = neighbour_offsets.getCount();
@@ -109,8 +108,8 @@ float4 calc_force(uint particle_index)
 }
 
 [shader("compute")]
-    [numthreads(256, 1, 1)] void
-    computeMain(uint index : SV_DispatchThreadID)
+[numthreads(256, 1, 1)]
+void computeMain(uint index : SV_DispatchThreadID)
 {
     if (index >= scene_ubo.particle_count)
     {
@@ -133,38 +132,10 @@ float4 calc_force(uint particle_index)
     }
 
     pos += vel * pc.dt;
-    float damping = 1.0;
 
-    if (pos.y < pc.box_pos.y - pc.box_size.y * 0.5)
-    {
-        vel.y = -vel.y * damping;
-        pos.y = pc.box_pos.y - pc.box_size.y * 0.5;
-    }
-    if (pos.y > pc.box_pos.y + pc.box_size.y * 0.5)
-    {
-        vel.y = -vel.y * damping;
-        pos.y = pc.box_pos.y + pc.box_size.y * 0.5;
-    }
-    if (pos.x < pc.box_pos.x - pc.box_size.x * 0.5)
-    {
-        vel.x = -vel.x * damping;
-        pos.x = pc.box_pos.x - pc.box_size.x * 0.5;
-    }
-    if (pos.x > pc.box_pos.x + pc.box_size.x * 0.5)
-    {
-        vel.x = -vel.x * damping;
-        pos.x = pc.box_pos.x + pc.box_size.x * 0.5;
-    }
-    if (pos.z < pc.box_pos.z - pc.box_size.z * 0.5)
-    {
-        vel.z = -vel.z * damping;
-        pos.z = pc.box_pos.z - pc.box_size.z * 0.5;
-    }
-    if (pos.z > pc.box_pos.z + pc.box_size.z * 0.5)
-    {
-        vel.z = -vel.z * damping;
-        pos.z = pc.box_pos.z + pc.box_size.z * 0.5;
-    }
+    bool3 hit = (pos.xyz < pc.box_min.xyz) || (pos.xyz > pc.box_max.xyz);
+    vel.xyz = select(hit, -vel.xyz, vel.xyz);
+    pos.xyz = clamp(pos.xyz, pc.box_min.xyz, pc.box_max.xyz);
 
     pc.positions_write[index]  = pos;
     pc.velocities_write[index] = vel;

@@ -295,6 +295,9 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
     vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
 
+    v3 box_min = v3sub(app->bounding_box.pos, v3scale(app->bounding_box.size, 0.5f)); 
+    v3 box_max = v3add(app->bounding_box.pos, v3scale(app->bounding_box.size, 0.5f)); 
+
     particle_update_pc update_pc = {
         .positions_read_addr   = vulkan_buffer_address_get(vulkan, simulation->sorted_positions),
         .positions_write_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->write_index]),
@@ -304,8 +307,8 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
         .spatial_lookup_addr   = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[sorted]),
         .start_indices_addr    = vulkan_buffer_address_get(vulkan, simulation->start_indices),
         .pressures_addr        = vulkan_buffer_address_get(vulkan, simulation->pressures),
-        .box_pos               = v4fromv3(app->bounding_box.pos, 1.0f),
-        .box_size              = v4fromv3(app->bounding_box.size, 0.0f),
+        .box_min               = v4fromv3(box_min, 1.0f),
+        .box_max              = v4fromv3(box_max, 1.0f),
         .dt                    = dt,
         .first_run             = simulation->first_loop ? 1.0f : 0.0f,
     };
