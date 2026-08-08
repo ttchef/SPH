@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X     80
-#define PARTICLE_Y     80
-#define PARTICLE_Z     80
+#define PARTICLE_X     70
+#define PARTICLE_Y     70
+#define PARTICLE_Z     70
 #define PARTICLE_COUNT PARTICLE_X * PARTICLE_Y * PARTICLE_Z
 
 static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count, u32 sorted)
@@ -63,7 +63,7 @@ static u32 spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulation
             .spatial_lookup_addr            = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[src]),
             .spatial_lookup_histograms_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup_histograms),
             .shift                          = i * 8,
-            .workgroup_count                = workgroup_count,
+            .workgroup_count                = sort_groups,
             .blocks_per_workgroup           = blocks_per_workgroup,
         };
 
@@ -79,7 +79,7 @@ static u32 spatial_lookup_sort(app *app, vulkan_command_queue *queue, simulation
             .spatial_lookup_write_addr      = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[dst]),
             .spatial_lookup_histograms_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup_histograms),
             .shift                          = i * 8,
-            .workgroup_count                = workgroup_count,
+            .workgroup_count                = sort_groups,
             .blocks_per_workgroup           = blocks_per_workgroup,
         };
 
