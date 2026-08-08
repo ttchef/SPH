@@ -56,7 +56,7 @@ void vulkan_bindless_destroy(vulkan *vulkan, vulkan_bindless *bindless);
 void *vulkan_bindless_ubo_get(vulkan_bindless *bindless);
 
 // NOTE: Image
-void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_image *image);
+void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_image *image, VkImageLayout layout);
 
 void vulkan_bindless_image_release(vulkan_bindless *bindless, vulkan_bindless_image handle);
 

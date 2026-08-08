@@ -58,7 +58,7 @@ typedef struct
 
 bool vulkan_command_barrier(vulkan_command_queue *queue, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkAccessFlags src_access, VkAccessFlags dst_access);
 
-bool vulkan_command_image_barrier(vulkan_command_queue *queue, vulkan_image image, VkImageLayout new_layout, VkAccessFlagBits new_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage);
+bool vulkan_command_image_barrier(vulkan_command_queue *queue, vulkan_image image, vulkan_image_info src, vulkan_image_info dst);
 
 bool vulkan_command_begin_rendering(vulkan_command_queue *queue);
 
@@ -78,7 +78,7 @@ bool vulkan_command_set_viewport(vulkan_command_queue *queue, f32 x, f32 y, f32 
 
 bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, vulkan_buffer dst);
 
-bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst);
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, vulkan_image_info dst_info);
 
 bool vulkan_command_bind_scene_ubo(vulkan_command_queue *queue, vulkan_bindless_scene_ubo scene_ubo, vulkan_pipeline_id pipeline);
 

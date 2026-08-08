@@ -256,9 +256,9 @@ static color4 get_color(f32 hue, v2 p)
     v3 a0 = v3scale(colors[0], barycentrics.x);
     v3 b0 = v3scale(colors[1], barycentrics.y);
     v3 c0 = v3scale(colors[2], barycentrics.z);
-
+    
     v3 hsv = v3add(a0, v3add(b0, c0));
-    return hsvtocolor4_2(hsv);
+    return color4fromhsv2(hsv);
 }
 
 static void color_picker(app *app)

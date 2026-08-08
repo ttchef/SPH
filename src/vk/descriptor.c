@@ -241,7 +241,7 @@ void *vulkan_bindless_ubo_get(vulkan_bindless *bindless)
     return bindless->ubo.host_visible.data;
 }
 
-void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_image *image)
+void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_image *image, VkImageLayout layout)
 {
     if (image->descriptor == VULKAN_INVALID_BINDING)
     {
@@ -257,7 +257,7 @@ void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vul
 
     // NOTE: if image is passed in write it to set
     VkDescriptorImageInfo image_info = {
-        .imageLayout = image->layout,
+        .imageLayout = layout,
         .imageView   = image->view,
     };
 

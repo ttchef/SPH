@@ -225,19 +225,6 @@ static bool resources_create(app *app)
 
     vulkan_sampler_create(vulkan, true, "linear_sampler", &app->linear_sampler);
 
-    usize test_size;
-    u8   *test_data = SDL_LoadFile(path_abs("assets/textures/watermelon.png"), &test_size);
-
-    image_raw test_image;
-    if (!png_create(&resource_arena, test_size, test_data, &test_image))
-    {
-        return false;
-    }
-
-    vulkan_image_create(vulkan, v2umake(test_image.width, test_image.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, "watermelon", &app->test_texture);
-    vulkan_image_data_upload(vulkan, &resource_arena, &app->test_texture, test_image.width * test_image.height * 4, test_image.data, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
-
-    SDL_free(test_data);
     SDL_free(jet_brains_data);
 
     memory_arena_destroy(&resource_arena);

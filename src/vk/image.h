@@ -16,10 +16,6 @@ typedef struct
 	VkImageView view;
 	VkDeviceMemory memory;
 
-	VkImageLayout layout;
-	VkAccessFlags access;
-	VkImageAspectFlags aspect;
-
 	u32 width;
 	u32 height;
 
@@ -34,13 +30,21 @@ typedef struct
 	vulkan_bindless_sampler descriptor;
 } vulkan_sampler;
 
+typedef struct
+{
+	VkImageLayout layout;
+	VkAccessFlags access;
+	VkPipelineStageFlags stage;
+	VkImageAspectFlags aspect;
+} vulkan_image_info;
+
 bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image);
 
 void vulkan_image_destroy(vulkan *vulkan, vulkan_image *image);
 
-bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image *image, VkImageLayout new_layout, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkImageAspectFlags aspect_mask);
+bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image image, vulkan_image_info src, vulkan_image_info dst);
 
-bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image *image, u32 size, void *data, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage, bool update_descriptor);
+bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image image, u32 size, void *data, vulkan_image_info src, vulkan_image_info);
 
 bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, const char *name, vulkan_sampler *out_sampler);
 

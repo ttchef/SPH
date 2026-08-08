@@ -50,12 +50,10 @@ typedef struct
 
 typedef struct
 {
-    command_header       header;
-    vulkan_image         image;
-    VkImageLayout        new_layout;
-    VkAccessFlagBits     new_access;
-    VkPipelineStageFlags src_stage;
-    VkPipelineStageFlags dst_stage;
+    command_header    header;
+    vulkan_image      image;
+    vulkan_image_info src;
+    vulkan_image_info dst;
 } command_image_barrier;
 
 typedef struct
@@ -123,9 +121,10 @@ typedef struct
 
 typedef struct
 {
-    command_header header;
-    vulkan_buffer  src;
-    vulkan_image   dst;
+    command_header     header;
+    vulkan_buffer      src;
+    vulkan_image       dst;
+    vulkan_image_info dst_info;
 } command_copy_image;
 
 typedef struct
@@ -184,7 +183,7 @@ bool vulkan_command_barrier(vulkan_command_queue *queue, VkPipelineStageFlags sr
     return command_add(queue, &barrier, header.size);
 }
 
-bool vulkan_command_image_barrier(vulkan_command_queue *queue, vulkan_image image, VkImageLayout new_layout, VkAccessFlagBits new_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage)
+bool vulkan_command_image_barrier(vulkan_command_queue *queue, vulkan_image image, vulkan_image_info src, vulkan_image_info dst)
 {
     command_header header = {
         .type = COMMAND_IMAGE_BARRIER,
@@ -192,12 +191,10 @@ bool vulkan_command_image_barrier(vulkan_command_queue *queue, vulkan_image imag
     };
 
     command_image_barrier image_barrier = {
-        .header     = header,
-        .image      = image,
-        .new_layout = new_layout,
-        .new_access = new_access,
-        .src_stage  = src_stage,
-        .dst_stage  = dst_stage,
+        .header = header,
+        .image  = image,
+        .src    = src,
+        .dst    = dst,
     };
 
     return command_add(queue, &image_barrier, header.size);
@@ -359,7 +356,7 @@ bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, 
     return command_add(queue, &copy_buffer, header.size);
 }
 
-bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst)
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, vulkan_image_info dst_info)
 {
     command_header header = {
         .type = COMMAND_COPY_IMAGE,
@@ -367,9 +364,10 @@ bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, v
     };
 
     command_copy_image copy_image = {
-        .header = header,
-        .src    = src,
-        .dst    = dst,
+        .header     = header,
+        .src        = src,
+        .dst        = dst,
+        .dst_info = dst_info,
     };
 
     return command_add(queue, &copy_image, header.size);
@@ -594,14 +592,14 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
             VkImageMemoryBarrier2 barrier = {
                 .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                 .image            = image_barrier->image.handle,
-                .oldLayout        = image_barrier->image.layout,
-                .newLayout        = image_barrier->new_layout,
-                .srcAccessMask    = image_barrier->image.access,
-                .dstAccessMask    = image_barrier->new_access,
-                .srcStageMask     = image_barrier->src_stage,
-                .dstStageMask     = image_barrier->dst_stage,
+                .oldLayout        = image_barrier->src.layout,
+                .newLayout        = image_barrier->dst.layout,
+                .srcAccessMask    = image_barrier->src.access,
+                .dstAccessMask    = image_barrier->dst.access,
+                .srcStageMask     = image_barrier->src.stage,
+                .dstStageMask     = image_barrier->dst.stage,
                 .subresourceRange = {
-                    .aspectMask = image_barrier->image.aspect,
+                    .aspectMask = image_barrier->dst.aspect,
                     .levelCount = 1,
                     .layerCount = 1,
                 },
@@ -746,7 +744,7 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
 
             VkBufferImageCopy region = {
                 .imageSubresource = {
-                    .aspectMask = copy_image->dst.aspect,
+                    .aspectMask = copy_image->dst_info.aspect,
                     .layerCount = 1,
                 },
                 .imageExtent = {
@@ -756,7 +754,7 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
                 },
             };
 
-            vkCmdCopyBufferToImage(command_buffer, copy_image->src.handle, copy_image->dst.handle, copy_image->dst.layout, 1, &region);
+            vkCmdCopyBufferToImage(command_buffer, copy_image->src.handle, copy_image->dst.handle, copy_image->dst_info.layout, 1, &region);
         }
         break;
         case COMMAND_BIND_SCENE_UBO:
@@ -827,7 +825,7 @@ vulkan_command_queue *vulkan_command_begin(memory_arena *arena)
     queue->available = queue->size;
     queue->base      = memory_arena_alloc(arena, queue->size);
     queue->at        = queue->base;
-    queue->present = false;
+    queue->present   = false;
 
     assert(queue->base);
 
@@ -864,7 +862,6 @@ bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan, bool wait)
 
     if (queue->present)
     {
-
         VkImageMemoryBarrier memory_barrier = {
             .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,

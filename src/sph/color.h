@@ -4,12 +4,13 @@
 #include <types.h>
 #include <math/vector.h>
 
+// NOTE: No need to be here but for now it doesnt matter
 static inline f32 mod(f32 x, f32 y)
 {
 	return x - y * SDL_floor(x / y);
 }
 
-color4 hsvtocolor4(f32 hue, f32 saturation, f32 value)
+color4 color4fromhsv(f32 hue, f32 saturation, f32 value)
 {
     f32 chroma = value * saturation;
     f32 h1 = hue / 60.0f;
@@ -51,8 +52,7 @@ color4 hsvtocolor4(f32 hue, f32 saturation, f32 value)
     return color4make(color.x + m, color.y + m, color.z + m, 1.0f);
 }
 
-// NOTE: I cant keep up bro i gotta find better naming sheme like wtf
-color4 hsvtocolor4_2(v3 hsv)
+color4 color4fromhsv2(v3 hsv)
 {
-    return hsvtocolor4(hsv.x, hsv.y, hsv.z);
+    return color4fromhsv(hsv.x, hsv.y, hsv.z);
 }

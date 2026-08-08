@@ -76,10 +76,6 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
         return false;
     }
 
-    result.access = VK_ACCESS_NONE;
-    result.layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    result.aspect = aspect;
-
     vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE_VIEW, (u64)result.view, "image_view:%s", name);
     vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE, (u64)result.handle, "image:%s", name);
 
@@ -95,23 +91,19 @@ void vulkan_image_destroy(vulkan *vulkan, vulkan_image *image)
     vkFreeMemory(vulkan->device, image->memory, NULL);
 }
 
-bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image *image, VkImageLayout new_layout, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkImageAspectFlags aspect_mask)
+bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image image, vulkan_image_info src, vulkan_image_info dst)
 {
     vulkan_command_queue *queue = vulkan_command_begin(arena);
-    vulkan_command_image_barrier(queue, *image, new_layout, dst_access, src_stage, dst_stage);
+    vulkan_command_image_barrier(queue, image, src, dst);
     if (!vulkan_command_end(queue, vulkan, true))
     {
         return false;
     }
 
-    image->access = dst_access;
-    image->layout = new_layout;
-    image->aspect = aspect_mask;
-
     return true;
 }
 
-bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image *image, u32 size, void *data, VkImageLayout layout, VkAccessFlags access, VkPipelineStageFlags dst_stage, bool update_descriptor)
+bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image image, u32 size, void *data, vulkan_image_info src, vulkan_image_info dst)
 {
     vulkan_buffer staging;
     if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, data, "staging", &staging))
@@ -120,28 +112,25 @@ bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image 
         return false;
     }
 
+    vulkan_image_info copy_info = {
+          .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+          .access = VK_ACCESS_TRANSFER_WRITE_BIT,
+          .stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
+          .aspect = src.aspect,  
+    };
+
     vulkan_command_queue *queue = vulkan_command_begin(arena);
-    vulkan_command_image_barrier(queue, *image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-    image->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    image->access = VK_ACCESS_TRANSFER_WRITE_BIT;
+    vulkan_command_image_barrier(queue, image, src, copy_info);
+    vulkan_command_copy_image(queue, staging, image, copy_info);
+    vulkan_command_image_barrier(queue, image, copy_info, dst);
 
-    vulkan_command_copy_image(queue, staging, *image);
-    vulkan_command_image_barrier(queue, *image, layout, access, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage);
     if (!vulkan_command_end(queue, vulkan, true))
     {
         vulkan_buffer_destroy(vulkan, &staging);
         return false;
     }
     vulkan_buffer_destroy(vulkan, &staging);
-
-    image->layout = layout;
-    image->access = access;
-
-    if (update_descriptor)
-    {
-        vulkan_bindless_image_aquire(vulkan, &vulkan->bindless, image);
-    }
 
     return true;
 }

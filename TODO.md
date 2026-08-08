@@ -14,3 +14,4 @@
   - [ ] assets folder doesnt copy when new assets are loaded
   - [ ] fix stupid image vulkan abstraction
   - [ ] better fluid rendering
+  - [ ] refactor refactor refactor!!! like wtf are these unconsistent shit as names

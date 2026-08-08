@@ -11,6 +11,9 @@
 
 #define SEGMENT_RESOLUTION 12u
 
+// TODO: Remove that
+#include <vk/context.h>
+
 //
 // NOTE: TTF Spec: https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6cmap.html
 //       This parser only implements cmap format 4 and 12 which are the most widely used
@@ -308,7 +311,7 @@ static bool pack_add(ttf_pack *pack, v2u size, v2u *out_pos)
             return false;
         }
 
-        if (size.x > (pack->max_width - x))
+        if ((i32)size.x > (pack->max_width - x))
         {
             break;
         }
@@ -340,7 +343,7 @@ static bool pack_add(ttf_pack *pack, v2u size, v2u *out_pos)
             continue;
         }
 
-        if (size.y > (pack->max_height - y))
+        if ((i32)size.y > (pack->max_height - y))
         {
             continue;
         }
@@ -754,14 +757,14 @@ static bool loca_parse(memory_arena *arena, u32 size, void *data, table *table, 
 
     if (head->index_to_loc_format == 0)
     {
-        for (u32 i = 0; i < maxp->num_glyphs + 1; i++)
+        for (u16 i = 0; i < maxp->num_glyphs + 1; i++)
         {
             out_loca->offsets[i] = (u32)memory_stream_read_u16_be(&stream) * 2;
         }
     }
     else
     {
-        for (u32 i = 0; i < maxp->num_glyphs + 1; i++)
+        for (u16 i = 0; i < maxp->num_glyphs + 1; i++)
         {
             out_loca->offsets[i] = memory_stream_read_u32_be(&stream);
         }
@@ -1488,7 +1491,20 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
         SDL_Log("[TTF] Failed to create vulkan image.");
         return false;
     }
-    vulkan_image_data_upload(vulkan, &arena, &out_font->atlas, atlas_raw.width * atlas_raw.height * 4, atlas_raw.data, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true);
+    vulkan_image_data_upload(vulkan, &arena, out_font->atlas, atlas_raw.width * atlas_raw.height * 4, atlas_raw.data,
+                             (vulkan_image_info){
+                                 .layout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                 .access = VK_ACCESS_NONE,
+                                 .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                 .stage  = VK_PIPELINE_STAGE_NONE,
+                             },
+                             (vulkan_image_info){
+                                 .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                 .access = VK_ACCESS_SHADER_READ_BIT,
+                                 .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                 .stage  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                             });
+    vulkan_bindless_image_aquire(vulkan, &vulkan->bindless, &out_font->atlas, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     memory_arena_destroy(&arena);
 
