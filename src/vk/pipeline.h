@@ -6,8 +6,6 @@
 #include <vk/descriptor.h>
 #include <vk/types.h>
 
-#include <vulkan/vulkan_core.h>
-
 typedef u32 vulkan_pipeline_id;
 #define VULKAN_INVALID_PIPELINE 0
 

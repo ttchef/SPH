@@ -6,8 +6,6 @@
 #include <vk/image.h>
 #include <vk/types.h>
 
-#include <vulkan/vulkan_core.h>
-
 //
 // NOTE: Bindless setup
 //       binding 0 -> ubo

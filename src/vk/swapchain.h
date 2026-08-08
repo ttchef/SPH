@@ -5,8 +5,6 @@
 #include <vk/types.h>
 #include <vk/image.h>
 
-#include <vulkan/vulkan_core.h>
-
 // TODO: no sph in vk
 #include <sph/memory.h>
 

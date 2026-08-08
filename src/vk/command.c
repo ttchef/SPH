@@ -4,7 +4,6 @@
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
-#include <vulkan/vulkan_core.h>
 
 #include <math/matrix.h>
 
@@ -777,11 +776,6 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
 #if defined(DEBUG)
         case COMMAND_LABEL_BEGIN:
         {
-            if (!vulkan->debug.vkCmdBeginDebugUtilsLabelEXT)
-            {
-                break;
-            }
-
             command_label_begin *label_begin = at;
 
             VkDebugUtilsLabelEXT label = {
@@ -790,17 +784,12 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
                 .color      = {label_begin->color.r, label_begin->color.g, label_begin->color.b, label_begin->color.a},
             };
 
-            vulkan->debug.vkCmdBeginDebugUtilsLabelEXT(command_buffer, &label);
+            vkCmdBeginDebugUtilsLabelEXT(command_buffer, &label);
         }
         break;
         case COMMAND_LABEL_END:
         {
-            if (!vulkan->debug.vkCmdEndDebugUtilsLabelEXT)
-            {
-                break;
-            }
-
-            vulkan->debug.vkCmdEndDebugUtilsLabelEXT(command_buffer);
+            vkCmdEndDebugUtilsLabelEXT(command_buffer);
         }
         break;
 #endif // DEBUG

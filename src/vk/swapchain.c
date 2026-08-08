@@ -4,7 +4,6 @@
 
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_stdinc.h>
-#include <vulkan/vulkan_core.h>
 
 static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h, VkSwapchainKHR old_handle)
 {

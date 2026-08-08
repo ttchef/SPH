@@ -11,8 +11,6 @@
 // TODO: SPH in vk is cooked
 #include <sph/memory.h>
 
-#include <vulkan/vulkan_core.h>
-
 typedef struct
 {
     VkSemaphore     image_available;

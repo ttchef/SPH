@@ -5,7 +5,6 @@
 #include <vk/utils.h>
 
 #include <SDL3/SDL_log.h>
-#include <vulkan/vulkan_core.h>
 
 typedef bool (*pipeline_create_func)(vulkan *vulkan, vulkan_pipeline_desc *desc, vulkan_pipeline *out_pipeline);
 

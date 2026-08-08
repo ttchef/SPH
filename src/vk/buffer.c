@@ -2,7 +2,6 @@
 #include <vk/buffer.h>
 #include <vk/context.h>
 #include <vk/utils.h>
-#include <vulkan/vulkan_core.h>
 
 static bool buffer_create(vulkan *vulkan, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties, u32 size, const char *name, bool device_address, vulkan_buffer *out_buffer)
 {

@@ -10,7 +10,6 @@
 #include <vk/types.h>
 
 #include <SDL3/SDL_video.h>
-#include <vulkan/vulkan.h>
 
 typedef struct
 {
@@ -18,20 +17,10 @@ typedef struct
     u32     index;
 } vulkan_queue;
 
-#if defined(DEBUG)
-typedef struct
-{
-    PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
-    PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT;
-    PFN_vkCmdEndDebugUtilsLabelEXT   vkCmdEndDebugUtilsLabelEXT;
-} vulkan_debug_utils;
-#endif
-
 struct vulkan
 {
 #if defined(DEBUG)
     VkDebugUtilsMessengerEXT debug_messenger;
-    vulkan_debug_utils       debug;
 #endif
 
     VkInstance       instance;

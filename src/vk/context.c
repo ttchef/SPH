@@ -1,9 +1,9 @@
 
+#include <volk.h>
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_vulkan.h>
-#include <vulkan/vulkan_core.h>
 
 #define MAX_EXTENSIONS 16
 
@@ -284,8 +284,11 @@ static bool logical_device_create(vulkan *vulkan)
 
 bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
 {
-    assert(window);
-    assert(vulkan);
+    if (volkInitialize() != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to initialize volk.");
+        return false;
+    }
 
 #define CHECK(x)      \
     if (!x)           \
@@ -294,18 +297,16 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
     }
 
     CHECK(instance_create(vulkan));
+    volkLoadInstance(vulkan->instance);
 
 #if defined(DEBUG)
     CHECK(debug_messenger_create(vulkan));
-
-    vulkan->debug.vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vulkan->instance, "vkSetDebugUtilsObjectNameEXT");
-    vulkan->debug.vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdBeginDebugUtilsLabelEXT");
-    vulkan->debug.vkCmdEndDebugUtilsLabelEXT   = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdEndDebugUtilsLabelEXT");
 #endif
 
     CHECK(surface_create(window, vulkan));
     CHECK(physical_device_create(vulkan));
     CHECK(logical_device_create(vulkan));
+    volkLoadDevice(vulkan->device);
 
     vulkan->destroy_queue = vulkan_destroy_queue_create();
 

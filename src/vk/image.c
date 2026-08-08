@@ -5,7 +5,6 @@
 #include <vk/utils.h>
 
 #include <SDL3/SDL_log.h>
-#include <vulkan/vulkan_core.h>
 
 bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image)
 {

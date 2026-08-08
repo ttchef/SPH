@@ -5,7 +5,6 @@
 #include <vk/context.h>
 
 #include <SDL3/SDL_log.h>
-#include <vulkan/vulkan_core.h>
 
 // NOTE: returns UINT32_MAX if not found
 static inline u32 vulkan_memory_type_find(vulkan *vulkan, u32 type_filter, VkMemoryPropertyFlags memory_properties)
@@ -35,11 +34,6 @@ static inline u32 vulkan_memory_type_find(vulkan *vulkan, u32 type_filter, VkMem
 #if defined(DEBUG)
 static void vulkan_object_name_set(vulkan *vulkan, VkObjectType type, u64 handle, const char *format, ...)
 {
-    if (!vulkan->debug.vkSetDebugUtilsObjectNameEXT || handle == 0)
-    {
-        return;
-    }
-
     static char name_buffer[256];
     va_list     args;
     va_start(args, format);
@@ -52,7 +46,7 @@ static void vulkan_object_name_set(vulkan *vulkan, VkObjectType type, u64 handle
         .objectHandle = handle,
         .pObjectName  = name_buffer,
     };
-    vulkan->debug.vkSetDebugUtilsObjectNameEXT(vulkan->device, &info);
+    vkSetDebugUtilsObjectNameEXT(vulkan->device, &info);
 }
 #else
 #define vulkan_object_name_set(...) (void)0

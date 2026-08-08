@@ -32,7 +32,14 @@ FetchContent_Declare(
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 set(SDL_UCLIBC_LIBM OFF CACHE BOOL "" FORCE)
 
-FetchContent_Makeavailable(SDL3 SLANG)
+FetchContent_Declare(
+    VOLK
+    GIT_REPOSITORY https://github.com/zeux/volk.git
+    GIT_TAG dbc6d2fbb0cc07d3e42669f594a991ac35f666d9
+)
+set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WAYLAND_KHR)
+
+FetchContent_Makeavailable(SDL3 SLANG VOLK)
 
 set(SHADER_FILES
     src/shaders/cube_lines.slang
@@ -78,7 +85,8 @@ set(SRC_FILES src/sph/app.c src/sph/camera.c src/sph/input.c
 
               src/vk/buffer.c src/vk/command.c src/vk/context.c
               src/vk/descriptor.c src/vk/destroy_queue.c src/vk/image.c
-              src/vk/pipeline.c src/vk/swapchain.c)
+              src/vk/pipeline.c src/vk/swapchain.c
+          )
 
 
 add_executable(${PROJECT_NAME} WIN32 ${SRC_FILES})
@@ -86,8 +94,11 @@ add_dependencies(${PROJECT_NAME} Shaders)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<C_COMPILER_ID:MSCV>:/Isrc;/I${volk_SOURCE_DIR}>
+    $<$<NOT:$<C_COMPILER_ID:MSCV>>:-Isrc;-I${volk_SOURCE_DIR}>
+    
     $<$<AND:$<CONFIG:Debug>,$<C_COMPILER_ID:MSVC>>:/W4>
-    $<$<AND:$<CONFIG:Debug>,$<NOT:$<C_COMPILER_ID:MSVC>>>:-Wall;-Wextra;-pedantic>
+    $<$<AND:$<CONFIG:Debug>,$<NOT:$<C_COMPILER_ID:MSVC>>>:-Wall;-Wextra;-pedantic;-g;-O0>
     $<$<AND:$<CONFIG:Release>,$<C_COMPILER_ID:MSVC>>:/O2>
     $<$<AND:$<CONFIG:Release>,$<NOT:$<C_COMPILER_ID:MSVC>>>:-O2>
 )
@@ -101,7 +112,7 @@ if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE m)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan SDL3::SDL3)
+target_link_libraries(${PROJECT_NAME} PRIVATE volk::volk SDL3::SDL3)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

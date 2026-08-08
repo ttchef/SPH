@@ -5,7 +5,7 @@
 #include <vk/types.h>
 #include <math/types.h>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 // TODO: no sph in here
 #include <sph/memory.h>

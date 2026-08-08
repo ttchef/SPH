@@ -3,7 +3,6 @@
 #include <vk/descriptor.h>
 
 #include <SDL3/SDL_log.h>
-#include <vulkan/vulkan_core.h>
 
 enum
 {
