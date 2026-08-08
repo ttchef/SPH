@@ -99,6 +99,11 @@ static inline v4 v4make(f32 x, f32 y, f32 z, f32 w)
 	return (v4){x, y, z, w};
 }
 
+static inline v4 v4make2(f32 *elements)
+{
+	return v4make(elements[0], elements[1], elements[2], elements[3]);
+}
+
 static inline v4 v4fromv3(v3 v, f32 w)
 {
 	return v4make(v.x, v.y, v.z, w);

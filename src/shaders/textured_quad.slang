@@ -95,5 +95,5 @@ float4 fragmentMain(VSOutput input)
         color = mask * pc.color;
     }
 
-    return float4(gamma_correct(color.xyz), color.w);
+    return color;
 }

@@ -135,5 +135,5 @@ float4 fragmentMain(VSOutput input)
         color = lerp(color, float4(1.0, 1.0, 1.0, 1.0), alpha);
     }
 
-    return float4(gamma_correct(color.xyz), color.w);
+    return color;
 }

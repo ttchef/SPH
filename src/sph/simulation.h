@@ -6,16 +6,21 @@
 #include <types.h>
 #include <vk/buffer.h>
 #include <vk/types.h>
+#include <sph/ui_layout.h>
 
 #define PING_PONG_COUNT 2
 
 typedef struct
 {
+    // NOTE: Physics parameters
     u32 particle_count;
     f32 target_density;
     f32 viscosity_coeff;
     f32 smoothing_radius;
     f32 pressure_multiplier;
+    f32 padding[3];
+
+    // NOTE: Particle rendering
     v4 particle_color0;
     v4 particle_color1;
     v4 particle_color2;

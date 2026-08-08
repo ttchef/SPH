@@ -16,18 +16,27 @@ public ConstantBuffer<GlobalUBO> ubo;
 
 public struct SimulationUbo
 {
+	// NOTE: Physics parameters
 	public uint particle_count;
 	public float target_density;
 	public float visocity_coeff;
 	public float smoothing_radius;
 	public float pressure_multiplier;
+	// public float3 padding;
+
+	// NOTE: Particle rendering
+	public float4 particle_color0;
+    public float4 particle_color1;
+    public float4 particle_color2;
+    public float4 particle_color3;
+    public float4 particle_color_positions;
 };
 
 [[vk::binding(0, 1)]]
 public ConstantBuffer<SimulationUbo> scene_ubo;
 
 [[vk::binding(1, 0)]]
-public RWTexture2D<float4> textures[256];
+public Texture2D<float4> textures[256];
 
 [[vk::binding(2, 0)]]
 public SamplerState samplers[256];
@@ -51,11 +60,6 @@ public struct SpatialLookupEntry
 	public uint particle_index;
 	public uint cell_key;	
 };
-
-public float3 gamma_correct(float3 color)
-{
-	return pow(color, float3(1.0 / 2.2));	
-}
 
 public int3 position_to_cell(float4 pos)
 {

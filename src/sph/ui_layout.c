@@ -26,7 +26,7 @@ ui_layout_context ui_layout_create(void)
 
     result.particle_gradient = (ui_layout_gradient){
         .colors = {
-            BLUE, CYAN, GREEN, RED,
+            BLUE, CYAN, YELLOW, RED,
         },
         .positions = {
             0.0f, 0.33f, 0.66f, 1.0f
@@ -424,6 +424,7 @@ static void color_gradient(app *app)
         .color   = UI_COLOR1,
         .padding = PAD(18, 18, 12, 12),
         .child_gap = 6,
+        .roundness = STD_ROUNDNESS,
     })
     {
         UI({
@@ -489,7 +490,7 @@ static void color_gradient(app *app)
                     .padding = PAD_ALL(4),
                 })
                 {
-                    if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+                    if (HOVERED() && input_pressed(&app->input, INPUT_RMB))
                     {
                         layout->show_color_picker = true;
                         layout->color_picker_pos  = WORLD_POS(PARENT()->id);
@@ -498,7 +499,12 @@ static void color_gradient(app *app)
                         set_active(app, CURRENT()->id);
                     }
 
-                    if (is_active(app, CURRENT()->id))
+                    if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+                    {
+                        set_active(app, CURRENT()->id);
+                    }
+
+                    if (is_active(app, CURRENT()->id) && !layout->show_color_picker)
                     {
                         v2 world_pos = WORLD_POS(PARENT()->id);
                         if (world_pos.x < app->input.mouse_pos.x)

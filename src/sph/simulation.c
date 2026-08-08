@@ -234,7 +234,16 @@ void simulation_ubo_update(app *app, simulation *simulation)
         return;
     }
 
-    SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan, simulation->scene), &simulation->ubo_data, sizeof(simulation_ubo));
+    ui_layout_context *layout = &app->ui_layout;
+    simulation_ubo *ubo = &simulation->ubo_data;
+
+    ubo->particle_color0 = v4fromcolor4(layout->particle_gradient.colors[0]);
+    ubo->particle_color1 = v4fromcolor4(layout->particle_gradient.colors[1]);
+    ubo->particle_color2 = v4fromcolor4(layout->particle_gradient.colors[2]);
+    ubo->particle_color3 = v4fromcolor4(layout->particle_gradient.colors[3]);
+    ubo->particle_color_positions = v4make2(layout->particle_gradient.positions);
+
+    SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan, simulation->scene), ubo, sizeof(simulation_ubo));
 }
 
 void simulation_update(app *app, simulation *simulation, f32 dt)
@@ -299,6 +308,7 @@ void simulation_draw(app *app, simulation *simulation)
 
     vulkan_command_label_begin(queue, "render_particles", BLUE);
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_RENDER]);
+    vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_PARTICLE_RENDER]);
 
     particle_render_pc pc = {
         .positions_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),

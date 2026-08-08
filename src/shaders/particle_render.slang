@@ -53,6 +53,33 @@ struct FSOutput
 	float depth : SV_Depth;	
 };
 
+float4 get_color(float t)
+{
+	if (t <= scene_ubo.particle_color_positions[0])
+	{
+		return scene_ubo.particle_color0;
+	}
+	else if (t >= scene_ubo.particle_color_positions[3])
+	{
+		return scene_ubo.particle_color3;
+	}
+	else if (t < scene_ubo.particle_color_positions[1])
+	{
+		t = (t - scene_ubo.particle_color_positions[0]) / (scene_ubo.particle_color_positions[1] - scene_ubo.particle_color_positions[0]);
+		return lerp(scene_ubo.particle_color0, scene_ubo.particle_color1, t);
+	}
+	else if (t < scene_ubo.particle_color_positions[2])
+	{
+		t = (t - scene_ubo.particle_color_positions[1]) / (scene_ubo.particle_color_positions[2] - scene_ubo.particle_color_positions[1]);
+		return lerp(scene_ubo.particle_color1, scene_ubo.particle_color2, t);
+	}
+	else
+	{
+		t = (t - scene_ubo.particle_color_positions[2]) / (scene_ubo.particle_color_positions[3] - scene_ubo.particle_color_positions[2]);
+		return lerp(scene_ubo.particle_color2, scene_ubo.particle_color3, t);
+	}
+}
+
 [shader("fragment")]
 FSOutput fragmentMain(VSOutput input)
 {
@@ -70,12 +97,12 @@ FSOutput fragmentMain(VSOutput input)
 	const float3 light_dir = normalize(float3(0.5, 0.5, 1.0));
 	float diffuse = max(dot(normal, light_dir), 0.2);
 
-	const float max_velo = 30.0;
+	const float max_velo = 45.0;
 	float speed = length(pc.velocities[input.index].xyz);
 	float t = min(speed / max_velo, 1.0);
-	float3 color = float3(t, 0.0, 1.0 - t);
+	float4 color = get_color(t);
 
-	output.color = float4(gamma_correct(color * diffuse), 1.0);
+	output.color = float4(color.xyz * diffuse, 1.0);
 
 	float4 pos = input.view_pos;
 	pos.z += z * pc.particle_radius;
