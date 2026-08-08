@@ -24,6 +24,18 @@ ui_layout_context ui_layout_create(void)
     result.active_id    = UI_INVALID_ID;
     result.height_scale = 1.0f;
 
+    result.particle_colors = (ui_layout_gradient){
+          .a = {BLUE, 0.0f},
+          .b = {GREEN, 0.33f},
+          .c = {CYAN, 0.66f},
+          .d = {RED, 1.0f},  
+    };
+
+    // result.particle_colors.b.color = color4lerp(result.particle_colors.a.color, result.particle_colors.d.color, 0.33f);
+    // result.particle_colors.c.color = color4lerp(result.particle_colors.a.color, result.particle_colors.d.color, 0.66f);
+    // result.particle_colors.b.pos = 0.33f;
+    // result.particle_colors.c.pos = 0.66f;
+
     return result;
 }
 
@@ -216,7 +228,7 @@ static bool button(app *app, const char *label)
 
 static void draw_color_picker(app *app, vulkan_command_queue *queue, v2 pos, v2 size, void *data)
 {
-    color_picker_data *color_picker = (color_picker_data *)data;
+    ui_layout_color_picker_data *color_picker = (ui_layout_color_picker_data *)data;
 
     v2 center = v2add(pos, v2scale(size, 0.5f));
 
@@ -415,7 +427,7 @@ static void color_gradient(app *app)
         .padding = PAD_ALL(6),
     })
     {
-        if (HOVERED() && input_down(&app->input, INPUT_LMB))
+        if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
         {
             layout->show_color_picker = true;
             layout->color_picker_pos  = WORLD_POS(CURRENT()->id);
@@ -431,8 +443,29 @@ static void color_gradient(app *app)
             .width    = GROW(0),
             .height   = GROW(0),
             .gradient = {
-                .a    = RED,
-                .b    = BLUE,
+                .a    = layout->particle_colors.a.color,
+                .b    = layout->particle_colors.b.color,
+                .type = GRADIENT_HORIZOTNAL,
+            },
+        });
+
+        UI({
+            .width    = GROW(0),
+            .height   = GROW(0),
+            .gradient = {
+                .a    = layout->particle_colors.b.color,
+                .b    = layout->particle_colors.c.color,
+                .type = GRADIENT_HORIZOTNAL,
+            },
+        });
+
+            
+        UI({
+            .width    = GROW(0),
+            .height   = GROW(0),
+            .gradient = {
+                .a    = layout->particle_colors.c.color,
+                .b    = layout->particle_colors.d.color,
                 .type = GRADIENT_HORIZOTNAL,
             },
         });

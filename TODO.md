@@ -12,6 +12,6 @@
   - [ ] shader reflections (only if i even use descriptor layouts other than the global ones)
   - [ ] fast ocrtee neighbourhood search
   - [ ] assets folder doesnt copy when new assets are loaded
-  - [ ] fix stupid image vulkan abstraction
+  - [X] fix stupid image vulkan abstraction
   - [ ] better fluid rendering
   - [X] refactor refactor refactor!!! like wtf are these unconsistent shit as names
