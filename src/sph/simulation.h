@@ -50,6 +50,7 @@ typedef struct
     vulkan_buffer positions[PING_PONG_COUNT];
     vulkan_buffer sorted_positions;
     vulkan_buffer sorted_velocities;
+    vulkan_buffer pressures;
 
     bool first_loop;
     u32 read_index;

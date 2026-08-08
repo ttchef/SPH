@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X     50
-#define PARTICLE_Y     50
-#define PARTICLE_Z     50
+#define PARTICLE_X     80
+#define PARTICLE_Y     80
+#define PARTICLE_Z     80
 #define PARTICLE_COUNT PARTICLE_X * PARTICLE_Y * PARTICLE_Z
 
 static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count, u32 sorted)
@@ -18,6 +18,7 @@ static void compute_densities(app *app, vulkan_command_queue *queue, simulation 
 
     particle_density_pc density_pc = {
         .densities_addr      = vulkan_buffer_address_get(vulkan, simulation->densities),
+        .pressures_addr      = vulkan_buffer_address_get(vulkan, simulation->pressures),
         .positions_read_addr = vulkan_buffer_address_get(vulkan, simulation->sorted_positions),
         .spatial_lookup_addr = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[sorted]),
         .start_indices_addr  = vulkan_buffer_address_get(vulkan, simulation->start_indices),
@@ -170,6 +171,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * PARTICLE_COUNT, NULL, "particle_start_indices", &result.start_indices);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * PARTICLE_COUNT, NULL, "particle_sorted_positions", &result.sorted_positions);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * PARTICLE_COUNT, NULL, "particle_sorted_velocities", &result.sorted_velocities);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * PARTICLE_COUNT, NULL, "particle_pressures", &result.pressures);
 
     result.scene    = vulkan_bindless_scene_ubo_aquire(vulkan);
     result.ubo_data = (simulation_ubo){
@@ -301,6 +303,7 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
         .densities_addr        = vulkan_buffer_address_get(vulkan, simulation->densities),
         .spatial_lookup_addr   = vulkan_buffer_address_get(vulkan, simulation->spatial_lookup[sorted]),
         .start_indices_addr    = vulkan_buffer_address_get(vulkan, simulation->start_indices),
+        .pressures_addr        = vulkan_buffer_address_get(vulkan, simulation->pressures),
         .box_pos               = v4fromv3(app->bounding_box.pos, 1.0f),
         .box_size              = v4fromv3(app->bounding_box.size, 0.0f),
         .dt                    = dt,
@@ -366,6 +369,7 @@ void simulation_destroy(app *app, simulation *simulation)
     vulkan_object_destroy(vulkan, sizeof(simulation->start_indices), &simulation->start_indices, (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->sorted_positions), &simulation->sorted_positions, (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->sorted_velocities), &simulation->sorted_velocities, (vulkan_destroy_func)vulkan_buffer_destroy);
+    vulkan_object_destroy(vulkan, sizeof(simulation->pressures), &simulation->pressures, (vulkan_destroy_func)vulkan_buffer_destroy);
 
     simulation->initialized = false;
 }

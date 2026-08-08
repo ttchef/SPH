@@ -10,7 +10,7 @@ struct PushConstant
 	float *densities;
 	SpatialLookupEntry *spatial_lookup;
 	uint *start_indices;
-	float *padding;
+	float *pressures;
 	float4 box_pos;
 	float4 box_size;
 	float dt;
@@ -24,16 +24,6 @@ float4 W_spiky_gradient(float4 delta, float d)
 {
 	float shape_func = (scene_ubo.smoothing_radius - d) * (scene_ubo.smoothing_radius - d) / d;
 	return delta * scene_ubo.spiky_gradient_normalization * shape_func;
-}
-
-float calc_pressure(float density)
-{
-	const float k = scene_ubo.pressure_multiplier;
-
-	float term = pow(density / scene_ubo.target_density, 7);
-	float pressure = k * (term - 1);
-
-	return pressure;
 }
 
 float4 random_unit_vector(uint seed)
@@ -59,9 +49,10 @@ float4 calc_force(uint particle_index)
 	int3 cell = position_to_cell(pos_i);
 	
 	float density_i = pc.densities[particle_index];
-	float term1 = calc_pressure(density_i) / (density_i * density_i);
+	float term1 = pc.pressures[particle_index];
 
-	for (uint n = 0; n < neighbour_offsets.getCount(); n++)
+	uint count = neighbour_offsets.getCount();
+	for (uint n = 0; n < count; n++)
 	{
 		uint key = cell_hash(cell + neighbour_offsets[n]);
 		uint start = pc.start_indices[key];
@@ -97,7 +88,7 @@ float4 calc_force(uint particle_index)
 			float4 gradient = W_spiky_gradient(delta, d);
 
 			float density_j = pc.densities[i];
-			float term2 = calc_pressure(density_j) / (density_j * density_j);
+			float term2 = pc.pressures[i];
 
 			pressure += gradient * (term1 + term2);
 

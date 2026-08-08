@@ -4,6 +4,7 @@ import utils;
 struct PushConstant
 {
 	float *densities;
+	float *pressures;
 	float4 *positions_read;
 	SpatialLookupEntry *spatial_lookup;
 	uint *start_indices;
@@ -27,6 +28,17 @@ float W_poly6(float4 p_i, float4 p_j)
 	return scene_ubo.poly6_normalization * shape_func;
 }
 
+float calc_pressure(float density)
+{
+	const float k = scene_ubo.pressure_multiplier;
+
+	float t = density / scene_ubo.target_density;
+	t = t * t * t * t * t * t * t;
+	float pressure = k * (t - 1);
+
+	return pressure;
+}
+
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void computeMain(uint index: SV_DispatchThreadID)
@@ -39,8 +51,9 @@ void computeMain(uint index: SV_DispatchThreadID)
 	float density = 0.0;
 	float4 p_i = pc.positions_read[index];
 	int3 cell = position_to_cell(p_i);
-	
-	for (uint n = 0; n < neighbour_offsets.getCount(); n++)
+
+	uint count = neighbour_offsets.getCount();
+	for (uint n = 0; n < count; n++)
 	{
 		uint key = cell_hash(cell + neighbour_offsets[n]);
 		uint start = pc.start_indices[key];
@@ -58,5 +71,6 @@ void computeMain(uint index: SV_DispatchThreadID)
 	}
 
 	pc.densities[index] = density;
+	pc.pressures[index] = calc_pressure(density) / (density * density);
 }
 

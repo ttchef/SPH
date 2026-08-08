@@ -45,7 +45,7 @@ typedef struct
     VkDeviceAddress densities_addr;
     VkDeviceAddress spatial_lookup_addr;
     VkDeviceAddress start_indices_addr;
-    VkDeviceAddress padding;
+    VkDeviceAddress pressures_addr;
     v4              box_pos;
     v4              box_size;
     f32             dt;
@@ -55,6 +55,7 @@ typedef struct
 typedef struct
 {
     VkDeviceAddress densities_addr;
+    VkDeviceAddress pressures_addr;
     VkDeviceAddress positions_read_addr;
     VkDeviceAddress spatial_lookup_addr;
     VkDeviceAddress start_indices_addr;
