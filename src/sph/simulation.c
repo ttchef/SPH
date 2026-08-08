@@ -151,7 +151,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * workgroup_count * workgroup_size, NULL, "particle_spatial_lookup_histograms", &result.spatial_lookup_histograms);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * PARTICLE_COUNT, NULL, "particle_start_indices", &result.start_indices);
 
-    result.scene    = vulkan_bindless_scene_ubo_aquire(&vulkan->bindless);
+    result.scene    = vulkan_bindless_scene_ubo_aquire(vulkan);
     result.ubo_data = (simulation_ubo){
         .particle_count      = PARTICLE_COUNT,
         .target_density      = 0.0065,
@@ -159,7 +159,7 @@ bool simulation_create(app *app, simulation *out_simulation)
         .smoothing_radius    = 9.0f,
         .viscosity_coeff     = 15.0f,
     };
-    SDL_memcpy(vulkan_bindless_scene_ubo_get(&vulkan->bindless, result.scene), &result.ubo_data, sizeof(simulation_ubo));
+    SDL_memcpy(vulkan_bindless_scene_ubo_get(vulkan, result.scene), &result.ubo_data, sizeof(simulation_ubo));
 
     /*
     vulkan_command_queue *spatial_lookup_queue = vulkan_command_begin(&app->frame_arena);
@@ -234,7 +234,7 @@ void simulation_ubo_update(app *app, simulation *simulation)
         return;
     }
 
-    SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan.bindless, simulation->scene), &simulation->ubo_data, sizeof(simulation_ubo));
+    SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan, simulation->scene), &simulation->ubo_data, sizeof(simulation_ubo));
 }
 
 void simulation_update(app *app, simulation *simulation, f32 dt)
@@ -321,7 +321,7 @@ void simulation_destroy(app *app, simulation *simulation)
 
     vulkan *vulkan = &app->vulkan;
 
-    vulkan_bindless_scene_ubo_release(&vulkan->bindless, simulation->scene);
+    vulkan_bindless_scene_ubo_release(vulkan, simulation->scene);
 
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[0]), &simulation->positions[0], (vulkan_destroy_func)vulkan_buffer_destroy);
     vulkan_object_destroy(vulkan, sizeof(simulation->positions[1]), &simulation->positions[1], (vulkan_destroy_func)vulkan_buffer_destroy);

@@ -24,10 +24,8 @@ static bool extensions_add(const char **extensions, u32 *extension_count, const 
     return true;
 }
 
-static bool instance_init(vulkan *vulkan)
+static bool instance_create(vulkan *vulkan)
 {
-    assert(vulkan);
-
     VkApplicationInfo app_info = {
         .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .apiVersion         = VK_API_VERSION_1_3, // NOTE: required?
@@ -93,10 +91,8 @@ debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT      message_severity,
     return VK_FALSE;
 }
 
-static bool debug_messenger_init(vulkan *vulkan)
+static bool debug_messenger_create(vulkan *vulkan)
 {
-    assert(vulkan);
-
     VkDebugUtilsMessengerCreateInfoEXT info = {
         .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -125,11 +121,8 @@ static bool debug_messenger_init(vulkan *vulkan)
 
 #endif // DEBUG
 
-static bool surface_init(SDL_Window *window, vulkan *vulkan)
+static bool surface_create(SDL_Window *window, vulkan *vulkan)
 {
-    assert(window);
-    assert(vulkan);
-
     if (!SDL_Vulkan_CreateSurface(window, vulkan->instance, NULL, &vulkan->surface))
     {
         SDL_Log("[VULKAN] Failed to create surface.");
@@ -138,7 +131,7 @@ static bool surface_init(SDL_Window *window, vulkan *vulkan)
     return true;
 }
 
-static bool physical_device_init(vulkan *vulkan)
+static bool physical_device_create(vulkan *vulkan)
 {
     assert(vulkan);
 
@@ -217,10 +210,8 @@ static bool physical_device_init(vulkan *vulkan)
     return true;
 }
 
-static bool logical_device_init(vulkan *vulkan)
+static bool logical_device_create(vulkan *vulkan)
 {
-    assert(vulkan);
-
     VkDeviceQueueCreateInfo queue_infos[2];
 
     float priority = 1.0f;
@@ -302,19 +293,19 @@ bool vulkan_create(SDL_Window *window, vulkan *vulkan, u32 global_ubo_size)
         return false; \
     }
 
-    CHECK(instance_init(vulkan));
+    CHECK(instance_create(vulkan));
 
 #if defined(DEBUG)
-    CHECK(debug_messenger_init(vulkan));
+    CHECK(debug_messenger_create(vulkan));
 
     vulkan->debug.vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vulkan->instance, "vkSetDebugUtilsObjectNameEXT");
     vulkan->debug.vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdBeginDebugUtilsLabelEXT");
     vulkan->debug.vkCmdEndDebugUtilsLabelEXT   = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(vulkan->instance, "vkCmdEndDebugUtilsLabelEXT");
 #endif
 
-    CHECK(surface_init(window, vulkan));
-    CHECK(physical_device_init(vulkan));
-    CHECK(logical_device_init(vulkan));
+    CHECK(surface_create(window, vulkan));
+    CHECK(physical_device_create(vulkan));
+    CHECK(logical_device_create(vulkan));
 
     vulkan->destroy_queue = vulkan_destroy_queue_create();
 

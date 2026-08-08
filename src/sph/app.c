@@ -223,7 +223,8 @@ static bool resources_create(app *app)
         return false;
     }
 
-    vulkan_sampler_create(vulkan, true, "linear_sampler", &app->linear_sampler);
+    vulkan_sampler_create(vulkan, "linear_sampler", &app->linear_sampler);
+    vulkan_bindless_sampler_aquire(vulkan, &app->linear_sampler);
 
     SDL_free(jet_brains_data);
 

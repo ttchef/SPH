@@ -135,7 +135,7 @@ bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image 
     return true;
 }
 
-bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, const char *name, vulkan_sampler *out_sampler)
+bool vulkan_sampler_create(vulkan *vulkan, const char *name, vulkan_sampler *out_sampler)
 {
     // NOTE: For release
     UNUSED(name);
@@ -159,11 +159,6 @@ bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, const char *n
     {
         SDL_Log("[VULKAN] Failed to create sampler.");
         return false;
-    }
-
-    if (create_descriptor)
-    {
-        vulkan_bindless_sampler_aquire(vulkan, &vulkan->bindless, &result);
     }
 
     vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_SAMPLER, (u64)result.handle, "sampler:%s", name);

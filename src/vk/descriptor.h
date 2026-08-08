@@ -55,24 +55,28 @@ void vulkan_bindless_destroy(vulkan *vulkan, vulkan_bindless *bindless);
 
 void *vulkan_bindless_ubo_get(vulkan_bindless *bindless);
 
-// NOTE: Image
-void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_image *image, VkImageLayout layout);
+//
+// NOTE: Public api
+// 
 
-void vulkan_bindless_image_release(vulkan_bindless *bindless, vulkan_bindless_image handle);
+// NOTE: Image
+void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLayout layout);
+
+void vulkan_bindless_image_release(vulkan *vulkan, vulkan_bindless_image handle);
 
 // ----
 
 // NOTE: Sampler
-void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_sampler *sampler);
+void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_sampler *sampler);
 
-void vulkan_bindless_sampler_release(vulkan_bindless *bindless, vulkan_bindless_sampler handle);
+void vulkan_bindless_sampler_release(vulkan *vulkan, vulkan_bindless_sampler handle);
 
 // ----
 
 // NOTE: Scene ubo
-vulkan_bindless_scene_ubo vulkan_bindless_scene_ubo_aquire(vulkan_bindless *bindless);
+vulkan_bindless_scene_ubo vulkan_bindless_scene_ubo_aquire(vulkan *vulkan);
 
-void vulkan_bindless_scene_ubo_release(vulkan_bindless *bindless, vulkan_bindless_scene_ubo scene_ubo);
+void vulkan_bindless_scene_ubo_release(vulkan *vulkan, vulkan_bindless_scene_ubo scene_ubo);
 
-void *vulkan_bindless_scene_ubo_get(vulkan_bindless *bindless, vulkan_bindless_scene_ubo scene_ubo);
+void *vulkan_bindless_scene_ubo_get(vulkan *vulkan, vulkan_bindless_scene_ubo scene_ubo);
 // ---

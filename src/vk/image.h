@@ -46,6 +46,6 @@ bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image i
 
 bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image image, u32 size, void *data, vulkan_image_info src, vulkan_image_info);
 
-bool vulkan_sampler_create(vulkan *vulkan, bool create_descriptor, const char *name, vulkan_sampler *out_sampler);
+bool vulkan_sampler_create(vulkan *vulkan, const char *name, vulkan_sampler *out_sampler);
 
 void vulkan_sampler_destroy(vulkan *vulkan, vulkan_sampler *sampler);

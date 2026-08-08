@@ -241,8 +241,10 @@ void *vulkan_bindless_ubo_get(vulkan_bindless *bindless)
     return bindless->ubo.host_visible.data;
 }
 
-void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_image *image, VkImageLayout layout)
+void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLayout layout)
 {
+    vulkan_bindless *bindless = &vulkan->bindless;
+    
     if (image->descriptor == VULKAN_INVALID_BINDING)
     {
         if (bindless->free_image_count == 0)
@@ -274,13 +276,15 @@ void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_bindless *bindless, vul
     vkUpdateDescriptorSets(vulkan->device, 1, &write, 0, NULL);
 }
 
-void vulkan_bindless_image_release(vulkan_bindless *bindless, vulkan_bindless_image handle)
+void vulkan_bindless_image_release(vulkan *vulkan, vulkan_bindless_image handle)
 {
-    bindless->free_images[bindless->free_image_count++] = handle;
+    vulkan->bindless.free_images[vulkan->bindless.free_image_count++] = handle;
 }
 
-void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_bindless *bindless, vulkan_sampler *sampler)
+void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_sampler *sampler)
 {
+    vulkan_bindless *bindless = &vulkan->bindless;
+    
     if (sampler->descriptor == VULKAN_INVALID_BINDING)
     {
         if (bindless->free_sampler_count == 0)
@@ -311,13 +315,15 @@ void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_bindless *bindless, v
     vkUpdateDescriptorSets(vulkan->device, 1, &write, 0, NULL);
 }
 
-void vulkan_bindless_sampler_release(vulkan_bindless *bindless, vulkan_bindless_sampler handle)
+void vulkan_bindless_sampler_release(vulkan *vulkan, vulkan_bindless_sampler handle)
 {
-    bindless->free_samplers[bindless->free_sampler_count++] = handle;
+    vulkan->bindless.free_samplers[vulkan->bindless.free_sampler_count++] = handle;
 }
 
-vulkan_bindless_scene_ubo vulkan_bindless_scene_ubo_aquire(vulkan_bindless *bindless)
+vulkan_bindless_scene_ubo vulkan_bindless_scene_ubo_aquire(vulkan *vulkan)
 {
+    vulkan_bindless *bindless = &vulkan->bindless;
+    
     if (bindless->free_scene_ubo_count == 0)
     {
         SDL_Log("[VULKAN] Failed to aquire scene ubo.");
@@ -327,14 +333,18 @@ vulkan_bindless_scene_ubo vulkan_bindless_scene_ubo_aquire(vulkan_bindless *bind
     return bindless->free_scene_ubos[--bindless->free_scene_ubo_count];
 }
 
-void vulkan_bindless_scene_ubo_release(vulkan_bindless *bindless, vulkan_bindless_scene_ubo scene_ubo)
+void vulkan_bindless_scene_ubo_release(vulkan *vulkan, vulkan_bindless_scene_ubo scene_ubo)
 {
+    vulkan_bindless *bindless = &vulkan->bindless;
+
     assert(scene_ubo != VULKAN_INVALID_BINDING);
     bindless->free_scene_ubos[bindless->free_scene_ubo_count++] = scene_ubo;
 }
 
-void *vulkan_bindless_scene_ubo_get(vulkan_bindless *bindless, vulkan_bindless_scene_ubo scene_ubo)
+void *vulkan_bindless_scene_ubo_get(vulkan *vulkan, vulkan_bindless_scene_ubo scene_ubo)
 {
+    vulkan_bindless *bindless = &vulkan->bindless;
+
     assert(scene_ubo != VULKAN_INVALID_BINDING);
     assert(bindless->scene_ubo.host_visible.data);
 

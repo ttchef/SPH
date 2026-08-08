@@ -1504,7 +1504,7 @@ bool ttf_create(vulkan *vulkan, u32 size, void *data, const char *name, ttf_font
                                  .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
                                  .stage  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                              });
-    vulkan_bindless_image_aquire(vulkan, &vulkan->bindless, &out_font->atlas, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    vulkan_bindless_image_aquire(vulkan, &out_font->atlas, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     memory_arena_destroy(&arena);
 
