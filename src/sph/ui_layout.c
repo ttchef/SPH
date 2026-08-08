@@ -282,7 +282,7 @@ static void color_picker(app *app)
         .pos       = ABSOLUTE(layout->color_picker_pos.x, layout->color_picker_pos.y, 1),
         .width     = FIXED(panel_width),
         .height    = FIXED(panel_height),
-        .color     = layout->color_picker_color,
+        .color     = layout->particle_gradient.colors[layout->color_picker_color],
         .padding   = PAD_ALL(8),
         .child_gap = 12,
         .roundness = 0.05f,
@@ -387,7 +387,7 @@ static void color_picker(app *app)
                         layout->color_picker_data.triangle_point = math_closest_point_on_triangle(triangle_p, a, b, c);
                     }
 
-                    layout->color_picker_color = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
+                    layout->particle_gradient.colors[layout->color_picker_color] = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
                 }
                 else
                 {
@@ -397,7 +397,7 @@ static void color_picker(app *app)
                         layout->color_picker_data.hue += 360.0f;
                     }
 
-                    layout->color_picker_color = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
+                    layout->particle_gradient.colors[layout->color_picker_color] = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
                 }
             }
 
@@ -422,16 +422,10 @@ static void color_gradient(app *app)
         .width   = GROW(0),
         .height  = FIT(0),
         .color   = UI_COLOR1,
-        .padding = PAD_ALL(6),
+        .padding = PAD(18, 18, 12, 12),
+        .child_gap = 6,
     })
     {
-        if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
-        {
-            layout->show_color_picker = true;
-            layout->color_picker_pos  = WORLD_POS(CURRENT()->id);
-            layout->color_picker_pos.x -= 300;
-        }
-
         if (layout->show_color_picker)
         {
             color_picker(app);
@@ -440,6 +434,7 @@ static void color_gradient(app *app)
         UI({
             .width = GROW(0),
             .height = FIXED(40 * layout->height_scale),
+            .color = UI_COLOR3,
         })
         {            
             ui_layout_gradient *gradient = &layout->particle_gradient;
@@ -461,22 +456,38 @@ static void color_gradient(app *app)
 
         UI({
             .width = GROW(0),
-            .height = FIXED(22 * layout->height_scale),
-            .color = UI_COLOR5,
+            .height = FIXED(35 * layout->height_scale),
         })
         {
-            v2 size = SIZE(CURRENT()->id);
+            v2 container_size = SIZE(CURRENT()->id);
             ui_layout_gradient *gradient = &layout->particle_gradient;
 
+            u32 size = 25; 
             for (u32 i = 0; i < ARRAY_COUNT(gradient->colors); i++)
             {
                 UI({
-                    .pos = RELATIVE(gradient->positions[i] * size.x - 5, 0.0f),
-                    .width = FIXED(10),
-                    .height = FIXED(10),
-                    .color = gradient->colors[i],
+                    .pos = RELATIVE(gradient->positions[i] * container_size.x - size / 2.0f, 0.0f),
+                    .width = FIXED(size),
+                    .height = FIXED(size),
+                    .color = UI_COLOR3,
                     .flags = UI_NO_ADVANCE_BIT,
-                });
+                    .padding = PAD_ALL(4),
+                })
+                {
+                    if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+                    {
+                        layout->show_color_picker = true;
+                        layout->color_picker_pos  = WORLD_POS(PARENT()->id);
+                        layout->color_picker_pos.x -= 300;
+                        layout->color_picker_color = i;
+                    }
+                    
+                    UI({
+                        .width = GROW(0),
+                        .height = GROW(0),
+                        .color = gradient->colors[i],
+                    });
+                }
             }
         }
     }

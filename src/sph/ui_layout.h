@@ -31,7 +31,8 @@ typedef struct
     bool              color_picker_triangle_active;
     v2                color_picker_pos;
     ui_layout_color_picker_data color_picker_data;
-    color4            color_picker_color;
+    // NOTE: Index into the gradient
+    u32            color_picker_color;
 
     ui_layout_gradient particle_gradient;
 } ui_layout_context;
