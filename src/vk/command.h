@@ -32,10 +32,10 @@ struct vulkan_command_queue
 
 typedef struct
 {
-    VkCommandPool pool;
+    VkCommandPool   pool;
     VkCommandBuffer buffer;
-    VkSemaphore timeline;
-    u64 value;
+    VkSemaphore     timeline;
+    u64             value;
 } vulkan_immeadiate_context;
 
 typedef struct
@@ -44,7 +44,7 @@ typedef struct
     vulkan_frame_data frame_data[FRAMES_IN_FLIGHT];
 
     vulkan_immeadiate_context contexts[12];
-    u32 next_context;
+    u32                       next_context;
 
     u32 frame_index;
     u64 accumulated_frame_index;
@@ -82,7 +82,7 @@ bool vulkan_command_bind_scene_ubo(vulkan_command_queue *queue, vulkan_bindless_
 
 //
 // NOTE: Special ones
-// 
+//
 vulkan_command_queue *vulkan_command_begin(memory_arena *arena);
 
 bool vulkan_command_end(vulkan_command_queue *queue, vulkan *vulkan, bool wait);

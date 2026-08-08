@@ -147,25 +147,25 @@ static bool swapchain_build(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, 
             goto error;
         }
     }
-    
+
     if (!vulkan_image_create(vulkan, v2umake(extent.width, extent.height), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, "swapchain_depth", &swapchain->depth_image))
     {
         goto error;
     }
 
     vulkan_image_transition(vulkan, &swapchain->arena, swapchain->depth_image,
-                                    (vulkan_image_info){
-                                        .layout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                        .access = VK_ACCESS_NONE,
-                                        .aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
-                                        .stage = VK_PIPELINE_STAGE_NONE,
-                                },
-                                    (vulkan_image_info){
-                                       .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                       .access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                       .aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
-                                       .stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 
-                                });
+                            (vulkan_image_info){
+                                .layout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                .access = VK_ACCESS_NONE,
+                                .aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                .stage  = VK_PIPELINE_STAGE_NONE,
+                            },
+                            (vulkan_image_info){
+                                .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                .access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                .aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                .stage  = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                            });
 
     swapchain->image_index = 0;
 

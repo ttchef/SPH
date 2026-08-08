@@ -26,11 +26,12 @@ ui_layout_context ui_layout_create(void)
 
     result.particle_gradient = (ui_layout_gradient){
         .colors = {
-            BLUE, CYAN, YELLOW, RED,
+            BLUE,
+            CYAN,
+            YELLOW,
+            RED,
         },
-        .positions = {
-            0.0f, 0.33f, 0.66f, 1.0f
-        },
+        .positions = {0.0f, 0.33f, 0.66f, 1.0f},
     };
 
     return result;
@@ -265,7 +266,7 @@ static color4 get_color(f32 hue, v2 p)
     v3 a0 = v3scale(colors[0], barycentrics.x);
     v3 b0 = v3scale(colors[1], barycentrics.y);
     v3 c0 = v3scale(colors[2], barycentrics.z);
-    
+
     v3 hsv = v3add(a0, v3add(b0, c0));
     return color4fromhsv2(hsv);
 }
@@ -418,30 +419,30 @@ static void color_gradient(app *app)
     ui_layout_context *layout = &app->ui_layout;
 
     UI({
-        .layout = LAYOUT_TO_BOTTOM,
-        .width   = GROW(0),
-        .height  = FIT(0),
-        .color   = UI_COLOR1,
-        .padding = PAD(18, 18, 12, 12),
+        .layout    = LAYOUT_TO_BOTTOM,
+        .width     = GROW(0),
+        .height    = FIT(0),
+        .color     = UI_COLOR1,
+        .padding   = PAD(18, 18, 12, 12),
         .child_gap = 6,
         .roundness = STD_ROUNDNESS,
     })
     {
         UI({
-            .width = GROW(0),
+            .width  = GROW(0),
             .height = FIXED(40 * layout->height_scale),
-            .color = UI_COLOR3,
+            .color  = UI_COLOR3,
         })
-        {            
+        {
             ui_layout_gradient *gradient = &layout->particle_gradient;
 
             if (gradient->positions[0] > 0.005f)
             {
                 UI({
-                    .pos = RELATIVE(0.0f, 0.0f),
-                    .width = PERCENT(gradient->positions[0]),
+                    .pos    = RELATIVE(0.0f, 0.0f),
+                    .width  = PERCENT(gradient->positions[0]),
                     .height = GROW(0),
-                    .color = gradient->colors[0],
+                    .color  = gradient->colors[0],
                 });
             }
 
@@ -450,12 +451,12 @@ static void color_gradient(app *app)
                 f32 width = gradient->positions[i] - gradient->positions[i - 1];
 
                 UI({
-                    .width = PERCENT(width),
-                    .height = GROW(0),
+                    .width    = PERCENT(width),
+                    .height   = GROW(0),
                     .gradient = {
                         .type = GRADIENT_HORIZOTNAL,
-                        .a = gradient->colors[i - 1],
-                        .b = gradient->colors[i],
+                        .a    = gradient->colors[i - 1],
+                        .b    = gradient->colors[i],
                     },
                 });
             }
@@ -463,30 +464,30 @@ static void color_gradient(app *app)
             if (gradient->positions[ARRAY_COUNT(gradient->positions) - 1] < 0.995)
             {
                 UI({
-                    .width = PERCENT(1.0f - gradient->positions[ARRAY_COUNT(gradient->positions) - 1]),
+                    .width  = PERCENT(1.0f - gradient->positions[ARRAY_COUNT(gradient->positions) - 1]),
                     .height = GROW(0),
-                    .color = gradient->colors[ARRAY_COUNT(gradient->positions) - 1],
+                    .color  = gradient->colors[ARRAY_COUNT(gradient->positions) - 1],
                 });
             }
         }
 
         UI({
-            .width = GROW(0),
+            .width  = GROW(0),
             .height = FIXED(35 * layout->height_scale),
         })
         {
-            v2 container_size = SIZE(CURRENT()->id);
-            ui_layout_gradient *gradient = &layout->particle_gradient;
+            v2                  container_size = SIZE(CURRENT()->id);
+            ui_layout_gradient *gradient       = &layout->particle_gradient;
 
-            u32 size = 25; 
+            u32 size = 25;
             for (u32 i = 0; i < ARRAY_COUNT(gradient->colors); i++)
             {
                 UI({
-                    .pos = RELATIVE(gradient->positions[i] * container_size.x - size / 2.0f, 0.0f),
-                    .width = FIXED(size),
-                    .height = FIXED(size),
-                    .color = UI_COLOR3,
-                    .flags = UI_NO_ADVANCE_BIT,
+                    .pos     = RELATIVE(gradient->positions[i] * container_size.x - size / 2.0f, 0.0f),
+                    .width   = FIXED(size),
+                    .height  = FIXED(size),
+                    .color   = UI_COLOR3,
+                    .flags   = UI_NO_ADVANCE_BIT,
                     .padding = PAD_ALL(4),
                 })
                 {
@@ -509,7 +510,7 @@ static void color_gradient(app *app)
                         v2 world_pos = WORLD_POS(PARENT()->id);
                         if (world_pos.x < app->input.mouse_pos.x)
                         {
-                            v2 p = v2sub(app->input.mouse_pos, world_pos);
+                            v2  p = v2sub(app->input.mouse_pos, world_pos);
                             f32 t = p.x / container_size.x;
 
                             f32 lower = i == 0 ? 0.0f : gradient->positions[i - 1];
@@ -518,16 +519,16 @@ static void color_gradient(app *app)
                             gradient->positions[i] = CLAMP(t, lower, upper);
                         }
                     }
-                    
+
                     UI({
-                        .width = GROW(0),
+                        .width  = GROW(0),
                         .height = GROW(0),
-                        .color = gradient->colors[i],
+                        .color  = gradient->colors[i],
                     });
                 }
             }
         }
-            
+
         if (layout->show_color_picker)
         {
             color_picker(app);

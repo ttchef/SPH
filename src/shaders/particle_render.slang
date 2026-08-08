@@ -3,10 +3,10 @@ import utils;
 
 struct PushConstant
 {
-	float4 *positions;
-	float4 *velocities;
-	uint particle_count;
-	float particle_radius;
+    float4 *positions;
+    float4 *velocities;
+    uint    particle_count;
+    float   particle_radius;
 };
 
 [[vk::push_constant]]
@@ -14,101 +14,102 @@ PushConstant pc;
 
 struct VSOutput
 {
-	float4 position : SV_Position;
-	float2 uv;
-	float4 view_pos;
-	uint index;	
+    float4 position : SV_Position;
+    float2 uv;
+    float4 view_pos;
+    uint   index;
 };
 
-[shader("vertex")]
-VSOutput vertexMain(uint index: SV_VulkanVertexID)
+[shader("vertex")] VSOutput vertexMain(uint index : SV_VulkanVertexID)
 {
-	VSOutput output;
+    VSOutput output;
 
-	uint particle_index = index / 6;
-	float4 pos = pc.positions[particle_index];
+    uint   particle_index = index / 6;
+    float4 pos            = pc.positions[particle_index];
 
-	const float2 offsets[6] = {
-		float2(-1.0, -1.0), float2(1.0, -1.0),
-		float2(-1.0, 1.0), float2(-1.0, 1.0),
-		float2(1.0, -1.0), float2(1.0, 1.0),
-	};
+    const float2 offsets[6] = {
+        float2(-1.0, -1.0),
+        float2(1.0, -1.0),
+        float2(-1.0, 1.0),
+        float2(-1.0, 1.0),
+        float2(1.0, -1.0),
+        float2(1.0, 1.0),
+    };
 
-	float2 offset = offsets[index % 6];
+    float2 offset = offsets[index % 6];
 
-	float4 view_pos = mul(ubo.view, pos);
-	view_pos.xy += offset * pc.particle_radius;
+    float4 view_pos = mul(ubo.view, pos);
+    view_pos.xy += offset * pc.particle_radius;
 
-	output.position = mul(ubo.perspective, float4(view_pos));
-	output.uv = offset;
-	output.view_pos = view_pos;
-	output.index = particle_index;
+    output.position = mul(ubo.perspective, float4(view_pos));
+    output.uv       = offset;
+    output.view_pos = view_pos;
+    output.index    = particle_index;
 
-	return output;
+    return output;
 }
 
 struct FSOutput
 {
-	float4 color : SV_Target;
-	float depth : SV_Depth;	
+    float4 color : SV_Target;
+    float  depth : SV_Depth;
 };
 
 float4 get_color(float t)
 {
-	if (t <= scene_ubo.particle_color_positions[0])
-	{
-		return scene_ubo.particle_color0;
-	}
-	else if (t >= scene_ubo.particle_color_positions[3])
-	{
-		return scene_ubo.particle_color3;
-	}
-	else if (t < scene_ubo.particle_color_positions[1])
-	{
-		t = (t - scene_ubo.particle_color_positions[0]) / (scene_ubo.particle_color_positions[1] - scene_ubo.particle_color_positions[0]);
-		return lerp(scene_ubo.particle_color0, scene_ubo.particle_color1, t);
-	}
-	else if (t < scene_ubo.particle_color_positions[2])
-	{
-		t = (t - scene_ubo.particle_color_positions[1]) / (scene_ubo.particle_color_positions[2] - scene_ubo.particle_color_positions[1]);
-		return lerp(scene_ubo.particle_color1, scene_ubo.particle_color2, t);
-	}
-	else
-	{
-		t = (t - scene_ubo.particle_color_positions[2]) / (scene_ubo.particle_color_positions[3] - scene_ubo.particle_color_positions[2]);
-		return lerp(scene_ubo.particle_color2, scene_ubo.particle_color3, t);
-	}
+    if (t <= scene_ubo.particle_color_positions[0])
+    {
+        return scene_ubo.particle_color0;
+    }
+    else if (t >= scene_ubo.particle_color_positions[3])
+    {
+        return scene_ubo.particle_color3;
+    }
+    else if (t < scene_ubo.particle_color_positions[1])
+    {
+        t = (t - scene_ubo.particle_color_positions[0]) / (scene_ubo.particle_color_positions[1] - scene_ubo.particle_color_positions[0]);
+        return lerp(scene_ubo.particle_color0, scene_ubo.particle_color1, t);
+    }
+    else if (t < scene_ubo.particle_color_positions[2])
+    {
+        t = (t - scene_ubo.particle_color_positions[1]) / (scene_ubo.particle_color_positions[2] - scene_ubo.particle_color_positions[1]);
+        return lerp(scene_ubo.particle_color1, scene_ubo.particle_color2, t);
+    }
+    else
+    {
+        t = (t - scene_ubo.particle_color_positions[2]) / (scene_ubo.particle_color_positions[3] - scene_ubo.particle_color_positions[2]);
+        return lerp(scene_ubo.particle_color2, scene_ubo.particle_color3, t);
+    }
 }
 
-[shader("fragment")]
-FSOutput fragmentMain(VSOutput input)
+[shader("fragment")] FSOutput fragmentMain(VSOutput input)
 {
-	FSOutput output;
+    FSOutput output;
 
-	float dist_sq = dot(input.uv, input.uv);
-	if (dist_sq > 1.0)
-	{
-		discard;
-	}
+    float dist_sq = dot(input.uv, input.uv);
+    if (dist_sq > 1.0)
+    {
+        discard;
+    }
 
-	float z = sqrt(1.0 - dist_sq);
-	float3 normal = normalize(float3(input.uv, z));
+    float  z      = sqrt(1.0 - dist_sq);
+    float3 normal = normalize(float3(input.uv, z));
 
-	const float3 light_dir = normalize(float3(0.5, 0.5, 1.0));
-	float diffuse = max(dot(normal, light_dir), 0.2);
+    const float3 light_dir = normalize(float3(0.5, 0.5, 1.0));
+    float        diffuse   = max(dot(normal, light_dir), 0.2);
 
-	const float max_velo = 45.0;
-	float speed = length(pc.velocities[input.index].xyz);
-	float t = min(speed / max_velo, 1.0);
-	float4 color = get_color(t);
+    const float max_velo = 45.0;
+    float       speed    = length(pc.velocities[input.index].xyz);
+    float       t        = min(speed / max_velo, 1.0);
+    float4      color    = get_color(t);
 
-	output.color = float4(color.xyz * diffuse, 1.0);
+    output.color = float4(color.xyz * diffuse, 1.0);
 
-	float4 pos = input.view_pos;
-	pos.z += z * pc.particle_radius;
+    float4 pos = input.view_pos;
+    pos.z += z * pc.particle_radius;
 
-	float4 clip_pos = mul(ubo.perspective, pos);
-	output.depth = clip_pos.z / clip_pos.w;
+    float4 clip_pos = mul(ubo.perspective, pos);
+    output.depth    = clip_pos.z / clip_pos.w;
 
-	return output;
+    return output;
 }

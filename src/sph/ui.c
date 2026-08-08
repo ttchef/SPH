@@ -96,7 +96,7 @@ void ui_update(input *input)
     ui_mouse_over_elements(ui_ctx.root, input->mouse_pos, &ui_ctx.pointer_over_ids);
     ui_data_collect(ui_ctx.root, &ui_ctx.previous_data);
 
-    ui_ctx.element_count = 0;
+    ui_ctx.element_count          = 0;
     ui_ctx.floating.element_count = 0;
 
     if (ui_ctx.root)

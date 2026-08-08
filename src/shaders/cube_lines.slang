@@ -3,7 +3,7 @@ import utils;
 
 struct PushConstant
 {
-	float4x4 model;	
+    float4x4 model;
 };
 
 [[vk::push_constant]]
@@ -11,39 +11,38 @@ PushConstant pc;
 
 struct VSOutput
 {
-	float4 position : SV_Position;	
+    float4 position : SV_Position;
 };
 
 [[shader("vertex")]]
 VSOutput vertexMain(uint index : SV_VulkanVertexID)
 {
-	VSOutput output;
+    VSOutput output;
 
-	float3 cube_line_vertices[24] = {
-	    float3(-0.5, -0.5, 0.5), float3(-0.5, 0.5, 0.5),
-	    float3(-0.5, 0.5, 0.5), float3(0.5, 0.5, 0.5),
-	    float3(0.5, 0.5, 0.5), float3(0.5, -0.5, 0.5),
-	    float3(0.5, -0.5, 0.5), float3(-0.5, -0.5, 0.5),
+    float3 cube_line_vertices[24] = {
+        float3(-0.5, -0.5, 0.5), float3(-0.5, 0.5, 0.5),
+        float3(-0.5, 0.5, 0.5), float3(0.5, 0.5, 0.5),
+        float3(0.5, 0.5, 0.5), float3(0.5, -0.5, 0.5),
+        float3(0.5, -0.5, 0.5), float3(-0.5, -0.5, 0.5),
 
-	    float3(-0.5, -0.5, -0.5), float3(-0.5, 0.5, -0.5),
-	    float3(-0.5, 0.5, -0.5), float3(0.5, 0.5, -0.5),
-	    float3(0.5, 0.5, -0.5), float3(0.5, -0.5, -0.5),
-	    float3(0.5, -0.5, -0.5), float3(-0.5, -0.5, -0.5),
+        float3(-0.5, -0.5, -0.5), float3(-0.5, 0.5, -0.5),
+        float3(-0.5, 0.5, -0.5), float3(0.5, 0.5, -0.5),
+        float3(0.5, 0.5, -0.5), float3(0.5, -0.5, -0.5),
+        float3(0.5, -0.5, -0.5), float3(-0.5, -0.5, -0.5),
 
-	    float3(-0.5, -0.5, 0.5), float3(-0.5, -0.5, -0.5),
-	    float3(-0.5, 0.5, 0.5), float3(-0.5, 0.5, -0.5),
-	    float3(0.5, 0.5, 0.5), float3(0.5, 0.5, -0.5),
-	    float3(0.5, -0.5, 0.5), float3(0.5, -0.5, -0.5) 
-	};
+        float3(-0.5, -0.5, 0.5), float3(-0.5, -0.5, -0.5),
+        float3(-0.5, 0.5, 0.5), float3(-0.5, 0.5, -0.5),
+        float3(0.5, 0.5, 0.5), float3(0.5, 0.5, -0.5),
+        float3(0.5, -0.5, 0.5), float3(0.5, -0.5, -0.5)};
 
-	float4x4 view_proj = mul(ubo.perspective, ubo.view);
-	output.position = mul(view_proj, mul(pc.model, float4(cube_line_vertices[index], 1.0)));
+    float4x4 view_proj = mul(ubo.perspective, ubo.view);
+    output.position    = mul(view_proj, mul(pc.model, float4(cube_line_vertices[index], 1.0)));
 
-	return output;
+    return output;
 }
 
 [[shader("fragment")]]
 float4 fragmentMain(VSOutput input)
 {
-	return float4(1.0, 0.0, 0.0, 1.0);
+    return float4(1.0, 0.0, 0.0, 1.0);
 }

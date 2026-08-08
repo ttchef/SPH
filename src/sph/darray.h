@@ -74,11 +74,11 @@ static inline u32 darray_capacity(void *darray)
 
 static inline void darray_len_set(void *darray, u32 len)
 {
-    darray_base(darray)->len = len;   
+    darray_base(darray)->len = len;
 }
 
 // NOTE: Returns pointer to pushed element in the array and NULL on error
-static inline void *darray_push(void ** darray_ptr, void *element)
+static inline void *darray_push(void **darray_ptr, void *element)
 {
     void          *darray = *darray_ptr;
     darray_header *header = darray_base(darray);
@@ -102,9 +102,9 @@ static inline void *darray_push(void ** darray_ptr, void *element)
         darray      = *darray_ptr;
     }
 
-    u8 *data = darray;
-    void *pos = data + header->element_size * header->len;
-    
+    u8   *data = darray;
+    void *pos  = data + header->element_size * header->len;
+
     SDL_memcpy(pos, element, header->element_size);
 
     header->len++;

@@ -3,10 +3,10 @@
 
 #include <math/types.h>
 #include <sph/types.h>
+#include <sph/ui_layout.h>
 #include <types.h>
 #include <vk/buffer.h>
 #include <vk/types.h>
-#include <sph/ui_layout.h>
 
 #define PING_PONG_COUNT 2
 
@@ -39,12 +39,12 @@ typedef struct
 typedef struct
 {
     vulkan_bindless_scene_ubo scene;
-    simulation_ubo ubo_data;
+    simulation_ubo            ubo_data;
 
     vulkan_buffer spatial_lookup[PING_PONG_COUNT];
     vulkan_buffer spatial_lookup_histograms;
     vulkan_buffer start_indices;
-    
+
     vulkan_buffer densities;
     vulkan_buffer velocities[PING_PONG_COUNT];
     vulkan_buffer positions[PING_PONG_COUNT];
@@ -53,9 +53,9 @@ typedef struct
     vulkan_buffer pressures;
 
     bool first_loop;
-    u32 read_index;
-    u32 write_index;
-    f32 elapsed_time;
+    u32  read_index;
+    u32  write_index;
+    f32  elapsed_time;
 
     bool initialized;
 } simulation;

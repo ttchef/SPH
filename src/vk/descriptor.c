@@ -243,7 +243,7 @@ void *vulkan_bindless_ubo_get(vulkan_bindless *bindless)
 void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLayout layout)
 {
     vulkan_bindless *bindless = &vulkan->bindless;
-    
+
     if (image->descriptor == VULKAN_INVALID_BINDING)
     {
         if (bindless->free_image_count == 0)
@@ -283,7 +283,7 @@ void vulkan_bindless_image_release(vulkan *vulkan, vulkan_bindless_image handle)
 void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_sampler *sampler)
 {
     vulkan_bindless *bindless = &vulkan->bindless;
-    
+
     if (sampler->descriptor == VULKAN_INVALID_BINDING)
     {
         if (bindless->free_sampler_count == 0)
@@ -322,7 +322,7 @@ void vulkan_bindless_sampler_release(vulkan *vulkan, vulkan_bindless_sampler han
 vulkan_bindless_scene_ubo vulkan_bindless_scene_ubo_aquire(vulkan *vulkan)
 {
     vulkan_bindless *bindless = &vulkan->bindless;
-    
+
     if (bindless->free_scene_ubo_count == 0)
     {
         SDL_Log("[VULKAN] Failed to aquire scene ubo.");

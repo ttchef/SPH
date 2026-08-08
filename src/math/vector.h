@@ -57,15 +57,15 @@ static inline v2 v2lerp(v2 a, v2 b, f32 t)
 
 static inline v2 v2rotate(v2 v, f32 radians)
 {
-	f32 x = v.x * SDL_cos(radians) + v.y * -SDL_sin(radians);
-	f32 y = v.x * SDL_sin(radians) + v.y * SDL_cos(radians);
+    f32 x = v.x * SDL_cos(radians) + v.y * -SDL_sin(radians);
+    f32 y = v.x * SDL_sin(radians) + v.y * SDL_cos(radians);
 
-	return v2make(x, y); 
+    return v2make(x, y);
 }
 
 //
 // NOTE: V2u
-// 
+//
 
 static inline v2u v2uadd(v2u a, v2u b)
 {

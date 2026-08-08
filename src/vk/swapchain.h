@@ -2,29 +2,29 @@
 #pragma once
 
 #include <types.h>
-#include <vk/types.h>
 #include <vk/image.h>
+#include <vk/types.h>
 
 // TODO: no sph in vk
 #include <sph/memory.h>
 
 typedef struct
 {
-	VkSwapchainKHR handle;
-	
-	VkImageView *image_views;
-	VkSemaphore *finished;
-	VkImage *images;
+    VkSwapchainKHR handle;
 
-	vulkan_image depth_image;
-	
-	u32 image_count;
-	u32 image_index;
+    VkImageView *image_views;
+    VkSemaphore *finished;
+    VkImage     *images;
 
-	VkFormat fmt;
-	VkExtent2D extent;
+    vulkan_image depth_image;
 
-	memory_arena arena;
+    u32 image_count;
+    u32 image_index;
+
+    VkFormat   fmt;
+    VkExtent2D extent;
+
+    memory_arena arena;
 } vulkan_swapchain;
 
 bool vulkan_swapchain_create(vulkan *vulkan, vulkan_swapchain *swapchain, u32 w, u32 h);

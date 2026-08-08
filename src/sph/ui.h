@@ -95,7 +95,7 @@ typedef void (*ui_draw_fn)(app *app, vulkan_command_queue *queue, v2 pos, v2 siz
 
 enum
 {
-    UI_NO_ADVANCE_BIT = (1 << 0),  
+    UI_NO_ADVANCE_BIT = (1 << 0),
 };
 
 typedef struct ui_element

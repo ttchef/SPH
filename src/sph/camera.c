@@ -22,9 +22,9 @@ camera camera_create(void)
 void camera_update(camera *camera, window *window, input *input, f32 dt)
 {
     // const v3 forward = v3norm(v3make(camera->dir.x, 0.0f, camera->dir.z));
-    const v3 up      = v3up();
-    const v3 right   = v3norm(v3cross(camera->dir, up));
-    f32 speed = camera->speed;
+    const v3 up    = v3up();
+    const v3 right = v3norm(v3cross(camera->dir, up));
+    f32      speed = camera->speed;
 
     if (input_down(input, INPUT_LCTRL))
     {

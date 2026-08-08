@@ -16,7 +16,7 @@
 
 #define VULKAN_MAX_SAMPLED_IMAGE_COUNT 256
 #define VULKAN_MAX_SAMPLER_COUNT       256
-#define VULKAN_MAX_SCENE_UBO_COUNT 32
+#define VULKAN_MAX_SCENE_UBO_COUNT     32
 #define VULKAN_INVALID_BINDING         0
 
 // NOTE: Can be changed later
@@ -39,12 +39,12 @@ typedef struct
     u32                     free_sampler_count;
 
     VkDescriptorSetLayout scene_layout;
-    VkDescriptorSet scene_set;
-    
-    vulkan_buffer scene_ubo;
-    u32 scene_ubo_stride;
+    VkDescriptorSet       scene_set;
+
+    vulkan_buffer             scene_ubo;
+    u32                       scene_ubo_stride;
     vulkan_bindless_scene_ubo free_scene_ubos[VULKAN_MAX_SCENE_UBO_COUNT];
-    u32 free_scene_ubo_count;
+    u32                       free_scene_ubo_count;
 } vulkan_bindless;
 
 bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_bindless);
@@ -55,7 +55,7 @@ void *vulkan_bindless_ubo_get(vulkan_bindless *bindless);
 
 //
 // NOTE: Public api
-// 
+//
 
 // NOTE: Image
 void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLayout layout);

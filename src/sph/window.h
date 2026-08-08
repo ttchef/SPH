@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include <types.h>
 #include <sph/types.h>
+#include <types.h>
 
 #include <SDL3/SDL.h>
 

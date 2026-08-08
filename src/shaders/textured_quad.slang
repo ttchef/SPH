@@ -11,8 +11,8 @@ struct PushConstant
     float2   uv_min;
     float2   uv_max;
     float4   color;
-    float4 gradient_color;
-    uint gradient;
+    float4   gradient_color;
+    uint     gradient;
 };
 
 [[vk::push_constant]]
@@ -24,8 +24,7 @@ struct VSOutput
     float2 uv;
 };
 
-[shader("vertex")]
-VSOutput vertexMain(uint index: SV_VulkanVertexID)
+[shader("vertex")] VSOutput vertexMain(uint index : SV_VulkanVertexID)
 {
     VSOutput output;
 
@@ -62,11 +61,10 @@ float sdfRoundedBox(float2 p, float2 b, float r)
     return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
 }
 
-[shader("fragment")]
-float4 fragmentMain(VSOutput input)
+[shader("fragment")] float4 fragmentMain(VSOutput input)
 {
     float4 color = pc.color;
-    
+
     if (pc.texture != 0)
     {
         color = textures[pc.texture].Sample(samplers[pc.sampler], input.uv);
@@ -89,9 +87,9 @@ float4 fragmentMain(VSOutput input)
         remapped_uv.x *= pc.aspect_ratio;
         float sdf = sdfRoundedBox(remapped_uv, float2(1.0 * pc.aspect_ratio, 1.0), pc.roundness);
 
-        float pd = fwidth(sdf);
+        float pd   = fwidth(sdf);
         float mask = 1.0 - saturate(sdf / pd);
-        
+
         color = mask * pc.color;
     }
 

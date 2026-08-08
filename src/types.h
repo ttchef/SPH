@@ -55,7 +55,6 @@ typedef struct
     u8 *data;
 } image_raw;
 
-
 typedef struct
 {
     f32 r;

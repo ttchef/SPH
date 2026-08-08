@@ -23,9 +23,9 @@ struct vulkan
     VkDebugUtilsMessengerEXT debug_messenger;
 #endif
 
-    VkInstance       instance;
-    VkSurfaceKHR     surface;
-    VkPhysicalDevice physical_device;
+    VkInstance                 instance;
+    VkSurfaceKHR               surface;
+    VkPhysicalDevice           physical_device;
     VkPhysicalDeviceProperties physical_device_props;
 
     vulkan_queue graphics_queue;

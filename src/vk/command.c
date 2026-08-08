@@ -120,9 +120,9 @@ typedef struct
 
 typedef struct
 {
-    command_header     header;
-    vulkan_buffer      src;
-    vulkan_image       dst;
+    command_header    header;
+    vulkan_buffer     src;
+    vulkan_image      dst;
     vulkan_image_info dst_info;
 } command_copy_image;
 
@@ -363,9 +363,9 @@ bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, v
     };
 
     command_copy_image copy_image = {
-        .header     = header,
-        .src        = src,
-        .dst        = dst,
+        .header   = header,
+        .src      = src,
+        .dst      = dst,
         .dst_info = dst_info,
     };
 

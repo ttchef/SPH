@@ -56,7 +56,7 @@ void input_update(input *input, window *window)
     {
         input->mouse_press_pos = input->mouse_pos;
     }
-    
+
     for (u32 i = 0; i < INPUT_COUNT; i++)
     {
         input->actions[i].pressed  = false;
@@ -111,8 +111,8 @@ void input_event(input *input, SDL_Event *event)
     break;
     case SDL_EVENT_MOUSE_MOTION:
     {
-        v2 pos = v2make(event->motion.x, event->motion.y);
-        input->mouse_pos         = pos;
+        v2 pos           = v2make(event->motion.x, event->motion.y);
+        input->mouse_pos = pos;
     }
     default:
         break;
@@ -142,4 +142,3 @@ void input_relative_mouse(input *input, window *window, bool on)
     SDL_SetWindowRelativeMouseMode(window->handle, on);
     input->relative_mouse = on;
 }
-

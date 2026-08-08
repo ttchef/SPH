@@ -19,8 +19,8 @@ typedef struct
     v2                      uv_min;
     v2                      uv_max;
     v4                      color;
-    v4 gradient_color;
-    u32 gradient;
+    v4                      gradient_color;
+    u32                     gradient;
 } textured_quad_pc;
 
 typedef struct
@@ -33,7 +33,7 @@ typedef struct
     VkDeviceAddress positions_addr;
     VkDeviceAddress velocities_addr;
     u32             particle_count;
-    float particle_radius;
+    float           particle_radius;
 } particle_render_pc;
 
 typedef struct
@@ -81,9 +81,9 @@ typedef struct
 {
     VkDeviceAddress spatial_lookup_addr;
     VkDeviceAddress spatial_lookup_histograms_addr;
-    u32 shift;
-    u32 workgroup_count;
-    u32 blocks_per_workgroup;
+    u32             shift;
+    u32             workgroup_count;
+    u32             blocks_per_workgroup;
 } spatial_lookup_histograms_pc;
 
 typedef struct
@@ -91,9 +91,9 @@ typedef struct
     VkDeviceAddress spatial_lookup_read_addr;
     VkDeviceAddress spatial_lookup_write_addr;
     VkDeviceAddress spatial_lookup_histograms_addr;
-    u32 shift;
-    u32 workgroup_count;
-    u32 blocks_per_workgroup;
+    u32             shift;
+    u32             workgroup_count;
+    u32             blocks_per_workgroup;
 } spatial_lookup_sort_pc;
 
 typedef struct

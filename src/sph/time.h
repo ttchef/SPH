@@ -18,10 +18,10 @@ typedef struct time
 static inline time time_create(void)
 {
     time result = {0};
-    
-    result.last               = SDL_GetPerformanceCounter();
-    result.elapsed            = 0.0;
-    result.delta              = 0.0;
+
+    result.last    = SDL_GetPerformanceCounter();
+    result.elapsed = 0.0;
+    result.delta   = 0.0;
 
     return result;
 }

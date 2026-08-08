@@ -1,9 +1,9 @@
 
 #pragma once
 
+#include <math/types.h>
 #include <types.h>
 #include <vk/types.h>
-#include <math/types.h>
 
 #include <volk.h>
 
@@ -12,30 +12,30 @@
 
 typedef struct
 {
-	VkImage handle;
-	VkImageView view;
-	VkDeviceMemory memory;
+    VkImage        handle;
+    VkImageView    view;
+    VkDeviceMemory memory;
 
-	u32 width;
-	u32 height;
+    u32 width;
+    u32 height;
 
-	// NOTE: VULKAN_INVALID_BINDING by default
-	vulkan_bindless_image descriptor;	
+    // NOTE: VULKAN_INVALID_BINDING by default
+    vulkan_bindless_image descriptor;
 } vulkan_image;
 
 typedef struct
 {
-	VkSampler handle;
-	// NOTE: VULKAN_INVALID_BINDING by default
-	vulkan_bindless_sampler descriptor;
+    VkSampler handle;
+    // NOTE: VULKAN_INVALID_BINDING by default
+    vulkan_bindless_sampler descriptor;
 } vulkan_sampler;
 
 typedef struct
 {
-	VkImageLayout layout;
-	VkAccessFlags access;
-	VkPipelineStageFlags stage;
-	VkImageAspectFlags aspect;
+    VkImageLayout        layout;
+    VkAccessFlags        access;
+    VkPipelineStageFlags stage;
+    VkImageAspectFlags   aspect;
 } vulkan_image_info;
 
 bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image);

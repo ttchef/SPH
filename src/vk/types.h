@@ -12,4 +12,3 @@ typedef u32 vulkan_bindless_sampler;
 typedef u32 vulkan_bindless_scene_ubo;
 
 typedef struct vulkan_command_queue vulkan_command_queue;
-

@@ -3,13 +3,13 @@
 
 //
 // NOTE: This file includes all basic math utilities
-// 
+//
 
-#include <math/types.h>
-#include <math/matrix.h>
-#include <math/vector.h>
-#include <math/sdf.h>
 #include <math/collision.h>
+#include <math/matrix.h>
+#include <math/sdf.h>
+#include <math/types.h>
+#include <math/vector.h>
 
 // NOTE: I dont know in which section to put it yet
 static inline v3 math_barycentrics(v2 a, v2 b, v2 c, v2 p)

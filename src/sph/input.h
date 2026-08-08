@@ -2,8 +2,8 @@
 #pragma once
 
 #include <math/types.h>
-#include <types.h>
 #include <sph/types.h>
+#include <types.h>
 
 #include <SDL3/SDL.h>
 
@@ -59,4 +59,3 @@ bool input_pressed(input *input, u32 key);
 bool input_released(input *input, u32 key);
 
 void input_relative_mouse(input *input, window *window, bool on);
-

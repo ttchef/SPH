@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X     70
-#define PARTICLE_Y     70
-#define PARTICLE_Z     70
+#define PARTICLE_X     60
+#define PARTICLE_Y     60
+#define PARTICLE_Z     60
 #define PARTICLE_COUNT PARTICLE_X * PARTICLE_Y * PARTICLE_Z
 
 static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count, u32 sorted)

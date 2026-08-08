@@ -112,10 +112,10 @@ bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image 
     }
 
     vulkan_image_info copy_info = {
-          .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-          .access = VK_ACCESS_TRANSFER_WRITE_BIT,
-          .stage = VK_PIPELINE_STAGE_TRANSFER_BIT,
-          .aspect = src.aspect,  
+        .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .access = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .stage  = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .aspect = src.aspect,
     };
 
     vulkan_command_queue *queue = vulkan_command_begin(arena);

@@ -1,13 +1,13 @@
 
 #pragma once
 
-#include <types.h>
 #include <math/vector.h>
+#include <types.h>
 
 // NOTE: No need to be here but for now it doesnt matter
 static inline f32 mod(f32 x, f32 y)
 {
-	return x - y * SDL_floor(x / y);
+    return x - y * SDL_floor(x / y);
 }
 
 static inline color4 color4lerp(color4 c0, color4 c1, f32 t)
@@ -23,8 +23,8 @@ static inline color4 color4lerp(color4 c0, color4 c1, f32 t)
 static color4 color4fromhsv(f32 hue, f32 saturation, f32 value)
 {
     f32 chroma = value * saturation;
-    f32 h1 = hue / 60.0f;
-    f32 X = chroma * (1.0 - ABS(mod(h1, 2.0f) - 1));
+    f32 h1     = hue / 60.0f;
+    f32 X      = chroma * (1.0 - ABS(mod(h1, 2.0f) - 1));
 
     v3 color;
 
@@ -42,7 +42,7 @@ static color4 color4fromhsv(f32 hue, f32 saturation, f32 value)
     }
     else if (h1 < 4.0)
     {
-        color = v3make(0.0, X, chroma); 
+        color = v3make(0.0, X, chroma);
     }
     else if (h1 < 5.0)
     {

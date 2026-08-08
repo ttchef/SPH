@@ -158,7 +158,7 @@ bool vulkan_buffer_device_local_get_data(vulkan *vulkan, memory_arena *arena, vu
     {
         SDL_Log("[VULKAN] Failed to get device local buffer data.");
         return false;
-    } 
+    }
 
     vkMapMemory(vulkan->device, result.memory, 0, buffer.size, 0, &result.host_visible.data);
 
