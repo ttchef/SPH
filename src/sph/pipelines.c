@@ -105,6 +105,14 @@ static vulkan_pipeline_desc table[PIPELINE_COUNT] = {
         .push_constant_size    = sizeof(color_picker_pc),
         .push_constants_stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
     },
+    [PIPELINE_WRITE_GRADIENT] = {
+        .name                  = "write_gradient",
+        .type                  = VULKAN_PIPELINE_TYPE_COMPUTE,
+        .compute_path          = "spv/write_gradient.spv",
+        .compute_entry         = "main",
+        .push_constant_size    = sizeof(write_gradient_pc),
+        .push_constants_stages = VK_SHADER_STAGE_COMPUTE_BIT,
+    },
 };
 
 bool pipelines_create(vulkan *vulkan, vulkan_pipeline_id *pipelines, u32 count)

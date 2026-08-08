@@ -52,6 +52,7 @@ set(SHADER_FILES
     src/shaders/spatial_lookup_sort.slang
     src/shaders/start_indices.slang
     src/shaders/color_picker.slang
+    src/shaders/write_gradient.slang
 )
 
 set(SPV_OUT ${CMAKE_BINARY_DIR}/spv)

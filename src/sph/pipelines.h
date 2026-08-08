@@ -103,6 +103,11 @@ typedef struct
     v4 data;
 } color_picker_pc;
 
+typedef struct
+{
+    u32 idk;
+} write_gradient_pc;
+
 enum
 {
     // NOTE: Draw Helper
@@ -120,6 +125,7 @@ enum
 
     // NOTE: Ui
     PIPELINE_COLOR_PICKER,
+    PIPELINE_WRITE_GRADIENT,
     PIPELINE_COUNT,
 };
 

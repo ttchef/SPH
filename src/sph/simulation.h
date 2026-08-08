@@ -16,6 +16,11 @@ typedef struct
     f32 viscosity_coeff;
     f32 smoothing_radius;
     f32 pressure_multiplier;
+    v4 particle_color0;
+    v4 particle_color1;
+    v4 particle_color2;
+    v4 particle_color3;
+    v4 particle_color_positions;
 } simulation_ubo;
 
 typedef struct

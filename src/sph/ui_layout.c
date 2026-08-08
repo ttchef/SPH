@@ -24,17 +24,14 @@ ui_layout_context ui_layout_create(void)
     result.active_id    = UI_INVALID_ID;
     result.height_scale = 1.0f;
 
-    result.particle_colors = (ui_layout_gradient){
-          .a = {BLUE, 0.0f},
-          .b = {GREEN, 0.33f},
-          .c = {CYAN, 0.66f},
-          .d = {RED, 1.0f},  
+    result.particle_gradient = (ui_layout_gradient){
+        .colors = {
+            BLUE, CYAN, GREEN, RED,
+        },
+        .positions = {
+            0.0f, 0.33f, 0.66f, 1.0f
+        },
     };
-
-    // result.particle_colors.b.color = color4lerp(result.particle_colors.a.color, result.particle_colors.d.color, 0.33f);
-    // result.particle_colors.c.color = color4lerp(result.particle_colors.a.color, result.particle_colors.d.color, 0.66f);
-    // result.particle_colors.b.pos = 0.33f;
-    // result.particle_colors.c.pos = 0.66f;
 
     return result;
 }
@@ -421,8 +418,9 @@ static void color_gradient(app *app)
     ui_layout_context *layout = &app->ui_layout;
 
     UI({
+        .layout = LAYOUT_TO_BOTTOM,
         .width   = GROW(0),
-        .height  = FIXED(48 * layout->height_scale),
+        .height  = FIT(0),
         .color   = UI_COLOR1,
         .padding = PAD_ALL(6),
     })
@@ -440,35 +438,47 @@ static void color_gradient(app *app)
         }
 
         UI({
-            .width    = GROW(0),
-            .height   = GROW(0),
-            .gradient = {
-                .a    = layout->particle_colors.a.color,
-                .b    = layout->particle_colors.b.color,
-                .type = GRADIENT_HORIZOTNAL,
-            },
-        });
+            .width = GROW(0),
+            .height = FIXED(40 * layout->height_scale),
+        })
+        {            
+            ui_layout_gradient *gradient = &layout->particle_gradient;
+            for (u32 i = 1; i < ARRAY_COUNT(gradient->colors); i++)
+            {
+                f32 width = gradient->positions[i] - gradient->positions[i - 1];
+
+                UI({
+                    .width = PERCENT(width),
+                    .height = GROW(0),
+                    .gradient = {
+                        .type = GRADIENT_HORIZOTNAL,
+                        .a = gradient->colors[i - 1],
+                        .b = gradient->colors[i],
+                    },
+                });
+            }
+        }
 
         UI({
-            .width    = GROW(0),
-            .height   = GROW(0),
-            .gradient = {
-                .a    = layout->particle_colors.b.color,
-                .b    = layout->particle_colors.c.color,
-                .type = GRADIENT_HORIZOTNAL,
-            },
-        });
+            .width = GROW(0),
+            .height = FIXED(22 * layout->height_scale),
+            .color = UI_COLOR5,
+        })
+        {
+            v2 size = SIZE(CURRENT()->id);
+            ui_layout_gradient *gradient = &layout->particle_gradient;
 
-            
-        UI({
-            .width    = GROW(0),
-            .height   = GROW(0),
-            .gradient = {
-                .a    = layout->particle_colors.c.color,
-                .b    = layout->particle_colors.d.color,
-                .type = GRADIENT_HORIZOTNAL,
-            },
-        });
+            for (u32 i = 0; i < ARRAY_COUNT(gradient->colors); i++)
+            {
+                UI({
+                    .pos = RELATIVE(gradient->positions[i] * size.x - 5, 0.0f),
+                    .width = FIXED(10),
+                    .height = FIXED(10),
+                    .color = gradient->colors[i],
+                    .flags = UI_NO_ADVANCE_BIT,
+                });
+            }
+        }
     }
 }
 

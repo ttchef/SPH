@@ -20,14 +20,14 @@ public struct SimulationUbo
 	public float target_density;
 	public float visocity_coeff;
 	public float smoothing_radius;
-	public float pressure_multiplier;	
+	public float pressure_multiplier;
 };
 
 [[vk::binding(0, 1)]]
 public ConstantBuffer<SimulationUbo> scene_ubo;
 
 [[vk::binding(1, 0)]]
-public Texture2D<float4> textures[256];
+public RWTexture2D<float4> textures[256];
 
 [[vk::binding(2, 0)]]
 public SamplerState samplers[256];

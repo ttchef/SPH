@@ -16,16 +16,8 @@ typedef struct
 
 typedef struct
 {
-    color4 color;
-    f32 pos;  
-} ui_layout_gradient_color;
-
-typedef struct
-{
-    ui_layout_gradient_color a;
-    ui_layout_gradient_color b;
-    ui_layout_gradient_color c;
-    ui_layout_gradient_color d;
+    color4 colors[4];
+    f32 positions[4];
 } ui_layout_gradient;
 
 typedef struct
@@ -41,7 +33,7 @@ typedef struct
     ui_layout_color_picker_data color_picker_data;
     color4            color_picker_color;
 
-    ui_layout_gradient particle_colors;
+    ui_layout_gradient particle_gradient;
 } ui_layout_context;
 
 ui_layout_context ui_layout_create(void);

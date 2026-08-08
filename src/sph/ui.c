@@ -187,6 +187,11 @@ void ui_close(ui_element *element)
         element->height.min_max.min = CLAMP(element->height.min_max.min, min, element->height.min_max.max);
     }
 
+    if (element->pos.type == POSITION_ABSOLUTE)
+    {
+        return;
+    }
+
     ui_element *parent = element->parent;
     if (!parent)
     {
@@ -490,7 +495,11 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
                 break;
                 }
                 child->pos.relative.x += offset;
-                offset += child->width.min_max.min + root->child_gap;
+
+                if ((child->flags & UI_NO_ADVANCE_BIT) == 0)
+                {
+                    offset += child->width.min_max.min + root->child_gap;
+                }
             }
             else if (root->layout == LAYOUT_TO_BOTTOM)
             {
@@ -530,8 +539,8 @@ void ui_draw(app *app, vulkan_command_queue *queue)
 {
     ui_element *root = ui_ctx.root;
 
-    ui_percent_resolve(root, app->window.width, app->window.height);
     ui_grow_resolve(root, app->window.width, app->window.height);
+    ui_percent_resolve(root, app->window.width, app->window.height);
     ui_draw_helper(app, queue, root);
 
     for (u32 i = 0; i < ui_ctx.floating.element_count; i++)

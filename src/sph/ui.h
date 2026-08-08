@@ -93,6 +93,11 @@ typedef struct
 
 typedef void (*ui_draw_fn)(app *app, vulkan_command_queue *queue, v2 pos, v2 size, void *data);
 
+enum
+{
+    UI_NO_ADVANCE_BIT = (1 << 0),  
+};
+
 typedef struct ui_element
 {
     ui_id       id;
@@ -109,6 +114,8 @@ typedef struct ui_element
 
     f32           child_gap;
     ui_alignement child_align;
+
+    u16 flags;
 
     struct
     {
