@@ -131,6 +131,12 @@ typedef struct ui_element
         u32         font_size;
         // NOTE: Must be statically allocated right now
         ttf_font *font;
+
+        ui_alignement align_x;
+        ui_alignement align_y;
+
+        // NOTE: compuzted with measure text
+        f32 width;
     } text;
 
     struct ui_element *parent;

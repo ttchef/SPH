@@ -314,7 +314,7 @@ static void color_picker(app *app)
                 .height      = GROW(0),
                 .color       = RED,
                 .roundness   = 0.35f,
-                .child_align = CENTER,
+                // .child_align = CENTER,
             })
             {
                 if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
@@ -323,12 +323,15 @@ static void color_picker(app *app)
                 }
 
                 UI({
-                    .width  = FIT(0),
-                    .height = FIT(0),
+                    .width  = GROW(0),
+                    .height = GROW(0),
+                    .color = UI_COLOR8, 
                     .text   = {
                         .font_size = 30,
                         .chars     = "X",
                         .font      = &app->jet_brains,
+                        .align_x = CENTER,
+                        .align_y = CENTER,
                     },
                 });
             }
@@ -536,6 +539,37 @@ static void color_gradient(app *app)
     }
 }
 
+static void number_box(app *app, const char *label)
+{
+    ui_layout_context *layout = &app->ui_layout;
+    
+    UI({
+        .width = GROW(0),
+        .height = FIXED(48 * layout->height_scale),
+        .color = UI_COLOR5,
+        .roundness = STD_ROUNDNESS,
+        .padding = PAD(4, 12, 4, 4),
+        .child_gap = 12,
+    })
+    {
+        UI({
+            .width = PERCENT(0.5f),
+            .height = GROW(0),
+            .color = UI_COLOR2,
+        });
+
+        UI({
+            .width = FIT(0),
+            .height = FIT(0),
+            .text = {
+                .chars = label,
+                .font_size = 24 * layout->height_scale,
+                .font = &app->jet_brains,
+            },
+        });
+    }
+}
+
 // NOTE: Non-linear ui scaling
 void layout_size(ui_layout_context *layout, u32 width, u32 height)
 {
@@ -586,6 +620,8 @@ void ui_layout_calculate(app *app)
         slider(app, &app->simulation.ubo_data.smoothing_radius, 5, 25.0, "Smoothing radius");
 
         color_gradient(app);
+
+        number_box(app, "Textbox");
     }
 
     // NOTE: Reset current element id

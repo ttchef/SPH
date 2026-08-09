@@ -3,9 +3,9 @@
 #include <sph/simulation.h>
 #include <vk/context.h>
 
-#define PARTICLE_X     60
-#define PARTICLE_Y     60
-#define PARTICLE_Z     60
+#define PARTICLE_X     70
+#define PARTICLE_Y     70
+#define PARTICLE_Z     70
 #define PARTICLE_COUNT PARTICLE_X * PARTICLE_Y * PARTICLE_Z
 
 static void compute_densities(app *app, vulkan_command_queue *queue, simulation *simulation, u32 particle_count, u32 sorted)
@@ -156,7 +156,7 @@ bool simulation_create(app *app, simulation *out_simulation)
         }
     }
     const u32 workgroup_size  = 256;
-    const u32 workgroup_count = (PARTICLE_COUNT + workgroup_size - 1) / workgroup_size;
+    const u32 sort_groups          = 32;
 
     VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
@@ -167,7 +167,7 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * PARTICLE_COUNT, NULL, "particle_densities", &result.densities);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(simulation_spatial_lookup_entry) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_zero", &result.spatial_lookup[0]);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(simulation_spatial_lookup_entry) * PARTICLE_COUNT, NULL, "particle_spatial_lookup_one", &result.spatial_lookup[1]);
-    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * workgroup_count * workgroup_size, NULL, "particle_spatial_lookup_histograms", &result.spatial_lookup_histograms);
+    vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * sort_groups * workgroup_size, NULL, "particle_spatial_lookup_histograms", &result.spatial_lookup_histograms);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(u32) * PARTICLE_COUNT, NULL, "particle_start_indices", &result.start_indices);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * PARTICLE_COUNT, NULL, "particle_sorted_positions", &result.sorted_positions);
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(v4) * PARTICLE_COUNT, NULL, "particle_sorted_velocities", &result.sorted_velocities);

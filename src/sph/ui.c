@@ -166,12 +166,17 @@ void ui_close(ui_element *element)
         return;
     }
 
+    if (element->text.chars)
+    {
+        element->text.width = measure_text(element->text.font, element->text.font_size, "%s", element->text.chars);
+    }
+
     else if (element->width.type == UI_SIZE_FIT)
     {
         f32 min = element->width.min_max.min;
         if (element->text.chars)
         {
-            element->width.min_max.min = measure_text(element->text.font, element->text.font_size, "%s", element->text.chars);
+            element->width.min_max.min = element->text.width;
         }
         element->width.min_max.min += element->padding.left + element->padding.right;
         element->width.min_max.min = CLAMP(element->width.min_max.min, min, element->width.min_max.max);
@@ -442,9 +447,35 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
 
     if (root->text.chars)
     {
-        // TODO: Fix this
         v2 text_pos = root->pos.relative;
-        text_pos.y -= root->text.font_size * 0.25f;
+
+        switch (root->text.align_x)
+        {
+        case CENTER:
+            text_pos.x += (root->width.min_max.min - root->text.width) * 0.5f;
+            break;
+        case RIGHT:
+            text_pos.x += root->width.min_max.min - root->padding.right - root->text.width;
+            break;
+        case LEFT:
+        default:
+            text_pos.x += root->padding.left;
+            break;
+        }
+
+        switch (root->text.align_y)
+        {
+        case CENTER:
+            text_pos.y += (root->height.min_max.min - root->text.font_size) * 0.5f;
+            break;
+        case BOTTOM:
+            text_pos.y += root->height.min_max.min - root->padding.bottom - root->text.font_size;
+            break;
+        case TOP:
+        default:
+            text_pos.y += root->padding.top;
+            break;
+        }
 
         draw_text(app, root->text.font, text_pos, root->text.font_size, "%s", root->text.chars);
     }

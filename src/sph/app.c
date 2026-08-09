@@ -257,7 +257,7 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     SDL_Log("[ENGINE] Running in release.");
 #endif
 
-    if (!window_create(&app->window, 2560, 1440))
+    if (!window_create(&app->window, 1980, 1080))
     {
         SDL_Log("[ENGINE] Failed to create window.");
         return false;
