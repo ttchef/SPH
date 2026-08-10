@@ -189,6 +189,13 @@ static bool button(app *app, const char *label)
             .height      = FIXED(32 * layout->height_scale),
             .roundness   = 0.4f,
             .child_align = CENTER,
+            .text   = {
+                .chars     = label,
+                .font_size = 20 * layout->height_scale,
+                .font      = &app->jet_brains,
+                .align_x = CENTER,
+                .align_y = CENTER,
+            },
         })
         {
             CURRENT()->color = HOVERED() ? UI_COLOR4 : UI_COLOR3;
@@ -198,26 +205,6 @@ static bool button(app *app, const char *label)
                 CURRENT()->color = UI_COLOR6;
                 result           = true;
             }
-
-            UI({
-                .width  = GROW(0),
-                .height = GROW(0),
-            });
-
-            UI({
-                .width  = FIT(0),
-                .height = FIT(0),
-                .text   = {
-                    .chars     = label,
-                    .font_size = 20 * layout->height_scale,
-                    .font      = &app->jet_brains,
-                },
-            });
-
-            UI({
-                .width  = GROW(0),
-                .height = GROW(0),
-            });
         }
     }
 
@@ -559,12 +546,14 @@ static void number_box(app *app, const char *label)
         });
 
         UI({
-            .width = FIT(0),
-            .height = FIT(0),
+            .width = PERCENT(0.5f),
+            .height = GROW(0),
             .text = {
                 .chars = label,
                 .font_size = 24 * layout->height_scale,
                 .font = &app->jet_brains,
+                .align_x = CENTER,
+                .align_y = CENTER,
             },
         });
     }

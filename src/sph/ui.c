@@ -108,6 +108,18 @@ void ui_update(input *input)
 
 ui_element *ui_open(ui_element *parent, ui_element element)
 {
+    if (element.text.chars)
+    {
+        if (element.text.align_x == 0)
+        {
+            element.text.align_x = LEFT;
+        }
+        if (element.text.align_y == 0)
+        {
+            element.text.align_y = TOP;
+        }
+    }
+    
     if (element.layout == LAYOUT_TO_RIGHT && element.child_align == 0)
     {
         element.child_align = TOP;
@@ -466,7 +478,7 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
         switch (root->text.align_y)
         {
         case CENTER:
-            text_pos.y += (root->height.min_max.min - root->text.font_size) * 0.5f;
+            text_pos.y += root->height.min_max.min * 0.5f - root->text.font_size * 0.75f;
             break;
         case BOTTOM:
             text_pos.y += root->height.min_max.min - root->padding.bottom - root->text.font_size;
