@@ -54,6 +54,7 @@ typedef struct
     ui_layout_number_box box_size_x;
     ui_layout_number_box box_size_y;
     ui_layout_number_box box_size_z;
+    bool render_bounding_box;
 
     ui_layout_slider particle_radius;
     ui_layout_slider simulation_speed;
@@ -66,6 +67,6 @@ typedef struct
     ui_layout_gradient particle_gradient;
 } ui_layout_context;
 
-ui_layout_context ui_layout_create(app *app);
+ui_layout_context ui_layout_create(void);
 
 void ui_layout_calculate(app *app);

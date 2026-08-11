@@ -155,8 +155,8 @@ bool simulation_create(app *app, simulation *out_simulation)
             }
         }
     }
-    const u32 workgroup_size  = 256;
-    const u32 sort_groups          = 32;
+    const u32 workgroup_size = 256;
+    const u32 sort_groups    = 32;
 
     VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
@@ -174,15 +174,9 @@ bool simulation_create(app *app, simulation *out_simulation)
     vulkan_buffer_device_local_create(vulkan, &app->frame_arena, usage, sizeof(f32) * PARTICLE_COUNT, NULL, "particle_pressures", &result.pressures);
 
     result.scene    = vulkan_bindless_scene_ubo_aquire(vulkan);
-    result.ubo_data = (simulation_ubo){
-        .particle_count      = PARTICLE_COUNT,
-        .target_density      = 0.0065,
-        .pressure_multiplier = 2.5f,
-        .smoothing_radius    = 9.0f,
-        .viscosity_coeff     = 15.0f,
-    };
-    SDL_memcpy(vulkan_bindless_scene_ubo_get(vulkan, result.scene), &result.ubo_data, sizeof(simulation_ubo));
-
+    result.initialized = true;
+    simulation_ubo_update(app, &result);
+    
     /*
     vulkan_command_queue *spatial_lookup_queue = vulkan_command_begin(&app->frame_arena);
 
@@ -242,7 +236,6 @@ bool simulation_create(app *app, simulation *out_simulation)
 
     vulkan_object_destroy(vulkan, sizeof(target_densities), &target_densities, (vulkan_destroy_func)vulkan_buffer_destroy);
     */
-    result.initialized = true;
 
     *out_simulation = result;
 
@@ -257,17 +250,22 @@ void simulation_ubo_update(app *app, simulation *simulation)
     }
 
     ui_layout_context *layout = &app->ui_layout;
-    simulation_ubo    *ubo    = &simulation->ubo_data;
 
-    ubo->poly6_normalization          = 315.0f / (64.0f * SDL_PI_F * SDL_powf(ubo->smoothing_radius, 9));
-    ubo->spiky_gradient_normalization = -45.0f / (SDL_PI_F * SDL_powf(ubo->smoothing_radius, 6));
-    ubo->particle_color0              = v4fromcolor4(layout->particle_gradient.colors[0]);
-    ubo->particle_color1              = v4fromcolor4(layout->particle_gradient.colors[1]);
-    ubo->particle_color2              = v4fromcolor4(layout->particle_gradient.colors[2]);
-    ubo->particle_color3              = v4fromcolor4(layout->particle_gradient.colors[3]);
-    ubo->particle_color_positions     = v4make2(layout->particle_gradient.positions);
-
-    SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan, simulation->scene), ubo, sizeof(simulation_ubo));
+    simulation_ubo ubo = {
+        .particle_count = PARTICLE_COUNT,
+        .target_density               = layout->target_density.value,
+        .pressure_multiplier          = layout->pressure_multiplier.value,
+        .viscosity_coeff              = layout->viscosity_multiplier.value,
+        .smoothing_radius             = layout->smoothing_radius.value,
+        .poly6_normalization          = 315.0f / (64.0f * SDL_PI_F * SDL_powf(layout->smoothing_radius.value, 9)),
+        .spiky_gradient_normalization = -45.0f / (SDL_PI_F * SDL_powf(layout->smoothing_radius.value, 6)),
+        .particle_color0          = v4fromcolor4(layout->particle_gradient.colors[0]),
+        .particle_color1          = v4fromcolor4(layout->particle_gradient.colors[1]),
+        .particle_color2          = v4fromcolor4(layout->particle_gradient.colors[2]),
+        .particle_color3          = v4fromcolor4(layout->particle_gradient.colors[3]),
+        .particle_color_positions = v4make2(layout->particle_gradient.positions),
+    };
+    SDL_memcpy(vulkan_bindless_scene_ubo_get(&app->vulkan, simulation->scene), &ubo, sizeof(simulation_ubo));
 }
 
 void simulation_update(app *app, simulation *simulation, f32 dt)
@@ -295,8 +293,11 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
     vulkan_command_bind_scene_ubo(queue, simulation->scene, app->pipelines[PIPELINE_PARTICLE_UPDATE]);
 
-    v3 box_min = v3sub(app->bounding_box.pos, v3scale(app->bounding_box.size, 0.5f)); 
-    v3 box_max = v3add(app->bounding_box.pos, v3scale(app->bounding_box.size, 0.5f)); 
+    ui_layout_context *c = &app->ui_layout;
+    v3 box_size = v3make(c->box_size_x.number, c->box_size_y.number, c->box_size_z.number);
+
+    v3 box_min = v3sub(v3zero(), v3scale(box_size, 0.5f));
+    v3 box_max = v3add(v3zero(), v3scale(box_size, 0.5f));
 
     particle_update_pc update_pc = {
         .positions_read_addr   = vulkan_buffer_address_get(vulkan, simulation->sorted_positions),
@@ -308,7 +309,7 @@ void simulation_update(app *app, simulation *simulation, f32 dt)
         .start_indices_addr    = vulkan_buffer_address_get(vulkan, simulation->start_indices),
         .pressures_addr        = vulkan_buffer_address_get(vulkan, simulation->pressures),
         .box_min               = v4fromv3(box_min, 1.0f),
-        .box_max              = v4fromv3(box_max, 1.0f),
+        .box_max               = v4fromv3(box_max, 1.0f),
         .dt                    = dt,
         .first_run             = simulation->first_loop ? 1.0f : 0.0f,
     };
@@ -342,7 +343,7 @@ void simulation_draw(app *app, simulation *simulation)
         .positions_addr  = vulkan_buffer_address_get(vulkan, simulation->positions[simulation->read_index]),
         .velocities_addr = vulkan_buffer_address_get(vulkan, simulation->velocities[simulation->read_index]),
         .particle_count  = PARTICLE_X * PARTICLE_Y * PARTICLE_Z,
-        .particle_radius = app->particle_radius,
+        .particle_radius = app->ui_layout.particle_radius.value,
     };
 
     vulkan_command_push_constants(queue, sizeof(pc), &pc, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_PARTICLE_RENDER]);

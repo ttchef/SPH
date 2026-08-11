@@ -268,18 +268,13 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         SDL_Log("[ENGINE] Failed to init vulkan.");
         return false;
     }
-    app->render_bounding_box = true;
-    app->bounding_box        = cubemake(v3zero(), v3make(400, 300, 400));
-    app->particle_radius     = 1.6f;
-    app->simulation_speed    = 1.0f;
-    app->first_time          = true;
 
     app->simulation.initialized = false;
 
     app->time      = time_create();
     app->camera    = camera_create();
     app->input     = input_create();
-    app->ui_layout = ui_layout_create(app);
+    app->ui_layout = ui_layout_create();
 
     if (!pipelines_create(&app->vulkan, app->pipelines, PIPELINE_COUNT))
     {
@@ -355,7 +350,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         u32 iteration_count = 0;
         while (delta > 0.0f)
         {
-            simulation_update(app, &app->simulation, simulation_dt * app->simulation_speed);
+            simulation_update(app, &app->simulation, simulation_dt * app->ui_layout.simulation_speed.value);
             delta -= simulation_dt;
 
             vulkan_command_barrier(queue, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
@@ -372,9 +367,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     vulkan_command_set_viewport(queue, 0, 0, MAX(window->width, app->ui_layout.width + 1) - app->ui_layout.width, window->height);
 
     vulkan_command_label_begin(queue, "render cube", RED);
-    if (app->render_bounding_box)
+    if (app->ui_layout.render_bounding_box)
     {
-        draw_cube_lines(app, app->bounding_box.pos, app->bounding_box.size);
+        ui_layout_context *c = &app->ui_layout;
+        draw_cube_lines(app, v3zero(), v3make(c->box_size_x.number, c->box_size_y.number, c->box_size_z.number));
     }
     vulkan_command_label_end(queue);
 

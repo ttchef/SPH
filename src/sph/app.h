@@ -31,11 +31,6 @@ struct app
     vulkan_image   test_texture;
     ttf_font       jet_brains;
 
-    // NOTE: All these variables will be moved later etc.
-    bool  render_bounding_box;
-    cube  bounding_box;
-    float particle_radius;
-    float simulation_speed;
     bool  reset_pressed;
     bool  paused;
     bool  first_time;

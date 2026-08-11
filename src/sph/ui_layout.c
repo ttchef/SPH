@@ -17,7 +17,7 @@
 
 static const f32 STD_ROUNDNESS = 0.3f;
 
-ui_layout_context ui_layout_create(app *app)
+ui_layout_context ui_layout_create(void)
 {
     ui_layout_context result = {0};
 
@@ -25,13 +25,19 @@ ui_layout_context ui_layout_create(app *app)
     result.height_scale = 1.0f;
 
     // NOTE: Default values
-    result.particle_radius.value  = app->particle_radius;
-    result.simulation_speed.value = app->simulation_speed;
+    result.particle_radius.value  = 1.6f;
+    result.simulation_speed.value = 1.0f;
 
-    result.target_density.value = app->simulation.ubo_data.target_density;
-    result.pressure_multiplier.value = app->simulation.ubo_data.pressure_multiplier;
-    result.viscosity_multiplier.value = app->simulation.ubo_data.viscosity_coeff;
-    result.smoothing_radius.value = app->simulation.ubo_data.smoothing_radius;
+    result.box_size_x.number = 450;
+    result.box_size_y.number = 400;
+    result.box_size_z.number = 450;
+
+    result.render_bounding_box = true;
+
+    result.target_density.value = 0.0065f;
+    result.pressure_multiplier.value = 2.5f;
+    result.viscosity_multiplier.value = 15.0f;
+    result.smoothing_radius.value = 9.0f;
 
     result.particle_gradient = (ui_layout_gradient){
         .colors = {
@@ -720,7 +726,7 @@ void ui_layout_calculate(app *app)
     })
     {
         bounding_box(app);
-        checkbox(app, &app->render_bounding_box, "Render bounding box");
+        checkbox(app, &layout->render_bounding_box, "Render bounding box");
 
         UI({
             .width     = GROW(0),
@@ -751,16 +757,4 @@ void ui_layout_calculate(app *app)
     {
         app->ui_layout.active_id = UI_INVALID_ID;
     }
-
-    app->bounding_box.size.x = layout->box_size_x.number;
-    app->bounding_box.size.y = layout->box_size_y.number;
-    app->bounding_box.size.z = layout->box_size_z.number;
-
-    app->particle_radius  = layout->particle_radius.value;
-    app->simulation_speed = layout->simulation_speed.value;
-
-    app->simulation.ubo_data.target_density = layout->target_density.value;
-    app->simulation.ubo_data.pressure_multiplier = layout->pressure_multiplier.value;
-    app->simulation.ubo_data.viscosity_coeff = layout->viscosity_multiplier.value;
-    app->simulation.ubo_data.smoothing_radius = layout->smoothing_radius.value;
 }
