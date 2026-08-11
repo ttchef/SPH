@@ -133,10 +133,10 @@ static void checkbox(app *app, bool *value, const char *label)
     })
     {
         UI({
-            .height    = FIXED(32 * layout->height_scale),
-            .padding   = PAD_ALL(5),
+            .height       = FIXED(32 * layout->height_scale),
+            .padding      = PAD_ALL(5 * layout->height_scale),
             .aspect_ratio = 1.0f,
-            .roundness = 0.4f,
+            .roundness    = 0.4f,
         })
         {
             CURRENT()->color = HOVERED() ? UI_COLOR4 : UI_COLOR3;
@@ -189,12 +189,12 @@ static bool button(app *app, const char *label)
             .height      = FIXED(32 * layout->height_scale),
             .roundness   = 0.4f,
             .child_align = CENTER,
-            .text   = {
+            .text        = {
                 .chars     = label,
                 .font_size = 20 * layout->height_scale,
                 .font      = &app->jet_brains,
-                .align_x = CENTER,
-                .align_y = CENTER,
+                .align_x   = CENTER,
+                .align_y   = CENTER,
             },
         })
         {
@@ -258,7 +258,7 @@ static color4 get_color(f32 hue, v2 p)
     return color4fromhsv2(hsv);
 }
 
-static void color_picker(app *app)
+static void color_picker(app *app, ui_layout_gradient *gradient)
 {
     ui_layout_context *layout        = &app->ui_layout;
     const u32          panel_width   = 250;
@@ -267,10 +267,10 @@ static void color_picker(app *app)
 
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
-        .pos       = ABSOLUTE(layout->color_picker_pos.x, layout->color_picker_pos.y, 1),
+        .pos       = ABSOLUTE(gradient->color_picker_pos.x, gradient->color_picker_pos.y, 1),
         .width     = FIXED(panel_width),
         .height    = FIXED(panel_height),
-        .color     = layout->particle_gradient.colors[layout->color_picker_color],
+        .color     = gradient->colors[gradient->color_picker_color],
         .padding   = PAD_ALL(8),
         .child_gap = 12,
         .roundness = 0.05f,
@@ -292,33 +292,33 @@ static void color_picker(app *app)
             }
             if (is_active(app, CURRENT()->id))
             {
-                layout->color_picker_pos = v2add(layout->color_picker_pos, app->input.mouse_delta);
+                gradient->color_picker_pos = v2add(gradient->color_picker_pos, app->input.mouse_delta);
             }
 
             UI({
-                .layout      = LAYOUT_TO_RIGHT,
-                .width       = FIXED(topbar_height - CURRENT()->padding.right - CURRENT()->padding.left),
-                .height      = GROW(0),
-                .color       = RED,
-                .roundness   = 0.35f,
+                .layout    = LAYOUT_TO_RIGHT,
+                .width     = FIXED(topbar_height - CURRENT()->padding.right - CURRENT()->padding.left),
+                .height    = GROW(0),
+                .color     = RED,
+                .roundness = 0.35f,
                 // .child_align = CENTER,
             })
             {
                 if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
                 {
-                    layout->show_color_picker = false;
+                    gradient->show_color_picker = false;
                 }
 
                 UI({
                     .width  = GROW(0),
                     .height = GROW(0),
-                    .color = UI_COLOR8, 
+                    .color  = UI_COLOR8,
                     .text   = {
                         .font_size = 30,
                         .chars     = "X",
                         .font      = &app->jet_brains,
-                        .align_x = CENTER,
-                        .align_y = CENTER,
+                        .align_x   = CENTER,
+                        .align_y   = CENTER,
                     },
                 });
             }
@@ -342,16 +342,16 @@ static void color_picker(app *app)
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
                 v2  p = v2make(u, -v);
 
-                v2 triangle_p = v2rotate(p, TO_RADIANS(-layout->color_picker_data.hue + 90.0f));
+                v2 triangle_p = v2rotate(p, TO_RADIANS(-layout->particle_gradient.color_picker_data.hue + 90.0f));
                 if (sdf_triangle2D(triangle_p, 0.75) <= 0.0f)
                 {
                     set_active(app, CURRENT()->id);
-                    layout->color_picker_triangle_active = true;
+                    layout->particle_gradient.color_picker_triangle_active = true;
                 }
                 else if (sdf_ring2D(p, 0.9f, 1.0) <= 0.1f)
                 {
                     set_active(app, CURRENT()->id);
-                    layout->color_picker_triangle_active = false;
+                    layout->particle_gradient.color_picker_triangle_active = false;
                 }
             }
 
@@ -368,27 +368,27 @@ static void color_picker(app *app)
                 const v2  b = v2make(-0.75, -0.75 / k);
                 const v2  c = v2make(0.75, -0.75 / k);
 
-                if (layout->color_picker_triangle_active)
+                if (gradient->color_picker_triangle_active)
                 {
-                    v2 triangle_p                                  = v2rotate(p, TO_RADIANS(-layout->color_picker_data.hue + 90.0f));
-                    layout->color_picker_data.triangle_point       = triangle_p;
-                    layout->color_picker_data.triangle_point_valid = true;
+                    v2 triangle_p                                    = v2rotate(p, TO_RADIANS(-gradient->color_picker_data.hue + 90.0f));
+                    gradient->color_picker_data.triangle_point       = triangle_p;
+                    gradient->color_picker_data.triangle_point_valid = true;
                     if (sdf_triangle2D(triangle_p, 0.75) > 0.0f)
                     {
-                        layout->color_picker_data.triangle_point = math_closest_point_on_triangle(triangle_p, a, b, c);
+                        gradient->color_picker_data.triangle_point = math_closest_point_on_triangle(triangle_p, a, b, c);
                     }
 
-                    layout->particle_gradient.colors[layout->color_picker_color] = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
+                    gradient->colors[gradient->color_picker_color] = get_color(gradient->color_picker_data.hue, gradient->color_picker_data.triangle_point);
                 }
                 else
                 {
-                    layout->color_picker_data.hue = TO_DEGREES(SDL_atan2f(p.y, p.x));
-                    if (layout->color_picker_data.hue < 0.0f)
+                    layout->particle_gradient.color_picker_data.hue = TO_DEGREES(SDL_atan2f(p.y, p.x));
+                    if (layout->particle_gradient.color_picker_data.hue < 0.0f)
                     {
-                        layout->color_picker_data.hue += 360.0f;
+                        layout->particle_gradient.color_picker_data.hue += 360.0f;
                     }
 
-                    layout->particle_gradient.colors[layout->color_picker_color] = get_color(layout->color_picker_data.hue, layout->color_picker_data.triangle_point);
+                    layout->particle_gradient.colors[gradient->color_picker_color] = get_color(gradient->color_picker_data.hue, gradient->color_picker_data.triangle_point);
                 }
             }
 
@@ -397,14 +397,14 @@ static void color_picker(app *app)
                 .height = GROW(0),
                 .custom = {
                     .draw_func = draw_color_picker,
-                    .data      = (void *)&layout->color_picker_data,
+                    .data      = (void *)&layout->particle_gradient.color_picker_data,
                 },
             });
         }
     }
 }
 
-static void color_gradient(app *app)
+static void color_gradient(app *app, ui_layout_gradient *gradient)
 {
     ui_layout_context *layout = &app->ui_layout;
 
@@ -424,8 +424,6 @@ static void color_gradient(app *app)
             .color  = UI_COLOR3,
         })
         {
-            ui_layout_gradient *gradient = &layout->particle_gradient;
-
             if (gradient->positions[0] > 0.005f)
             {
                 UI({
@@ -466,10 +464,8 @@ static void color_gradient(app *app)
             .height = FIXED(35 * layout->height_scale),
         })
         {
-            v2                  container_size = SIZE(CURRENT()->id);
-            ui_layout_gradient *gradient       = &layout->particle_gradient;
-
-            u32 size = 25;
+            v2  container_size = SIZE(CURRENT()->id);
+            u32 size           = 25;
             for (u32 i = 0; i < ARRAY_COUNT(gradient->colors); i++)
             {
                 UI({
@@ -483,10 +479,10 @@ static void color_gradient(app *app)
                 {
                     if (HOVERED() && input_pressed(&app->input, INPUT_RMB))
                     {
-                        layout->show_color_picker = true;
-                        layout->color_picker_pos  = WORLD_POS(PARENT()->id);
-                        layout->color_picker_pos.x -= 300;
-                        layout->color_picker_color = i;
+                        gradient->show_color_picker = true;
+                        gradient->color_picker_pos  = WORLD_POS(PARENT()->id);
+                        gradient->color_picker_pos.x -= 300;
+                        gradient->color_picker_color = i;
                         set_active(app, CURRENT()->id);
                     }
 
@@ -495,7 +491,7 @@ static void color_gradient(app *app)
                         set_active(app, CURRENT()->id);
                     }
 
-                    if (is_active(app, CURRENT()->id) && !layout->show_color_picker)
+                    if (is_active(app, CURRENT()->id) && !gradient->show_color_picker)
                     {
                         v2 world_pos = WORLD_POS(PARENT()->id);
                         if (world_pos.x < app->input.mouse_pos.x)
@@ -519,9 +515,9 @@ static void color_gradient(app *app)
             }
         }
 
-        if (layout->show_color_picker)
+        if (gradient->show_color_picker)
         {
-            color_picker(app);
+            color_picker(app, gradient);
         }
     }
 }
@@ -529,39 +525,32 @@ static void color_gradient(app *app)
 static void number_box(app *app, const char *label)
 {
     ui_layout_context *layout = &app->ui_layout;
-    
+
     UI({
-        .width = GROW(0),
-        .height = FIXED(48 * layout->height_scale),
-        .color = UI_COLOR5,
+        .width     = GROW(0),
+        .height    = FIXED(48 * layout->height_scale),
+        .color     = UI_COLOR5,
         .roundness = STD_ROUNDNESS,
-        .padding = PAD(4, 12, 4, 4),
+        .padding   = PAD_ALL(6 * layout->height_scale),
         .child_gap = 12,
     })
     {
         UI({
-            .width = PERCENT(0.5f),
-            .height = GROW(0),
-            .color = UI_COLOR2,
-            .padding = PAD_ALL(6),
-        })
-        {
-            UI({
-                .height = GROW(0),
-                .aspect_ratio = 1.0f,
-                .color = UI_COLOR8,
-            });
-        }
+            .aspect_ratio = 1.5f,
+            .height       = GROW(0),
+            .color        = UI_COLOR2,
+            .padding      = PAD_ALL(6),
+            .roundness    = STD_ROUNDNESS,
+        });
 
         UI({
-            .width = PERCENT(0.5f),
+            .width  = GROW(0),
             .height = GROW(0),
-            .text = {
-                .chars = label,
+            .text   = {
+                .chars     = label,
                 .font_size = 24 * layout->height_scale,
-                .font = &app->jet_brains,
-                .align_x = CENTER,
-                .align_y = CENTER,
+                .font      = &app->jet_brains,
+                .align_y   = CENTER,
             },
         });
     }
@@ -616,8 +605,9 @@ void ui_layout_calculate(app *app)
         slider(app, &app->simulation.ubo_data.viscosity_coeff, 0.5, 25.0, "Viscosity multiplier");
         slider(app, &app->simulation.ubo_data.smoothing_radius, 5, 25.0, "Smoothing radius");
 
-        color_gradient(app);
-        number_box(app, "Textbox");
+        color_gradient(app, &layout->particle_gradient);
+
+        number_box(app, "Numberbox");
     }
 
     // NOTE: Reset current element id

@@ -18,6 +18,13 @@ typedef struct
 {
     color4 colors[4];
     f32    positions[4];
+
+    bool                        show_color_picker;
+    bool                        color_picker_triangle_active;
+    v2                          color_picker_pos;
+    ui_layout_color_picker_data color_picker_data;
+    // NOTE: Index into the gradient
+    u32 color_picker_color;
 } ui_layout_gradient;
 
 typedef struct
@@ -27,14 +34,8 @@ typedef struct
     f32   height_scale;
     ui_id active_id;
 
-    bool                        show_color_picker;
-    bool                        color_picker_triangle_active;
-    v2                          color_picker_pos;
-    ui_layout_color_picker_data color_picker_data;
-    // NOTE: Index into the gradient
-    u32 color_picker_color;
-
     ui_layout_gradient particle_gradient;
+
 } ui_layout_context;
 
 ui_layout_context ui_layout_create(void);
