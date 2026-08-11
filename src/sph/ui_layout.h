@@ -35,7 +35,6 @@ typedef struct
     ui_id active_id;
 
     ui_layout_gradient particle_gradient;
-
 } ui_layout_context;
 
 ui_layout_context ui_layout_create(void);

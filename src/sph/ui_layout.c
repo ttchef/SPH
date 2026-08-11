@@ -241,29 +241,28 @@ static color4 get_color(f32 hue, v2 p)
     const v2  b = v2make(-0.75, -0.75 / k);
     const v2  c = v2make(0.75, -0.75 / k);
 
-    v3 colors[] = {
+    const v3 colors[] = {
         v3make(hue, 0.0, 1.0),
         v3make(hue, 1.0, 0.0),
         v3make(hue, 1.0, 1.0),
     };
 
-    v3 barycentrics = math_barycentrics(a, b, c, p);
+    const v3 barycentrics = math_barycentrics(a, b, c, p);
 
     // NOTE: Fuck naming at this point (i am writing this at 2 am)
-    v3 a0 = v3scale(colors[0], barycentrics.x);
-    v3 b0 = v3scale(colors[1], barycentrics.y);
-    v3 c0 = v3scale(colors[2], barycentrics.z);
+    const v3 a0 = v3scale(colors[0], barycentrics.x);
+    const v3 b0 = v3scale(colors[1], barycentrics.y);
+    const v3 c0 = v3scale(colors[2], barycentrics.z);
 
-    v3 hsv = v3add(a0, v3add(b0, c0));
+    const v3 hsv = v3add(a0, v3add(b0, c0));
     return color4fromhsv2(hsv);
 }
 
 static void color_picker(app *app, ui_layout_gradient *gradient)
 {
-    ui_layout_context *layout        = &app->ui_layout;
-    const u32          panel_width   = 250;
-    const u32          panel_height  = 290;
-    const u32          topbar_height = panel_height - panel_width;
+    const u32 panel_width   = 250;
+    const u32 panel_height  = 290;
+    const u32 topbar_height = panel_height - panel_width;
 
     UI({
         .layout    = LAYOUT_TO_BOTTOM,
@@ -301,7 +300,6 @@ static void color_picker(app *app, ui_layout_gradient *gradient)
                 .height    = GROW(0),
                 .color     = RED,
                 .roundness = 0.35f,
-                // .child_align = CENTER,
             })
             {
                 if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
@@ -342,16 +340,16 @@ static void color_picker(app *app, ui_layout_gradient *gradient)
                 f32 v = (mouse_pos.y / size.y) * 2.0f - 1.0f;
                 v2  p = v2make(u, -v);
 
-                v2 triangle_p = v2rotate(p, TO_RADIANS(-layout->particle_gradient.color_picker_data.hue + 90.0f));
+                v2 triangle_p = v2rotate(p, TO_RADIANS(-gradient->color_picker_data.hue + 90.0f));
                 if (sdf_triangle2D(triangle_p, 0.75) <= 0.0f)
                 {
                     set_active(app, CURRENT()->id);
-                    layout->particle_gradient.color_picker_triangle_active = true;
+                    gradient->color_picker_triangle_active = true;
                 }
                 else if (sdf_ring2D(p, 0.9f, 1.0) <= 0.1f)
                 {
                     set_active(app, CURRENT()->id);
-                    layout->particle_gradient.color_picker_triangle_active = false;
+                    gradient->color_picker_triangle_active = false;
                 }
             }
 
@@ -382,13 +380,13 @@ static void color_picker(app *app, ui_layout_gradient *gradient)
                 }
                 else
                 {
-                    layout->particle_gradient.color_picker_data.hue = TO_DEGREES(SDL_atan2f(p.y, p.x));
-                    if (layout->particle_gradient.color_picker_data.hue < 0.0f)
+                    gradient->color_picker_data.hue = TO_DEGREES(SDL_atan2f(p.y, p.x));
+                    if (gradient->color_picker_data.hue < 0.0f)
                     {
-                        layout->particle_gradient.color_picker_data.hue += 360.0f;
+                        gradient->color_picker_data.hue += 360.0f;
                     }
 
-                    layout->particle_gradient.colors[gradient->color_picker_color] = get_color(gradient->color_picker_data.hue, gradient->color_picker_data.triangle_point);
+                    gradient->colors[gradient->color_picker_color] = get_color(gradient->color_picker_data.hue, gradient->color_picker_data.triangle_point);
                 }
             }
 
@@ -397,7 +395,7 @@ static void color_picker(app *app, ui_layout_gradient *gradient)
                 .height = GROW(0),
                 .custom = {
                     .draw_func = draw_color_picker,
-                    .data      = (void *)&layout->particle_gradient.color_picker_data,
+                    .data      = (void *)&gradient->color_picker_data,
                 },
             });
         }
