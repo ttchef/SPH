@@ -29,12 +29,19 @@ typedef struct
 
 typedef struct
 {
+    i32 number;
+    char text[100];
+} ui_layout_number_box;
+
+typedef struct
+{
     // NOTE: Width of the layout at the moment (will change later when the layout is more complex)
     u32   width;
     f32   height_scale;
     ui_id active_id;
 
     ui_layout_gradient particle_gradient;
+    ui_layout_number_box box_size_x;
 } ui_layout_context;
 
 ui_layout_context ui_layout_create(void);

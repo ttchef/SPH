@@ -520,14 +520,16 @@ static void color_gradient(app *app, ui_layout_gradient *gradient)
     }
 }
 
-static void number_box(app *app, const char *label)
+static void number_box(app *app, const char *label, ui_layout_number_box *box)
 {
     ui_layout_context *layout = &app->ui_layout;
+
+    SDL_snprintf(box->text, sizeof(box->text), "%d", box->number);
 
     UI({
         .width     = GROW(0),
         .height    = FIXED(48 * layout->height_scale),
-        .color     = UI_COLOR5,
+        .color     = UI_COLOR1,
         .roundness = STD_ROUNDNESS,
         .padding   = PAD_ALL(6 * layout->height_scale),
         .child_gap = 12,
@@ -536,10 +538,28 @@ static void number_box(app *app, const char *label)
         UI({
             .aspect_ratio = 1.5f,
             .height       = GROW(0),
-            .color        = UI_COLOR2,
+            .color        = UI_COLOR3,
             .padding      = PAD_ALL(6),
             .roundness    = STD_ROUNDNESS,
-        });
+            .text = {
+                .chars = box->text,
+                .font = &app->jet_brains,
+                .font_size = 24 * layout->height_scale,
+                .align_x = CENTER,
+                .align_y = CENTER,
+            },
+        })
+        {
+            if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+            {
+                set_active(app, CURRENT()->id);
+            }
+
+            if (is_active(app, CURRENT()->id))
+            {
+                box->number += app->input.mouse_delta.x;
+            }
+        }
 
         UI({
             .width  = GROW(0),
@@ -605,7 +625,7 @@ void ui_layout_calculate(app *app)
 
         color_gradient(app, &layout->particle_gradient);
 
-        number_box(app, "Numberbox");
+        number_box(app, "Numberbox", &layout->box_size_x);
     }
 
     // NOTE: Reset current element id
