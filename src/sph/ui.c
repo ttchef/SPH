@@ -198,7 +198,7 @@ void ui_close(ui_element *element)
         element->text.width = measure_text(element->text.font, element->text.font_size, "%s", element->text.chars);
     }
 
-    else if (element->width.type == UI_SIZE_FIT)
+    if (element->width.type == UI_SIZE_FIT)
     {
         f32 min = element->width.min_max.min;
         if (element->text.chars)

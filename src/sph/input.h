@@ -7,7 +7,7 @@
 
 #include <SDL3/SDL.h>
 
-typedef struct input_action
+typedef struct
 {
     bool released;
     bool pressed;
@@ -24,6 +24,8 @@ enum
     INPUT_SPACE,
     INPUT_LSHIFT,
     INPUT_LCTRL,
+    INPUT_BACKSPACE,
+    INPUT_ENTER,
 
     INPUT_LMB,
     INPUT_RMB,
@@ -33,7 +35,7 @@ enum
     INPUT_COUNT,
 };
 
-typedef struct input
+typedef struct
 {
     input_action actions[INPUT_COUNT];
 
@@ -43,7 +45,9 @@ typedef struct input
     v2 mouse_press_pos;
 
     bool relative_mouse;
-    bool mouse_initialized;
+
+    char text[256];
+    u32 text_len;
 } input;
 
 input input_create(void);
@@ -59,3 +63,7 @@ bool input_pressed(input *input, u32 key);
 bool input_released(input *input, u32 key);
 
 void input_relative_mouse(input *input, window *window, bool on);
+
+const char *input_text(input *input);
+
+u32 input_text_len(input *input);

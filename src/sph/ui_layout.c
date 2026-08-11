@@ -15,7 +15,7 @@
 #define UI_COLOR8 color4gray(0.68, 1.0)
 #define UI_COLOR9 color4gray(0.80, 1.0)
 
-const f32 STD_ROUNDNESS = 0.3f;
+static const f32 STD_ROUNDNESS = 0.3f;
 
 ui_layout_context ui_layout_create(void)
 {
@@ -536,28 +536,77 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
     })
     {
         UI({
-            .aspect_ratio = 1.5f,
-            .height       = GROW(0),
-            .color        = UI_COLOR3,
-            .padding      = PAD_ALL(6),
-            .roundness    = STD_ROUNDNESS,
-            .text = {
-                .chars = box->text,
-                .font = &app->jet_brains,
+            .width     = FIT(SIZE(CURRENT()->id).y, 0),
+            .height    = GROW(0),
+            .color     = UI_COLOR3,
+            .padding   = PAD_ALL(6),
+            .roundness = STD_ROUNDNESS,
+            .text      = {
+                .chars     = box->text,
+                .font      = &app->jet_brains,
                 .font_size = 24 * layout->height_scale,
-                .align_x = CENTER,
-                .align_y = CENTER,
+                .align_x   = CENTER,
+                .align_y   = CENTER,
             },
         })
         {
+            if (input_pressed(&app->input, INPUT_LMB))
+            {
+                if (box->input_active)
+                {
+                    box->dont_activate = true;
+                }
+                box->input_active = false;
+                window_text_input_end(&app->window);
+            }
             if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
             {
                 set_active(app, CURRENT()->id);
+                box->press_pos = app->input.mouse_pos;
             }
-
             if (is_active(app, CURRENT()->id))
             {
                 box->number += app->input.mouse_delta.x;
+            }
+            if (is_active(app, CURRENT()->id) && input_released(&app->input, INPUT_LMB))
+            {
+                if (!box->dont_activate && v2dist(box->press_pos, app->input.mouse_pos) < SIZE(CURRENT()->id).x)
+                {
+                    box->input_active = true;
+                    window_text_input_start(&app->window);
+                }
+                box->dont_activate = false;
+            }
+
+            if (box->input_active)
+            {
+                CURRENT()->color = UI_COLOR5;
+
+                if (box->text_len + input_text_len(&app->input) < ARRAY_COUNT(box->text))
+                {
+                    for (u32 i = 0; i < input_text_len(&app->input); i++)
+                    {
+                        char c = app->input.text[i];
+                        if (SDL_isdigit(c))
+                        {
+                            box->text[box->text_len++] = c;
+                        }
+                    }
+                    box->text[box->text_len] = '\0';
+
+                    char *end_ptr;
+                    box->number = SDL_strtol(box->text, &end_ptr, 10);
+                }
+                if (input_pressed(&app->input, INPUT_BACKSPACE))
+                {
+                    box->text_len            = MAX(box->text_len - 1, 0);
+                    box->text[box->text_len] = '\0';
+                }
+                if (input_pressed(&app->input, INPUT_ENTER))
+                {
+                    box->input_active = false;
+                    window_text_input_end(&app->window);
+                }
             }
         }
 

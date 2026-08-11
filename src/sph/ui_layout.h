@@ -29,8 +29,13 @@ typedef struct
 
 typedef struct
 {
+    char text[10];
+    i32 text_len;
     i32 number;
-    char text[100];
+
+    v2 press_pos;
+    bool input_active;
+    bool dont_activate;
 } ui_layout_number_box;
 
 typedef struct

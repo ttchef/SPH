@@ -29,3 +29,13 @@ void window_destroy(window *window)
 {
     SDL_DestroyWindow(window->handle);
 }
+
+void window_text_input_start(window *window)
+{
+    SDL_StartTextInput(window->handle);
+}
+
+void window_text_input_end(window *window)
+{
+    SDL_StopTextInput(window->handle);
+}

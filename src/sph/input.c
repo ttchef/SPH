@@ -33,6 +33,10 @@ static u32 scancode_to_enum(u32 scancode)
         return INPUT_LSHIFT;
     case SDL_SCANCODE_LCTRL:
         return INPUT_LCTRL;
+    case SDL_SCANCODE_BACKSPACE:
+        return INPUT_BACKSPACE;
+    case SDL_SCANCODE_RETURN:
+        return INPUT_ENTER;
     }
 
     return INPUT_UNKOWN;
@@ -51,7 +55,9 @@ static u32 mouse_button_to_enum(u32 button)
 }
 
 void input_update(input *input, window *window)
-{
+{ 
+    input->text_len = 0;
+    input->text[0] = '\0';
     if (input_pressed(input, INPUT_LMB) || input_pressed(input, INPUT_RMB))
     {
         input->mouse_press_pos = input->mouse_pos;
@@ -77,6 +83,19 @@ void input_event(input *input, SDL_Event *event)
 {
     switch (event->type)
     {
+    case SDL_EVENT_TEXT_INPUT:
+    {
+        u32 len = SDL_strlen(event->text.text);
+
+        if (input->text_len + len < ARRAY_COUNT(input->text))
+        {
+            SDL_memcpy(input->text + input->text_len, event->text.text, len);
+
+            input->text_len += len;
+            input->text[input->text_len] = '\0';
+        }
+    }
+    break;
     case SDL_EVENT_KEY_DOWN:
     {
         u32 index                  = scancode_to_enum(event->key.scancode);
@@ -141,4 +160,14 @@ void input_relative_mouse(input *input, window *window, bool on)
 {
     SDL_SetWindowRelativeMouseMode(window->handle, on);
     input->relative_mouse = on;
+}
+
+const char *input_text(input *input)
+{
+    return input->text;
+}
+
+u32 input_text_len(input *input)
+{
+    return input->text_len;
 }
