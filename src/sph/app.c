@@ -3,6 +3,7 @@
 #include <math/core.h>
 #include <sph/app.h>
 #include <sph/png.h>
+#include <sph/hdr.h>
 #include <sph/utils.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -226,7 +227,17 @@ static bool resources_create(app *app)
     vulkan_sampler_create(vulkan, "linear_sampler", &app->linear_sampler);
     vulkan_bindless_sampler_aquire(vulkan, &app->linear_sampler);
 
+    usize skybox_size;
+    u8 *skybox_data = SDL_LoadFile(path_abs("assets/textures/winter_skybox.hdr"), &skybox_size);
+
+    image_hdr skybox;
+    if (!hdr_create(&resource_arena, skybox_size, skybox_data, &skybox))
+    {
+        return false;
+    }
+
     SDL_free(jet_brains_data);
+    SDL_free(skybox_data);
 
     memory_arena_destroy(&resource_arena);
 
