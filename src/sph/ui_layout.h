@@ -29,7 +29,7 @@ typedef struct
 
 typedef struct
 {
-    char text[10];
+    char text[6];
     i32 text_len;
     i32 number;
 
@@ -40,15 +40,32 @@ typedef struct
 
 typedef struct
 {
+    char text[20];
+    f32 value;
+} ui_layout_slider;
+
+typedef struct
+{
     // NOTE: Width of the layout at the moment (will change later when the layout is more complex)
     u32   width;
     f32   height_scale;
     ui_id active_id;
 
-    ui_layout_gradient particle_gradient;
     ui_layout_number_box box_size_x;
+    ui_layout_number_box box_size_y;
+    ui_layout_number_box box_size_z;
+
+    ui_layout_slider particle_radius;
+    ui_layout_slider simulation_speed;
+
+    ui_layout_slider target_density;
+    ui_layout_slider pressure_multiplier;
+    ui_layout_slider viscosity_multiplier;
+    ui_layout_slider smoothing_radius;
+
+    ui_layout_gradient particle_gradient;
 } ui_layout_context;
 
-ui_layout_context ui_layout_create(void);
+ui_layout_context ui_layout_create(app *app);
 
 void ui_layout_calculate(app *app);

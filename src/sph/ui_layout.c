@@ -17,12 +17,21 @@
 
 static const f32 STD_ROUNDNESS = 0.3f;
 
-ui_layout_context ui_layout_create(void)
+ui_layout_context ui_layout_create(app *app)
 {
     ui_layout_context result = {0};
 
     result.active_id    = UI_INVALID_ID;
     result.height_scale = 1.0f;
+
+    // NOTE: Default values
+    result.particle_radius.value  = app->particle_radius;
+    result.simulation_speed.value = app->simulation_speed;
+
+    result.target_density.value = app->simulation.ubo_data.target_density;
+    result.pressure_multiplier.value = app->simulation.ubo_data.pressure_multiplier;
+    result.viscosity_multiplier.value = app->simulation.ubo_data.viscosity_coeff;
+    result.smoothing_radius.value = app->simulation.ubo_data.smoothing_radius;
 
     result.particle_gradient = (ui_layout_gradient){
         .colors = {
@@ -33,6 +42,8 @@ ui_layout_context ui_layout_create(void)
         },
         .positions = {0.0f, 0.33f, 0.66f, 1.0f},
     };
+
+    // ------
 
     return result;
 }
@@ -47,18 +58,20 @@ static void set_active(app *app, ui_id id)
     app->ui_layout.active_id = id;
 }
 
-static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
+static void slider(app *app, f32 min, f32 max, const char *label, ui_layout_slider *slider)
 {
     ui_layout_context *layout      = &app->ui_layout;
     const f32          bubble_size = 20 * layout->height_scale;
 
-    *value -= min;
-    *value /= (max - min);
+    f32 unnormlized_value = slider->value;
+
+    slider->value -= min;
+    slider->value /= (max - min);
 
     UI({
         .layout      = LAYOUT_TO_BOTTOM,
         .width       = GROW(0),
-        .height      = FIT(0),
+        .height      = FIXED(100 * layout->height_scale),
         .child_align = LEFT,
         .color       = UI_COLOR1,
         .padding     = PAD_ALL(16 * layout->height_scale),
@@ -66,56 +79,77 @@ static void slider(app *app, f32 *value, f32 min, f32 max, const char *label)
         .roundness   = STD_ROUNDNESS,
     })
     {
-        if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
-        {
-            set_active(app, CURRENT()->id);
-        }
-
-        v2 world_pos = WORLD_POS(CURRENT()->id);
-        world_pos.x += CURRENT()->padding.left + bubble_size * 0.5f;
-
-        v2 size = SIZE(CURRENT()->id);
-        size.x -= CURRENT()->padding.right + CURRENT()->padding.left + bubble_size;
-
-        if (is_active(app, CURRENT()->id) && size.x > FLT_EPSILON)
-        {
-            *value = (app->input.mouse_pos.x - world_pos.x) / size.x;
-        }
-
         UI({
             .width  = FIT(0),
             .height = FIT(0),
             .text   = {
                 .chars     = label,
-                .font_size = 20 * layout->height_scale,
+                .font_size = 24 * layout->height_scale,
                 .font      = &app->jet_brains,
             },
         });
 
-        *value = CLAMP(*value, 0.0f, 1.0f);
-
         UI({
             .width     = GROW(0),
-            .height    = FIXED(10 * layout->height_scale),
-            .color     = UI_COLOR3,
-            .roundness = 0.9f,
+            .height    = GROW(0),
+            .child_gap = 18,
+            .child_align = CENTER,
         })
         {
             UI({
-                .pos       = RELATIVE(0, -bubble_size / 4),
-                .width     = FIXED(bubble_size),
-                .height    = FIXED(bubble_size),
-                .roundness = 1.0f,
-                .color     = HOVERED() ? UI_COLOR9 : UI_COLOR6,
+                .width     = GROW(0),
+                .height    = FIXED(10 * layout->height_scale),
+                .color     = UI_COLOR3,
+                .roundness = 0.9f,
             })
             {
-                POS(CURRENT())->x = *value * size.x;
+
+                if (HOVERED() && input_pressed(&app->input, INPUT_LMB))
+                {
+                    set_active(app, CURRENT()->id);
+                }
+
+                v2 world_pos = WORLD_POS(CURRENT()->id);
+                world_pos.x += CURRENT()->padding.left + bubble_size * 0.5f;
+
+                v2 size = SIZE(CURRENT()->id);
+                size.x -= CURRENT()->padding.right + CURRENT()->padding.left + bubble_size;
+
+                if (is_active(app, CURRENT()->id) && size.x > FLT_EPSILON)
+                {
+                    slider->value = (app->input.mouse_pos.x - world_pos.x) / size.x;
+                }
+                slider->value = CLAMP(slider->value, 0.0f, 1.0f);
+
+                UI({
+                    .pos       = RELATIVE(0, -bubble_size / 4),
+                    .width     = FIXED(bubble_size),
+                    .height    = FIXED(bubble_size),
+                    .roundness = 1.0f,
+                    .color     = HOVERED() ? UI_COLOR9 : UI_COLOR6,
+                })
+                {
+                    POS(CURRENT())->x = slider->value * size.x;
+                }
             }
+
+            SDL_snprintf(slider->text, sizeof(slider->text), "%.2f", unnormlized_value);
+
+            UI({
+                .width  = FIT(0),
+                .height = GROW(0),
+                .text   = {
+                    .chars     = slider->text,
+                    .font      = &app->jet_brains,
+                    .font_size = 24 * layout->height_scale,
+                    .align_y = CENTER,
+                },
+            });
         }
     }
 
-    *value *= (max - min);
-    *value += min;
+    slider->value *= (max - min);
+    slider->value += min;
 }
 
 static void checkbox(app *app, bool *value, const char *label)
@@ -158,12 +192,14 @@ static void checkbox(app *app, bool *value, const char *label)
         }
 
         UI({
-            .width  = FIT(0),
-            .height = FIT(0),
+            .width  = GROW(0),
+            .height = GROW(0),
             .text   = {
                 .chars     = label,
-                .font_size = 20 * layout->height_scale,
+                .font_size = 24 * layout->height_scale,
                 .font      = &app->jet_brains,
+                .align_x = LEFT,
+                .align_y = CENTER,
             },
         });
     }
@@ -529,7 +565,7 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
     UI({
         .width     = GROW(0),
         .height    = FIXED(48 * layout->height_scale),
-        .color     = UI_COLOR1,
+        .color     = UI_COLOR2,
         .roundness = STD_ROUNDNESS,
         .padding   = PAD_ALL(6 * layout->height_scale),
         .child_gap = 12,
@@ -538,7 +574,6 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
         UI({
             .width     = FIT(SIZE(CURRENT()->id).y, 0),
             .height    = GROW(0),
-            .color     = UI_COLOR3,
             .padding   = PAD_ALL(6),
             .roundness = STD_ROUNDNESS,
             .text      = {
@@ -550,6 +585,8 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
             },
         })
         {
+            CURRENT()->color = HOVERED() ? UI_COLOR5 : UI_COLOR4;
+
             if (input_pressed(&app->input, INPUT_LMB))
             {
                 if (box->input_active)
@@ -580,7 +617,7 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
 
             if (box->input_active)
             {
-                CURRENT()->color = UI_COLOR5;
+                CURRENT()->color = UI_COLOR6;
 
                 if (box->text_len + input_text_len(&app->input) < ARRAY_COUNT(box->text))
                 {
@@ -623,6 +660,43 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
     }
 }
 
+static void bounding_box(app *app)
+{
+    ui_layout_context *layout = &app->ui_layout;
+
+    UI({
+        .layout    = LAYOUT_TO_BOTTOM,
+        .width     = GROW(0),
+        .height    = FIT(0),
+        .color     = UI_COLOR1,
+        .padding   = PAD_ALL(12),
+        .child_gap = 12,
+        .roundness = STD_ROUNDNESS,
+    })
+    {
+        UI({
+            .width  = GROW(0),
+            .height = FIT(0),
+            .text   = {
+                .chars     = "Bounding box",
+                .font      = &app->jet_brains,
+                .font_size = 24 * layout->height_scale,
+            },
+        });
+
+        UI({
+            .width     = GROW(0),
+            .height    = FIT(0),
+            .child_gap = 12,
+        })
+        {
+            number_box(app, "X", &layout->box_size_x);
+            number_box(app, "Y", &layout->box_size_y);
+            number_box(app, "Z", &layout->box_size_z);
+        }
+    }
+}
+
 // NOTE: Non-linear ui scaling
 void layout_size(ui_layout_context *layout, u32 width, u32 height)
 {
@@ -645,10 +719,7 @@ void ui_layout_calculate(app *app)
         .child_gap = 16,
     })
     {
-        slider(app, &app->bounding_box.size.x, 10, 1000, "Size X");
-        slider(app, &app->bounding_box.size.y, 10, 1000, "Size Y");
-        slider(app, &app->bounding_box.size.z, 10, 1000, "Size Z");
-
+        bounding_box(app);
         checkbox(app, &app->render_bounding_box, "Render bounding box");
 
         UI({
@@ -664,17 +735,15 @@ void ui_layout_calculate(app *app)
             }
         }
 
-        slider(app, &app->particle_radius, 1, 10, "Particle radius");
-        slider(app, &app->simulation_speed, 0.01, 1, "Speed");
+        slider(app, 1, 9.99, "Particle radius", &layout->particle_radius);
+        slider(app, 0.01, 1, "Speed", &layout->simulation_speed);
 
-        slider(app, &app->simulation.ubo_data.target_density, 0.001, 0.05, "Target density");
-        slider(app, &app->simulation.ubo_data.pressure_multiplier, 0.5, 25.0, "Pressure multiplier");
-        slider(app, &app->simulation.ubo_data.viscosity_coeff, 0.5, 25.0, "Viscosity multiplier");
-        slider(app, &app->simulation.ubo_data.smoothing_radius, 5, 25.0, "Smoothing radius");
+        slider(app, 0.001, 0.05, "Target density", &layout->target_density);
+        slider(app, 0.5, 25.0, "Pressure multiplier", &layout->pressure_multiplier);
+        slider(app, 0.5, 25.0, "Viscosity multiplier", &layout->viscosity_multiplier);
+        slider(app, 5, 25.0, "Smoothing radius", &layout->smoothing_radius);
 
         color_gradient(app, &layout->particle_gradient);
-
-        number_box(app, "Numberbox", &layout->box_size_x);
     }
 
     // NOTE: Reset current element id
@@ -682,4 +751,16 @@ void ui_layout_calculate(app *app)
     {
         app->ui_layout.active_id = UI_INVALID_ID;
     }
+
+    app->bounding_box.size.x = layout->box_size_x.number;
+    app->bounding_box.size.y = layout->box_size_y.number;
+    app->bounding_box.size.z = layout->box_size_z.number;
+
+    app->particle_radius  = layout->particle_radius.value;
+    app->simulation_speed = layout->simulation_speed.value;
+
+    app->simulation.ubo_data.target_density = layout->target_density.value;
+    app->simulation.ubo_data.pressure_multiplier = layout->pressure_multiplier.value;
+    app->simulation.ubo_data.viscosity_coeff = layout->viscosity_multiplier.value;
+    app->simulation.ubo_data.smoothing_radius = layout->smoothing_radius.value;
 }

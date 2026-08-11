@@ -268,11 +268,18 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
         SDL_Log("[ENGINE] Failed to init vulkan.");
         return false;
     }
+    app->render_bounding_box = true;
+    app->bounding_box        = cubemake(v3zero(), v3make(400, 300, 400));
+    app->particle_radius     = 1.6f;
+    app->simulation_speed    = 1.0f;
+    app->first_time          = true;
+
+    app->simulation.initialized = false;
 
     app->time      = time_create();
     app->camera    = camera_create();
     app->input     = input_create();
-    app->ui_layout = ui_layout_create();
+    app->ui_layout = ui_layout_create(app);
 
     if (!pipelines_create(&app->vulkan, app->pipelines, PIPELINE_COUNT))
     {
@@ -285,14 +292,6 @@ SDL_AppResult SDL_AppInit(void **appstate, i32 argc, char *argv[])
     }
 
     app->frame_arena = memory_arena_create(MEGABYTES(50));
-
-    app->render_bounding_box = true;
-    app->bounding_box        = cubemake(v3zero(), v3make(400, 300, 400));
-    app->particle_radius     = 1.6f;
-    app->simulation_speed    = 1.0f;
-    app->first_time          = true;
-
-    app->simulation.initialized = false;
 
     return SDL_APP_CONTINUE;
 }
