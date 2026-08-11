@@ -20,7 +20,8 @@ typedef u32 ui_id;
 
 typedef enum
 {
-    // NOTE: Default is FIT
+    // NOTE: None is used for stuff like aspect ratio
+    UI_SIZE_NONE,
     UI_SIZE_FIT,
     UI_SIZE_FIXED,
     UI_SIZE_PERCENT,
@@ -107,6 +108,7 @@ typedef struct ui_element
     ui_size     height;
     color4      color;
     f32         roundness;
+    f32         aspect_ratio;
 
     ui_gradient gradient;
 

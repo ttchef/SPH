@@ -119,7 +119,7 @@ ui_element *ui_open(ui_element *parent, ui_element element)
             element.text.align_y = TOP;
         }
     }
-    
+
     if (element.layout == LAYOUT_TO_RIGHT && element.child_align == 0)
     {
         element.child_align = TOP;
@@ -171,6 +171,21 @@ ui_element *ui_open(ui_element *parent, ui_element element)
     return child_address;
 }
 
+static void update_aspect_ratio(ui_element *element)
+{
+    if (element->aspect_ratio != 0.0f)
+    {
+        if (element->width.min_max.min == 0.0f && element->height.min_max.min != 0.0f)
+        {
+            element->width.min_max.min = element->height.min_max.min * element->aspect_ratio;
+        }
+        if (element->width.min_max.min != 0.0f && element->height.min_max.min == 0.0f)
+        {
+            element->width.min_max.min = element->height.min_max.min * (1 / element->aspect_ratio);
+        }
+    }
+}
+
 void ui_close(ui_element *element)
 {
     if (!element)
@@ -204,6 +219,7 @@ void ui_close(ui_element *element)
         element->height.min_max.min = CLAMP(element->height.min_max.min, min, element->height.min_max.max);
     }
 
+    update_aspect_ratio(element);
     if (element->pos.type == POSITION_ABSOLUTE)
     {
         return;
@@ -240,189 +256,6 @@ void ui_close(ui_element *element)
     }
 }
 
-static void ui_grow_resolve(ui_element *root, u32 window_width, u32 window_height)
-{
-    // NOTE: special case if element is the root (only element without parent)
-    if (!root->parent)
-    {
-        if (root->width.type == UI_SIZE_GROW)
-        {
-            root->width.min_max.min = window_width - root->pos.relative.x;
-            root->width.min_max.min = MIN(root->width.min_max.min, root->width.min_max.max - root->pos.relative.x);
-        }
-        if (root->height.type == UI_SIZE_GROW)
-        {
-            root->height.min_max.min = window_height - root->pos.relative.y;
-            root->height.min_max.min = MIN(root->height.min_max.min, root->height.min_max.max - root->pos.relative.y);
-        }
-    }
-
-    if (!root->children)
-    {
-        return;
-    }
-
-    f32 remaining_width  = root->width.min_max.min;
-    f32 remaining_height = root->height.min_max.min;
-
-    remaining_width -= root->padding.left + root->padding.right;
-    remaining_height -= root->padding.top + root->padding.bottom;
-
-    f32 remaining_along  = root->layout == LAYOUT_TO_RIGHT ? remaining_width : remaining_height;
-    f32 remaining_across = root->layout == LAYOUT_TO_RIGHT ? remaining_height : remaining_width;
-
-    f32 smallest_growable_size = FLT_MAX;
-    u32 smallest_growable      = 0;
-    u32 growable_count         = 0;
-
-    // NOTE: All sizes of regular sized elements
-    for (u32 i = 0; i < darray_len(root->children); i++)
-    {
-        ui_element *child = &root->children[i];
-        if (child->pos.type == POSITION_ABSOLUTE)
-        {
-            continue;
-        }
-
-        ui_size *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
-
-        if (along_layout_size->type == UI_SIZE_GROW)
-        {
-            ++growable_count;
-
-            if (along_layout_size->min_max.min < smallest_growable_size)
-            {
-                smallest_growable_size = along_layout_size->min_max.min;
-                smallest_growable      = i;
-            }
-        }
-
-        remaining_along -= along_layout_size->min_max.min;
-    }
-    remaining_along -= (darray_len(root->children) - 1) * root->child_gap;
-
-    while (growable_count && remaining_along > 0.0f)
-    {
-        f32 smallest        = root->layout == LAYOUT_TO_RIGHT ? root->children[smallest_growable].width.min_max.min : root->children[smallest_growable].height.min_max.min;
-        f32 second_smallest = FLT_MAX;
-        f32 size_to_add     = remaining_along;
-
-        for (u32 i = 0; i < darray_len(root->children); i++)
-        {
-            ui_element *child             = &root->children[i];
-            ui_size    *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
-
-            if (along_layout_size->type != UI_SIZE_GROW)
-            {
-                continue;
-            }
-
-            if (along_layout_size->min_max.min < smallest)
-            {
-                second_smallest = smallest;
-                smallest        = along_layout_size->min_max.min;
-            }
-            else if (along_layout_size->min_max.min > smallest)
-            {
-                second_smallest = MIN(second_smallest, along_layout_size->min_max.min);
-                size_to_add     = second_smallest - smallest;
-            }
-        }
-
-        size_to_add = MIN(size_to_add, (f32)remaining_along / (f32)growable_count);
-
-        if (size_to_add < 0.1f)
-        {
-            break;
-        }
-
-        for (u32 i = 0; i < darray_len(root->children); i++)
-        {
-            ui_element *child             = &root->children[i];
-            ui_size    *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
-
-            if (along_layout_size->type != UI_SIZE_GROW)
-            {
-                continue;
-            }
-
-            if (along_layout_size->min_max.min == smallest)
-            {
-                along_layout_size->min_max.min += size_to_add;
-                remaining_along -= size_to_add;
-            }
-        }
-    }
-
-    for (u32 i = 0; i < darray_len(root->children); i++)
-    {
-        ui_element *child              = &root->children[i];
-        ui_size    *across_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->height : &child->width;
-
-        if (across_layout_size->type == UI_SIZE_GROW)
-        {
-            across_layout_size->min_max.min += (remaining_across - across_layout_size->min_max.min);
-        }
-    }
-
-    for (u32 i = 0; i < darray_len(root->children); i++)
-    {
-        ui_grow_resolve(&root->children[i], window_width, window_height);
-    }
-}
-
-static void ui_percent_resolve(ui_element *root, u32 window_width, u32 window_height)
-{
-    if (!root)
-    {
-        return;
-    }
-
-    if (root->width.type == UI_SIZE_PERCENT)
-    {
-        if (!root->parent)
-        {
-            root->width.min_max.min = window_width * root->width.percent;
-        }
-        else
-        {
-            f32 child_gap = 0.0f;
-            if (root->parent->layout == LAYOUT_TO_RIGHT)
-            {
-                child_gap = (darray_len(root->parent->children) - 1) * root->parent->child_gap;
-            }
-            root->width.min_max.min = root->width.percent * (root->parent->width.min_max.min - root->parent->padding.left - root->padding.right - child_gap);
-        }
-    }
-
-    if (root->height.type == UI_SIZE_PERCENT)
-    {
-        if (!root->parent)
-        {
-            root->height.min_max.min = window_height * root->height.percent;
-        }
-        else
-        {
-            f32 child_gap = 0.0f;
-            if (root->parent->layout == LAYOUT_TO_BOTTOM)
-            {
-                child_gap = (darray_len(root->parent->children) - 1) * root->parent->child_gap;
-            }
-            root->height.min_max.min = root->height.percent * (root->parent->height.min_max.min - root->parent->padding.bottom - root->padding.top - child_gap);
-        }
-    }
-
-    if (!root->children)
-    {
-        return;
-    }
-
-    for (u32 i = 0; i < darray_len(root->children); i++)
-    {
-        ui_percent_resolve(&root->children[i], window_width, window_height);
-    }
-}
-
 static void floating_push(ui_element *element)
 {
     if (ui_ctx.floating.element_count + 1 > ARRAY_COUNT(ui_ctx.floating.elements))
@@ -434,7 +267,7 @@ static void floating_push(ui_element *element)
     ui_ctx.floating.elements[ui_ctx.floating.element_count++] = element;
 }
 
-static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *root)
+static void draw_helper(app *app, vulkan_command_queue *queue, ui_element *root)
 {
     if (!root)
     {
@@ -574,7 +407,176 @@ static void ui_draw_helper(app *app, vulkan_command_queue *queue, ui_element *ro
             }
         }
 
-        ui_draw_helper(app, queue, child);
+        draw_helper(app, queue, child);
+    }
+}
+
+static void size_resolve(ui_element *root, u32 window_width, u32 window_height)
+{
+    if (!root)
+    {
+        return;
+    }
+
+    // NOTE: Special cases
+    if (!root->parent)
+    {
+        if (root->width.type == UI_SIZE_GROW)
+        {
+            root->width.min_max.min = window_width - root->pos.relative.x;
+            root->width.min_max.min = MIN(root->width.min_max.min, root->width.min_max.max - root->pos.relative.x);
+        }
+        else if (root->width.type == UI_SIZE_PERCENT)
+        {
+            root->width.min_max.min = window_width * root->width.percent;
+        }
+
+        if (root->height.type == UI_SIZE_GROW)
+        {
+            root->height.min_max.min = window_height - root->pos.relative.y;
+            root->height.min_max.min = MIN(root->height.min_max.min, root->height.min_max.max - root->pos.relative.y);
+        }
+        else if (root->height.type == UI_SIZE_PERCENT)
+        {
+            root->height.min_max.min = window_height * root->height.percent;
+        }
+    }
+    else
+    {
+         if (root->width.type == UI_SIZE_PERCENT)
+        {
+            f32 child_gap = 0.0f;
+            if (root->parent->layout == LAYOUT_TO_RIGHT)
+            {
+                child_gap = (darray_len(root->parent->children) - 1) * root->parent->child_gap;
+            }
+            root->width.min_max.min = root->width.percent * (root->parent->width.min_max.min - root->parent->padding.left - root->parent->padding.right - child_gap);
+        }
+
+        if (root->height.type == UI_SIZE_PERCENT)
+        {
+            f32 child_gap = 0.0f;
+            if (root->parent->layout == LAYOUT_TO_BOTTOM)
+            {
+                child_gap = (darray_len(root->parent->children) - 1) * root->parent->child_gap;
+            }
+            root->height.min_max.min = root->height.percent * (root->parent->height.min_max.min - root->parent->padding.bottom - root->padding.top - child_gap);
+        }   
+    }
+    update_aspect_ratio(root);
+
+    if (!root->children)
+    {
+        return;
+    }
+    
+    // NOTE: Grow containers
+    f32 remaining_width  = root->width.min_max.min;
+    f32 remaining_height = root->height.min_max.min;
+
+    remaining_width -= root->padding.left + root->padding.right;
+    remaining_height -= root->padding.top + root->padding.bottom;
+
+    f32 remaining_along  = root->layout == LAYOUT_TO_RIGHT ? remaining_width : remaining_height;
+    f32 remaining_across = root->layout == LAYOUT_TO_RIGHT ? remaining_height : remaining_width;
+
+    f32 smallest_growable_size = FLT_MAX;
+    u32 smallest_growable      = 0;
+    u32 growable_count         = 0;
+
+    // NOTE: All sizes of regular sized elements
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_element *child = &root->children[i];
+        if (child->pos.type == POSITION_ABSOLUTE)
+        {
+            continue;
+        }
+
+        ui_size *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
+
+        if (along_layout_size->type == UI_SIZE_GROW)
+        {
+            ++growable_count;
+
+            if (along_layout_size->min_max.min < smallest_growable_size)
+            {
+                smallest_growable_size = along_layout_size->min_max.min;
+                smallest_growable      = i;
+            }
+        }
+
+        remaining_along -= along_layout_size->min_max.min;
+    }
+    remaining_along -= (darray_len(root->children) - 1) * root->child_gap;
+
+    while (growable_count && remaining_along > 0.0f)
+    {
+        f32 smallest        = root->layout == LAYOUT_TO_RIGHT ? root->children[smallest_growable].width.min_max.min : root->children[smallest_growable].height.min_max.min;
+        f32 second_smallest = FLT_MAX;
+        f32 size_to_add     = remaining_along;
+
+        for (u32 i = 0; i < darray_len(root->children); i++)
+        {
+            ui_element *child             = &root->children[i];
+            ui_size    *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
+
+            if (along_layout_size->type != UI_SIZE_GROW)
+            {
+                continue;
+            }
+
+            if (along_layout_size->min_max.min < smallest)
+            {
+                second_smallest = smallest;
+                smallest        = along_layout_size->min_max.min;
+            }
+            else if (along_layout_size->min_max.min > smallest)
+            {
+                second_smallest = MIN(second_smallest, along_layout_size->min_max.min);
+                size_to_add     = second_smallest - smallest;
+            }
+        }
+
+        size_to_add = MIN(size_to_add, (f32)remaining_along / (f32)growable_count);
+
+        if (size_to_add < 0.1f)
+        {
+            break;
+        }
+
+        for (u32 i = 0; i < darray_len(root->children); i++)
+        {
+            ui_element *child             = &root->children[i];
+            ui_size    *along_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->width : &child->height;
+
+            if (along_layout_size->type != UI_SIZE_GROW)
+            {
+                continue;
+            }
+
+            if (along_layout_size->min_max.min == smallest)
+            {
+                along_layout_size->min_max.min += size_to_add;
+                remaining_along -= size_to_add;
+            }
+        }
+    }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        ui_element *child              = &root->children[i];
+        ui_size    *across_layout_size = root->layout == LAYOUT_TO_RIGHT ? &child->height : &child->width;
+
+        if (across_layout_size->type == UI_SIZE_GROW)
+        {
+            across_layout_size->min_max.min += (remaining_across - across_layout_size->min_max.min);
+        }
+    }
+
+    for (u32 i = 0; i < darray_len(root->children); i++)
+    {
+        size_resolve(&root->children[i], window_width, window_height);
     }
 }
 
@@ -582,13 +584,12 @@ void ui_draw(app *app, vulkan_command_queue *queue)
 {
     ui_element *root = ui_ctx.root;
 
-    ui_grow_resolve(root, app->window.width, app->window.height);
-    ui_percent_resolve(root, app->window.width, app->window.height);
-    ui_draw_helper(app, queue, root);
+    size_resolve(root, app->window.width, app->window.height);
+    draw_helper(app, queue, root);
 
     for (u32 i = 0; i < ui_ctx.floating.element_count; i++)
     {
-        ui_draw_helper(app, queue, ui_ctx.floating.elements[i]);
+        draw_helper(app, queue, ui_ctx.floating.elements[i]);
     }
 }
 

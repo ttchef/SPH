@@ -133,9 +133,9 @@ static void checkbox(app *app, bool *value, const char *label)
     })
     {
         UI({
-            .width     = FIXED(32),
             .height    = FIXED(32 * layout->height_scale),
             .padding   = PAD_ALL(5),
+            .aspect_ratio = 1.0f,
             .roundness = 0.4f,
         })
         {
@@ -543,7 +543,15 @@ static void number_box(app *app, const char *label)
             .width = PERCENT(0.5f),
             .height = GROW(0),
             .color = UI_COLOR2,
-        });
+            .padding = PAD_ALL(6),
+        })
+        {
+            UI({
+                .height = GROW(0),
+                .aspect_ratio = 1.0f,
+                .color = UI_COLOR8,
+            });
+        }
 
         UI({
             .width = PERCENT(0.5f),
@@ -609,7 +617,6 @@ void ui_layout_calculate(app *app)
         slider(app, &app->simulation.ubo_data.smoothing_radius, 5, 25.0, "Smoothing radius");
 
         color_gradient(app);
-
         number_box(app, "Textbox");
     }
 
