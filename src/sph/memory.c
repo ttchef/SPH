@@ -75,6 +75,7 @@ void *memory_stream_consume(memory_stream *stream, u32 size)
     if (stream->size < size)
     {
         assert(0);
+        return NULL;
     }
 
     void *result = stream->data;
@@ -128,3 +129,23 @@ f64 memory_stream_read_f2dot14(memory_stream *stream)
 {
     return ((f64)memory_stream_read_i16_be(stream)) / 16384.0;
 }
+
+string_slice memory_stream_skip_line(memory_stream *stream)
+{
+    assert(stream->data);
+
+    string_slice result = {0};
+
+    result.data = (char *)stream->data;
+
+    char c = *(char *)memory_stream_consume(stream, 1);
+
+    while (c != '\0' && c != '\n' && stream->size > 0)
+    {
+        c = *(char *)memory_stream_consume(stream, 1);
+        result.len++;
+    }
+
+    return result;
+}
+

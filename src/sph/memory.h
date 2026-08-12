@@ -2,6 +2,7 @@
 #pragma once
 
 #include <types.h>
+#include <sph/string.h>
 
 typedef struct
 {
@@ -45,3 +46,7 @@ i32 memory_stream_read_i32_be(memory_stream *stream);
 i64 memory_stream_read_i64_be(memory_stream *stream);
 
 f64 memory_stream_read_f2dot14(memory_stream *stream);
+
+// NOTE: Skips till it find newline
+string_slice memory_stream_skip_line(memory_stream *stream);
+
