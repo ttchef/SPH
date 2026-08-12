@@ -10,8 +10,16 @@
 // TODO: no sph in here
 #include <sph/memory.h>
 
+typedef enum
+{
+    VULKAN_IMAGE_TYPE_2D,
+    VULKAN_IMAGE_TYPE_CUBE,
+} vulkan_image_type;
+
 typedef struct
 {
+    vulkan_image_type type;
+    
     VkImage        handle;
     VkImageView    view;
     VkDeviceMemory memory;
@@ -20,7 +28,11 @@ typedef struct
     u32 height;
 
     // NOTE: VULKAN_INVALID_BINDING by default
-    vulkan_bindless_image descriptor;
+    union
+    {
+        vulkan_bindless_image image_2d;
+        vulkan_bindless_cube_image image_cube;
+    } descriptor;
 } vulkan_image;
 
 typedef struct
@@ -39,6 +51,8 @@ typedef struct
 } vulkan_image_info;
 
 bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image);
+
+bool vulkan_image_cube_map_create(vulkan *vulkan, u32 face_size, VkFormat format, VkImageUsageFlags usage, const char *name, vulkan_image *out_image);
 
 void vulkan_image_destroy(vulkan *vulkan, vulkan_image *image);
 

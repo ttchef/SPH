@@ -42,6 +42,9 @@ public Texture2D<float4> textures[256];
 [[vk::binding(2, 0)]]
 public SamplerState samplers[256];
 
+[[vk::binding(3, 0)]]
+public TextureCube<float4> cube_textures[16];
+
 public static const int3 neighbour_offsets[] = {
     int3(-1,-1, 0), int3(0,-1, 0), int3(1,-1, 0),
     int3(-1, 0, 0), int3(0, 0, 0), int3(1, 0, 0),

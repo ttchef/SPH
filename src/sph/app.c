@@ -16,6 +16,17 @@ typedef struct
     m4 orthographic;
 } global_ubo;
 
+enum
+{
+    CUBE_MAP_X_POS,
+    CUBE_MAP_X_NEG,
+    CUBE_MAP_Y_POS,
+    CUBE_MAP_Y_NEG,
+    CUBE_MAP_Z_POS,
+    CUBE_MAP_Z_NEG,
+    CUBE_MAP_DIRECTION_COUNT,
+};
+
 f32 measure_text(ttf_font *font, u32 font_size, const char *format, ...)
 {
     va_list args;
@@ -86,7 +97,7 @@ void draw_text(app *app, ttf_font *font, v2 pos, u32 font_size, const char *form
     vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_TEXTURED_QUAD]);
 
     textured_quad_pc pc = {
-        .image   = font->atlas.descriptor,
+        .image   = font->atlas.descriptor.image_2d,
         .sampler = app->linear_sampler.descriptor,
         .color   = v4fromcolor4(WHITE),
     };
@@ -155,7 +166,7 @@ void draw_quad(app *app, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_i
         .model        = model,
         .uv_min       = v2make(0.0f, 0.0f),
         .uv_max       = v2make(1.0f, 1.0f),
-        .image        = image ? image->descriptor : VULKAN_INVALID_BINDING,
+        .image        = image ? image->descriptor.image_2d : VULKAN_INVALID_BINDING,
         .sampler      = sampler ? sampler->descriptor : VULKAN_INVALID_BINDING,
         .color        = v4fromcolor4(color),
         .roundness    = roundness,
@@ -210,6 +221,78 @@ void draw_cube_lines(app *app, v3 pos, v3 scale)
     vulkan_command_draw(queue, 24);
 }
 
+// NOTE: Convert to physics coordinate system
+static v3 cube_map_face_to_xyz(u32 x, u32 y, u32 face, u32 size)
+{
+    f32 u = ((x + 0.5f) / (f32)size) * 2.0f - 1.0f;
+    f32 v = ((y + 0.5f) / (f32)size) * 2.0f - 1.0f;
+
+    switch (face)
+    {
+    case CUBE_MAP_X_POS:
+        return v3make(1.0f, -v, -u);
+    case CUBE_MAP_X_NEG:
+        return v3make(-1.0f, -v, u);
+    case CUBE_MAP_Y_POS:
+        return v3make(u, 1.0f, v);
+    case CUBE_MAP_Y_NEG:
+        return v3make(u, -1.0f, -v);
+    case CUBE_MAP_Z_POS:
+        return v3make(u, -v, 1.0f);
+    case CUBE_MAP_Z_NEG:
+        return v3make(-u, -v, -1.0f);
+    }
+
+    return v3zero();
+}
+
+static void cube_map_create(app *app, memory_arena *arena, image_raw *image_data, vulkan_image *out_image)
+{
+    vulkan *vulkan = &app->vulkan;
+
+    vulkan_image result = {0};
+
+    u32  face_size      = image_data->width * 0.25f;
+    u32  face_data_size = face_size * face_size * 4;
+    f32 *face_data      = memory_arena_alloc(arena, face_data_size);
+
+    for (u32 face = 0; face < CUBE_MAP_DIRECTION_COUNT; face++)
+    {
+        for (u32 y = 0; y < face_size; y++)
+        {
+            for (u32 x = 0; x < face_size; x++)
+            {
+                v3 p = cube_map_face_to_xyz(x, y, face, face_size);
+
+                // NOTE: Convert to 3D spherical coordinates
+                f32 r = sqrtf(p.x * p.x + p.z * p.z);
+                f32 phi = atan2f(p.z, p.x);
+                f32 theta = atan2f(-p.y, r);
+
+                // NOTE: scaled uv
+                f32 u = (f32)((phi + M_PI) / (2.0f * M_PI)) * image_data->width;
+                f32 v = (f32)((M_PI / 2.0f - theta) / M_PI) * image_data->height;
+
+                u32 u1 = CLAMP((u32)roundf(u), 0, image_data->width - 1);
+                u32 v1 = CLAMP((u32)roundf(v), 0, image_data->height - 1);
+
+                v1 = image_data->height - 1 - v1;
+
+                const u8 *src = image_data->data + (v1 * image_data->width + u1) * 4;
+                const i32 dst_idx = (y * face_size + x) * 4;
+
+                face_data[dst_idx + 0] = src[0];
+                face_data[dst_idx + 1] = src[1];
+                face_data[dst_idx + 2] = src[2];
+                face_data[dst_idx + 3] = src[3];
+            }
+        }
+
+    }
+
+    *out_image = result;
+}
+
 static bool resources_create(app *app)
 {
     vulkan *vulkan = &app->vulkan;
@@ -234,21 +317,6 @@ static bool resources_create(app *app)
     {
         return false;
     }
-    vulkan_image_create(vulkan, v2umake(skybox.width, skybox.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, "skybox", &app->skybox);
-    vulkan_image_data_upload(vulkan, &resource_arena, app->skybox, skybox.width * skybox.height * 4, skybox.data,
-                             (vulkan_image_info){
-                                 .layout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                 .access = VK_ACCESS_NONE,
-                                 .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-                                 .stage  = VK_PIPELINE_STAGE_NONE,
-                             },
-                             (vulkan_image_info){
-                                 .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                 .access = VK_ACCESS_SHADER_READ_BIT,
-                                 .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-                                 .stage  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                             });
-    vulkan_bindless_image_aquire(vulkan, &app->skybox, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     SDL_free(jet_brains_data);
     SDL_free(skybox_data);
@@ -421,8 +489,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     vulkan_command_label_begin(queue, "ui", RED);
     ui_draw(app, queue);
     vulkan_command_label_end(queue);
-
-    draw_quad(app, v2zero(), v2make(window->width, window->height), 0.0f, WHITE, &app->skybox, &app->linear_sampler);
 
     vulkan_command_end_rendering(queue);
     vulkan_draw(vulkan, app->window.width, app->window.height, queue);

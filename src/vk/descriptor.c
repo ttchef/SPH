@@ -10,6 +10,7 @@ enum
     UBO_BINDING           = 0,
     SAMPLED_IMAGE_BINDING = 1,
     SAMPLER_BINDING       = 2,
+    CUBE_IAMGE_BINDING = 3,
 
     // NOTE: Scene Set
     SCENE_UBO_BINDING = 0,
@@ -26,7 +27,7 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
         },
         {
             .type            = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            .descriptorCount = VULKAN_MAX_SAMPLED_IMAGE_COUNT,
+            .descriptorCount = VULKAN_MAX_SAMPLED_IMAGE_COUNT + VULKAN_MAX_CUBE_IMAGE_COUNT,
         },
         {
             .type            = VK_DESCRIPTOR_TYPE_SAMPLER,
@@ -73,10 +74,17 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
             // TODO: Is is only fragment??
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         },
+        {
+            .binding = CUBE_IAMGE_BINDING,
+            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            .descriptorCount = VULKAN_MAX_CUBE_IMAGE_COUNT,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        },
     };
 
     VkDescriptorBindingFlags flags[] = {
         0,
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
     };
@@ -162,6 +170,12 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
         result.free_samplers[i] = result.free_sampler_count - i;
     }
 
+    result.free_cube_image_count = VULKAN_MAX_CUBE_IMAGE_COUNT - 1;
+    for (vulkan_bindless_cube_image i = 0; i <  result.free_cube_image_count; i++)
+    {
+        result.free_cube_images[i] = result.free_cube_image_count - i;
+    }
+
     // NOTE: Ubo
     if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ubo_size, NULL, "global_ubo", &result.ubo))
     {
@@ -242,9 +256,10 @@ void *vulkan_bindless_ubo_get(vulkan_bindless *bindless)
 
 void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLayout layout)
 {
+    assert(image->type == VULKAN_IMAGE_TYPE_2D);
     vulkan_bindless *bindless = &vulkan->bindless;
 
-    if (image->descriptor == VULKAN_INVALID_BINDING)
+    if (image->descriptor.image_2d == VULKAN_INVALID_BINDING)
     {
         if (bindless->free_image_count == 0)
         {
@@ -252,8 +267,8 @@ void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLa
             return;
         }
 
-        image->descriptor = bindless->free_images[--bindless->free_image_count];
-        assert(image->descriptor != VULKAN_INVALID_BINDING);
+        image->descriptor.image_2d = bindless->free_images[--bindless->free_image_count];
+        assert(image->descriptor.image_2d != VULKAN_INVALID_BINDING);
     }
 
     // NOTE: if image is passed in write it to set
@@ -265,7 +280,7 @@ void vulkan_bindless_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLa
     VkWriteDescriptorSet write = {
         .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        .dstArrayElement = image->descriptor,
+        .dstArrayElement = image->descriptor.image_2d,
         .descriptorCount = 1,
         .dstBinding      = SAMPLED_IMAGE_BINDING,
         .dstSet          = bindless->set,
@@ -317,6 +332,48 @@ void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_sampler *sampler)
 void vulkan_bindless_sampler_release(vulkan *vulkan, vulkan_bindless_sampler handle)
 {
     vulkan->bindless.free_samplers[vulkan->bindless.free_sampler_count++] = handle;
+}
+
+void vulkan_bindless_cube_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLayout layout)
+{
+    assert(image->type == VULKAN_IMAGE_TYPE_CUBE);
+    
+    vulkan_bindless *bindless = &vulkan->bindless;
+
+    if (image->descriptor.image_cube == VULKAN_INVALID_BINDING)
+    {
+        if (bindless->free_cube_image_count == 0)
+        {
+            SDL_Log("[VULKAN] No free cube images left to allocate.");
+            return;
+        }
+
+        image->descriptor.image_cube = bindless->free_cube_images[--bindless->free_cube_image_count];
+        assert(image->descriptor.image_cube != VULKAN_INVALID_BINDING);
+    }
+
+    // NOTE: if image is passed in write it to set
+    VkDescriptorImageInfo image_info = {
+        .imageLayout = layout,
+        .imageView   = image->view,
+    };
+
+    VkWriteDescriptorSet write = {
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        .dstArrayElement = image->descriptor.image_cube,
+        .descriptorCount = 1,
+        .dstBinding      = SAMPLED_IMAGE_BINDING,
+        .dstSet          = bindless->set,
+        .pImageInfo      = &image_info,
+    };
+
+    vkUpdateDescriptorSets(vulkan->device, 1, &write, 0, NULL);   
+}
+
+void vulkan_bindless_cube_image_release(vulkan *vulkan, vulkan_bindless_cube_image handle)
+{
+    vulkan->bindless.free_cube_images[vulkan->bindless.free_cube_image_count++] = handle;
 }
 
 vulkan_bindless_scene_ubo vulkan_bindless_scene_ubo_aquire(vulkan *vulkan)

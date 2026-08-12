@@ -11,11 +11,12 @@
 //       binding 0 -> ubo
 //       binding 1 -> sampled image
 //       binding 2 -> samplers
-//       binding 3 -> scene ubo
+//       binding 3 -> cube images
 //
 
 #define VULKAN_MAX_SAMPLED_IMAGE_COUNT 256
 #define VULKAN_MAX_SAMPLER_COUNT       256
+#define VULKAN_MAX_CUBE_IMAGE_COUNT    16
 #define VULKAN_MAX_SCENE_UBO_COUNT     32
 #define VULKAN_INVALID_BINDING         0
 
@@ -37,6 +38,9 @@ typedef struct
 
     vulkan_bindless_sampler free_samplers[VULKAN_MAX_SAMPLER_COUNT];
     u32                     free_sampler_count;
+
+    vulkan_bindless_cube_image free_cube_images[VULKAN_MAX_CUBE_IMAGE_COUNT];
+    u32                        free_cube_image_count;
 
     VkDescriptorSetLayout scene_layout;
     VkDescriptorSet       scene_set;
@@ -69,6 +73,12 @@ void vulkan_bindless_sampler_aquire(vulkan *vulkan, vulkan_sampler *sampler);
 
 void vulkan_bindless_sampler_release(vulkan *vulkan, vulkan_bindless_sampler handle);
 
+// ----
+
+// NOTE: Cube images
+void vulkan_bindless_cube_image_aquire(vulkan *vulkan, vulkan_image *image, VkImageLayout layout);
+
+void vulkan_bindless_cube_image_release(vulkan *vulkan, vulkan_bindless_cube_image handle);
 // ----
 
 // NOTE: Scene ubo

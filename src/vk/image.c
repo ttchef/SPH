@@ -13,6 +13,7 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
 
     vulkan_image result = {0};
 
+    result.type = VULKAN_IMAGE_TYPE_2D;
     result.width  = dimensions.x;
     result.height = dimensions.y;
 
@@ -65,6 +66,85 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
         .viewType                    = VK_IMAGE_VIEW_TYPE_2D,
         .format                      = format,
         .subresourceRange.aspectMask = aspect,
+        .subresourceRange.layerCount = 1,
+        .subresourceRange.levelCount = 1,
+    };
+
+    if (vkCreateImageView(vulkan->device, &view_info, NULL, &result.view) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create image view.");
+        return false;
+    }
+
+    vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE_VIEW, (u64)result.view, "image_view:%s", name);
+    vulkan_object_name_set(vulkan, VK_OBJECT_TYPE_IMAGE, (u64)result.handle, "image:%s", name);
+
+    *out_image = result;
+
+    return true;
+}
+
+bool vulkan_image_cube_map_create(vulkan *vulkan, u32 face_size, VkFormat format, VkImageUsageFlags usage, const char *name, vulkan_image *out_image)
+{
+    // NOTE: For relase
+    UNUSED(name);
+
+    vulkan_image result = {0};
+
+    result.type = VULKAN_IMAGE_TYPE_CUBE;
+    result.width  = face_size;
+    result.height = face_size;
+
+    VkImageCreateInfo image_info = {
+        .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType     = VK_IMAGE_TYPE_2D,
+        .extent.width  = face_size,
+        .extent.height = face_size,
+        .extent.depth  = 1,
+        .mipLevels     = 1,
+        .arrayLayers   = 6,
+        .format        = format,
+        .tiling        = VK_IMAGE_TILING_OPTIMAL,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .usage         = usage,
+        .samples       = VK_SAMPLE_COUNT_1_BIT,
+        .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+        .flags         = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+    };
+
+    if (vkCreateImage(vulkan->device, &image_info, NULL, &result.handle) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to create image.");
+        return false;
+    }
+
+    VkMemoryRequirements memory_requirements;
+    vkGetImageMemoryRequirements(vulkan->device, result.handle, &memory_requirements);
+
+    VkMemoryAllocateInfo alloc_info = {
+        .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize  = memory_requirements.size,
+        .memoryTypeIndex = vulkan_memory_type_find(vulkan, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+    };
+
+    if (vkAllocateMemory(vulkan->device, &alloc_info, NULL, &result.memory) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to allocate image memory.");
+        return false;
+    }
+
+    if (vkBindImageMemory(vulkan->device, result.handle, result.memory, 0) != VK_SUCCESS)
+    {
+        SDL_Log("[VULKAN] Failed to bind image memory.");
+        return false;
+    }
+
+    VkImageViewCreateInfo view_info = {
+        .sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image                       = result.handle,
+        .viewType                    = VK_IMAGE_VIEW_TYPE_CUBE,
+        .format                      = format,
+        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .subresourceRange.layerCount = 1,
         .subresourceRange.levelCount = 1,
     };
