@@ -80,7 +80,7 @@ add_custom_target(Shaders ALL DEPENDS ${SPV_FILES})
 set(SRC_FILES src/sph/app.c src/sph/camera.c src/sph/input.c
               src/sph/memory.c src/sph/pipelines.c src/sph/png.c
               src/sph/simulation.c src/sph/ttf.c src/sph/ui.c
-              src/sph/ui_layout.c src/sph/window.c src/sph/hdr.c
+              src/sph/ui_layout.c src/sph/window.c
 
               src/vk/buffer.c src/vk/command.c src/vk/context.c
               src/vk/descriptor.c src/vk/destroy_queue.c src/vk/image.c

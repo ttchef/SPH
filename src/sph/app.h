@@ -28,7 +28,7 @@ struct app
     vulkan_pipeline_id    pipelines[PIPELINE_COUNT];
 
     vulkan_sampler linear_sampler;
-    vulkan_image   test_texture;
+    vulkan_image   skybox;
     ttf_font       jet_brains;
 
     bool  reset_pressed;

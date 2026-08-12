@@ -3,7 +3,6 @@
 #include <math/core.h>
 #include <sph/app.h>
 #include <sph/png.h>
-#include <sph/hdr.h>
 #include <sph/utils.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -228,13 +227,28 @@ static bool resources_create(app *app)
     vulkan_bindless_sampler_aquire(vulkan, &app->linear_sampler);
 
     usize skybox_size;
-    u8 *skybox_data = SDL_LoadFile(path_abs("assets/textures/winter_skybox.hdr"), &skybox_size);
+    u8   *skybox_data = SDL_LoadFile(path_abs("assets/textures/winter_skybox.png"), &skybox_size);
 
-    image_hdr skybox;
-    if (!hdr_create(&resource_arena, skybox_size, skybox_data, &skybox))
+    image_raw skybox;
+    if (!png_create(&resource_arena, skybox_size, skybox_data, &skybox))
     {
         return false;
     }
+    vulkan_image_create(vulkan, v2umake(skybox.width, skybox.height), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, "skybox", &app->skybox);
+    vulkan_image_data_upload(vulkan, &resource_arena, app->skybox, skybox.width * skybox.height * 4, skybox.data,
+                             (vulkan_image_info){
+                                 .layout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                 .access = VK_ACCESS_NONE,
+                                 .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                 .stage  = VK_PIPELINE_STAGE_NONE,
+                             },
+                             (vulkan_image_info){
+                                 .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                 .access = VK_ACCESS_SHADER_READ_BIT,
+                                 .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+                                 .stage  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                             });
+    vulkan_bindless_image_aquire(vulkan, &app->skybox, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     SDL_free(jet_brains_data);
     SDL_free(skybox_data);
@@ -408,6 +422,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     ui_draw(app, queue);
     vulkan_command_label_end(queue);
 
+    draw_quad(app, v2zero(), v2make(window->width, window->height), 0.0f, WHITE, &app->skybox, &app->linear_sampler);
+
     vulkan_command_end_rendering(queue);
     vulkan_draw(vulkan, app->window.width, app->window.height, queue);
 
@@ -430,7 +446,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     simulation_destroy(app, &app->simulation);
     ttf_destroy(vulkan, &app->jet_brains);
 
-    vulkan_object_destroy(vulkan, sizeof(app->test_texture), &app->test_texture, (vulkan_destroy_func)vulkan_image_destroy);
+    vulkan_object_destroy(vulkan, sizeof(app->skybox), &app->skybox, (vulkan_destroy_func)vulkan_image_destroy);
     vulkan_object_destroy(vulkan, sizeof(app->linear_sampler), &app->linear_sampler, (vulkan_destroy_func)vulkan_sampler_destroy);
 
     vulkan_destroy(vulkan);
