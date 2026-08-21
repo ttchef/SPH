@@ -326,7 +326,7 @@ static bool cube_map_create(app *app, memory_arena *arena, image_raw *image_data
                 face_data[dst_idx + 3] = src[3];
             }
         }
-        vulkan_image_cube_data_upload(vulkan, arena, result, face_data_size, face_data, face, face == 0 ? src : dst, dst);
+        vulkan_image_cube_data_upload(vulkan, arena, result, face_data_size, face_data, face, src, dst);
     }
 
     *out_image = result;

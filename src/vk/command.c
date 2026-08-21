@@ -602,7 +602,7 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
                 .subresourceRange = {
                     .aspectMask = image_barrier->dst.aspect,
                     .levelCount = 1,
-                    .layerCount = 1,
+                    .layerCount = image_barrier->image.type == VULKAN_IMAGE_TYPE_CUBE ? 6 : 1,
                 },
             };
 
