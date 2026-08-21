@@ -17,6 +17,16 @@
 
 static const f32 STD_ROUNDNESS = 0.3f;
 
+static inline ui_layout_number_box number_box_make(f32 start, f32 min, f32 max, u32 precision)
+{
+    return (ui_layout_number_box){
+        .number = start,
+        .min = min,
+        .max = max,
+        .precision = precision,
+    };
+}
+
 ui_layout_context ui_layout_create(void)
 {
     ui_layout_context result = {0};
@@ -28,9 +38,9 @@ ui_layout_context ui_layout_create(void)
     result.particle_radius.value  = 1.6f;
     result.simulation_speed.value = 1.0f;
 
-    result.box_size_x.number = 450;
-    result.box_size_y.number = 400;
-    result.box_size_z.number = 450;
+    result.box_size_x = number_box_make(450, 0.0f, FLT_MAX, 0);
+    result.box_size_y = number_box_make(400, 0.0f, FLT_MAX, 0);
+    result.box_size_z = number_box_make(450, 0.0f, FLT_MAX, 0);
 
     result.render_bounding_box = true;
 
@@ -566,7 +576,7 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
 {
     ui_layout_context *layout = &app->ui_layout;
 
-    SDL_snprintf(box->text, sizeof(box->text), "%d", box->number);
+    SDL_snprintf(box->text, sizeof(box->text), "%.*f", box->precision, box->number);
 
     UI({
         .width     = GROW(0),
@@ -610,6 +620,7 @@ static void number_box(app *app, const char *label, ui_layout_number_box *box)
             if (is_active(app, CURRENT()->id))
             {
                 box->number += app->input.mouse_delta.x;
+                box->number = CLAMP(box->number, box->min, box->max);
             }
             if (is_active(app, CURRENT()->id) && input_released(&app->input, INPUT_LMB))
             {

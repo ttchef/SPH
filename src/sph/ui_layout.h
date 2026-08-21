@@ -29,9 +29,13 @@ typedef struct
 
 typedef struct
 {
-    char text[6];
+    char text[24];
     i32 text_len;
-    i32 number;
+    f32 number;
+    f32 min;
+    f32 max;
+
+    u32 precision;
 
     v2 press_pos;
     bool input_active;
