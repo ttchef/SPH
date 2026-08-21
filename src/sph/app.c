@@ -221,6 +221,26 @@ void draw_cube_lines(app *app, v3 pos, v3 scale)
     vulkan_command_draw(queue, 24);
 }
 
+void draw_skybox(app *app, vulkan_image skybox)
+{
+    if (skybox.type != VULKAN_IMAGE_TYPE_CUBE)
+    {
+        SDL_Log("[ENGINE] Called draw_skybox without a cube image.");
+        return;
+    }
+
+    vulkan_command_queue *queue = app->render_queue;
+
+    skybox_pc pc = {
+        .skybox  = skybox.descriptor.image_cube,
+        .sampler = app->linear_sampler.descriptor,
+    };
+
+    vulkan_command_bind_pipeline(queue, app->pipelines[PIPELINE_SKYBOX]);
+    vulkan_command_push_constants(queue, sizeof(pc), &pc, VK_SHADER_STAGE_FRAGMENT_BIT, app->pipelines[PIPELINE_SKYBOX]);
+    vulkan_command_draw(queue, 36);
+}
+
 // NOTE: Convert to physics coordinate system
 static v3 cube_map_face_to_xyz(u32 x, u32 y, u32 face, u32 size)
 {
@@ -246,7 +266,7 @@ static v3 cube_map_face_to_xyz(u32 x, u32 y, u32 face, u32 size)
     return v3zero();
 }
 
-static void cube_map_create(app *app, memory_arena *arena, image_raw *image_data, vulkan_image *out_image)
+static bool cube_map_create(app *app, memory_arena *arena, image_raw *image_data, vulkan_image *out_image)
 {
     vulkan *vulkan = &app->vulkan;
 
@@ -254,7 +274,26 @@ static void cube_map_create(app *app, memory_arena *arena, image_raw *image_data
 
     u32  face_size      = image_data->width * 0.25f;
     u32  face_data_size = face_size * face_size * 4;
-    f32 *face_data      = memory_arena_alloc(arena, face_data_size);
+    u8 *face_data      = memory_arena_alloc(arena, face_data_size);
+
+    if (!vulkan_image_cube_create(vulkan, face_size, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, "cubemap", &result))
+    {
+        return false;
+    }
+
+    vulkan_image_info src = {
+        .layout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .access = VK_ACCESS_NONE,
+        .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+        .stage  = VK_PIPELINE_STAGE_NONE,
+    };
+
+    vulkan_image_info dst = {
+        .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .access = VK_ACCESS_SHADER_READ_BIT,
+        .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+        .stage  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+    };
 
     for (u32 face = 0; face < CUBE_MAP_DIRECTION_COUNT; face++)
     {
@@ -265,8 +304,8 @@ static void cube_map_create(app *app, memory_arena *arena, image_raw *image_data
                 v3 p = cube_map_face_to_xyz(x, y, face, face_size);
 
                 // NOTE: Convert to 3D spherical coordinates
-                f32 r = sqrtf(p.x * p.x + p.z * p.z);
-                f32 phi = atan2f(p.z, p.x);
+                f32 r     = sqrtf(p.x * p.x + p.z * p.z);
+                f32 phi   = atan2f(p.z, p.x);
                 f32 theta = atan2f(-p.y, r);
 
                 // NOTE: scaled uv
@@ -278,7 +317,7 @@ static void cube_map_create(app *app, memory_arena *arena, image_raw *image_data
 
                 v1 = image_data->height - 1 - v1;
 
-                const u8 *src = image_data->data + (v1 * image_data->width + u1) * 4;
+                const u8 *src     = image_data->data + (v1 * image_data->width + u1) * 4;
                 const i32 dst_idx = (y * face_size + x) * 4;
 
                 face_data[dst_idx + 0] = src[0];
@@ -287,10 +326,12 @@ static void cube_map_create(app *app, memory_arena *arena, image_raw *image_data
                 face_data[dst_idx + 3] = src[3];
             }
         }
-
+        vulkan_image_cube_data_upload(vulkan, arena, result, face_data_size, face_data, face, face == 0 ? src : dst, dst);
     }
 
     *out_image = result;
+
+    return true;
 }
 
 static bool resources_create(app *app)
@@ -317,6 +358,8 @@ static bool resources_create(app *app)
     {
         return false;
     }
+    cube_map_create(app, &resource_arena, &skybox, &app->skybox);
+    vulkan_bindless_cube_image_aquire(vulkan, &app->skybox, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     SDL_free(jet_brains_data);
     SDL_free(skybox_data);
@@ -458,6 +501,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     vulkan_command_begin_rendering(queue);
     vulkan_command_set_viewport(queue, 0, 0, MAX(window->width, app->ui_layout.width + 1) - app->ui_layout.width, window->height);
+
+    draw_skybox(app, app->skybox);
 
     vulkan_command_label_begin(queue, "render cube", RED);
     if (app->ui_layout.render_bounding_box)

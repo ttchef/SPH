@@ -10,7 +10,7 @@ enum
     UBO_BINDING           = 0,
     SAMPLED_IMAGE_BINDING = 1,
     SAMPLER_BINDING       = 2,
-    CUBE_IAMGE_BINDING = 3,
+    CUBE_IMAGE_BINDING = 3,
 
     // NOTE: Scene Set
     SCENE_UBO_BINDING = 0,
@@ -75,7 +75,7 @@ bool vulkan_bindless_create(vulkan *vulkan, u32 ubo_size, vulkan_bindless *out_b
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         },
         {
-            .binding = CUBE_IAMGE_BINDING,
+            .binding = CUBE_IMAGE_BINDING,
             .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
             .descriptorCount = VULKAN_MAX_CUBE_IMAGE_COUNT,
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -363,7 +363,7 @@ void vulkan_bindless_cube_image_aquire(vulkan *vulkan, vulkan_image *image, VkIm
         .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
         .dstArrayElement = image->descriptor.image_cube,
         .descriptorCount = 1,
-        .dstBinding      = SAMPLED_IMAGE_BINDING,
+        .dstBinding      = CUBE_IMAGE_BINDING,
         .dstSet          = bindless->set,
         .pImageInfo      = &image_info,
     };

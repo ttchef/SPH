@@ -52,13 +52,15 @@ typedef struct
 
 bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect, const char *name, vulkan_image *out_image);
 
-bool vulkan_image_cube_map_create(vulkan *vulkan, u32 face_size, VkFormat format, VkImageUsageFlags usage, const char *name, vulkan_image *out_image);
+bool vulkan_image_cube_create(vulkan *vulkan, u32 face_size, VkFormat format, VkImageUsageFlags usage, const char *name, vulkan_image *out_image);
 
 void vulkan_image_destroy(vulkan *vulkan, vulkan_image *image);
 
 bool vulkan_image_transition(vulkan *vulkan, memory_arena *arena, vulkan_image image, vulkan_image_info src, vulkan_image_info dst);
 
-bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image image, u32 size, void *data, vulkan_image_info src, vulkan_image_info);
+bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image image, u32 size, void *data, vulkan_image_info src, vulkan_image_info dst);
+
+bool vulkan_image_cube_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image image, u32 size, void *data, u32 face, vulkan_image_info src, vulkan_image_info dst);
 
 bool vulkan_sampler_create(vulkan *vulkan, const char *name, vulkan_sampler *out_sampler);
 

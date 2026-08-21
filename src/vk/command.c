@@ -124,6 +124,7 @@ typedef struct
     vulkan_buffer     src;
     vulkan_image      dst;
     vulkan_image_info dst_info;
+    u32 dst_array_index;
 } command_copy_image;
 
 typedef struct
@@ -355,7 +356,7 @@ bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, 
     return command_add(queue, &copy_buffer, header.size);
 }
 
-bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, vulkan_image_info dst_info)
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, vulkan_image_info dst_info, u32 dst_array_index)
 {
     command_header header = {
         .type = COMMAND_COPY_IMAGE,
@@ -367,6 +368,7 @@ bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, v
         .src      = src,
         .dst      = dst,
         .dst_info = dst_info,
+        .dst_array_index = dst_array_index,
     };
 
     return command_add(queue, &copy_image, header.size);
@@ -744,6 +746,7 @@ static void execute_queue(vulkan *vulkan, vulkan_command_queue *queue, VkCommand
             VkBufferImageCopy region = {
                 .imageSubresource = {
                     .aspectMask = copy_image->dst_info.aspect,
+                    .baseArrayLayer = copy_image->dst_array_index,
                     .layerCount = 1,
                 },
                 .imageExtent = {

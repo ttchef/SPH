@@ -48,3 +48,5 @@ void draw_quad(app *app, v2 pos, v2 scale, f32 roundness, color4 color, vulkan_i
 void draw_gradient(app *app, v2 pos, v2 scale, f32 roundness, color4 a, color4 b, gradient_type type);
 
 void draw_cube_lines(app *app, v3 pos, v3 scale);
+
+void draw_skybox(app *app, vulkan_image skybox);

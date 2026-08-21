@@ -84,7 +84,7 @@ bool vulkan_image_create(vulkan *vulkan, v2u dimensions, VkFormat format, VkImag
     return true;
 }
 
-bool vulkan_image_cube_map_create(vulkan *vulkan, u32 face_size, VkFormat format, VkImageUsageFlags usage, const char *name, vulkan_image *out_image)
+bool vulkan_image_cube_create(vulkan *vulkan, u32 face_size, VkFormat format, VkImageUsageFlags usage, const char *name, vulkan_image *out_image)
 {
     // NOTE: For relase
     UNUSED(name);
@@ -145,7 +145,7 @@ bool vulkan_image_cube_map_create(vulkan *vulkan, u32 face_size, VkFormat format
         .viewType                    = VK_IMAGE_VIEW_TYPE_CUBE,
         .format                      = format,
         .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .subresourceRange.layerCount = 1,
+        .subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS,
         .subresourceRange.levelCount = 1,
     };
 
@@ -201,7 +201,39 @@ bool vulkan_image_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image 
     vulkan_command_queue *queue = vulkan_command_begin(arena);
 
     vulkan_command_image_barrier(queue, image, src, copy_info);
-    vulkan_command_copy_image(queue, staging, image, copy_info);
+    vulkan_command_copy_image(queue, staging, image, copy_info, 0);
+    vulkan_command_image_barrier(queue, image, copy_info, dst);
+
+    if (!vulkan_command_end(queue, vulkan, true))
+    {
+        vulkan_buffer_destroy(vulkan, &staging);
+        return false;
+    }
+    vulkan_buffer_destroy(vulkan, &staging);
+
+    return true;
+}
+
+bool vulkan_image_cube_data_upload(vulkan *vulkan, memory_arena *arena, vulkan_image image, u32 size, void *data, u32 face, vulkan_image_info src, vulkan_image_info dst)
+{
+    vulkan_buffer staging;
+    if (!vulkan_buffer_host_visible_create(vulkan, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, data, "staging", &staging))
+    {
+        SDL_Log("[VULKAN] Failed to create staging buffer when uploading data to image.");
+        return false;
+    }
+
+    vulkan_image_info copy_info = {
+        .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .access = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .stage  = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .aspect = src.aspect,
+    };
+
+    vulkan_command_queue *queue = vulkan_command_begin(arena);
+
+    vulkan_command_image_barrier(queue, image, src, copy_info);
+    vulkan_command_copy_image(queue, staging, image, copy_info, face);
     vulkan_command_image_barrier(queue, image, copy_info, dst);
 
     if (!vulkan_command_end(queue, vulkan, true))

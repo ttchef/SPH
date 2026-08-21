@@ -15,3 +15,5 @@
   - [X] fix stupid image vulkan abstraction
   - [ ] better fluid rendering
   - [X] refactor refactor refactor!!! like wtf are these unconsistent shit as names
+  - [ ] remove code duplication in image api for cube images
+

@@ -76,7 +76,7 @@ bool vulkan_command_set_viewport(vulkan_command_queue *queue, f32 x, f32 y, f32 
 
 bool vulkan_command_copy_buffer(vulkan_command_queue *queue, vulkan_buffer src, vulkan_buffer dst);
 
-bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, vulkan_image_info dst_info);
+bool vulkan_command_copy_image(vulkan_command_queue *queue, vulkan_buffer src, vulkan_image dst, vulkan_image_info dst_info, u32 dst_array_index);
 
 bool vulkan_command_bind_scene_ubo(vulkan_command_queue *queue, vulkan_bindless_scene_ubo scene_ubo, vulkan_pipeline_id pipeline);
 

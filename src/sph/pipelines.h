@@ -30,6 +30,12 @@ typedef struct
 
 typedef struct
 {
+    vulkan_bindless_image skybox;
+    vulkan_bindless_sampler sampler;
+} skybox_pc;
+
+typedef struct
+{
     VkDeviceAddress positions_addr;
     VkDeviceAddress velocities_addr;
     u32             particle_count;
@@ -118,6 +124,7 @@ enum
     // NOTE: Draw Helper
     PIPELINE_TEXTURED_QUAD,
     PIPELINE_CUBE_LINES,
+    PIPELINE_SKYBOX,
 
     // NOTE: Particle stuff
     PIPELINE_PARTICLE_RENDER,
